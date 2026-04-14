@@ -1,0 +1,83 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: orders
+// Document ID: {orderId} (UUID)
+// Fields:
+//   - nickname: string (required)
+//   - contact: string (required)
+//   - title: string (required)
+//   - category: string (required)
+//   - referenceType: string (optional, enum: image, link)
+//   - referenceImages: list of strings (optional)
+//   - referenceLink: string (optional)
+//   - description: string (optional)
+//   - status: string (required, enum: pending, queued, draft, lineart, coloring, completed, delivered)
+//   - progressHistory: map (optional)
+//   - expectedDates: map (optional)
+//   - createdAt: timestamp (required)
+//   - orderId: string (required, UUID)
+//   - officialOrderId: string (optional)
+//
+// Collection: settings
+// Document ID: global
+// Fields:
+//   - commissionStatus: string (required, enum: open, closed)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (request.auth.token.email == "sara20001128@gmail.com" && request.auth.token.email_verified == true);
+    }
+
+    function isValidOrder(data) {
+      return data.keys().hasAll(['nickname', 'contact', 'title', 'category', 'status', 'createdAt', 'orderId']) &&
+             data.nickname is string && data.nickname.size() > 0 && data.nickname.size() < 100 &&
+             data.contact is string && data.contact.size() > 0 && data.contact.size() < 200 &&
+             data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
+             data.category is string &&
+             data.status in ['pending', 'queued', 'draft', 'lineart', 'coloring', 'completed', 'delivered'] &&
+             data.orderId is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /orders/{orderId} {
+      allow get: if true; 
+      allow list: if isAdmin();
+      allow create: if isValidOrder(request.resource.data);
+      allow update, delete: if isAdmin();
+    }
+
+    match /settings/global {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/profile {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /priceList/{itemId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}

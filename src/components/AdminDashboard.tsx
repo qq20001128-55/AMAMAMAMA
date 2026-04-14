@@ -1,0 +1,724 @@
+import React, { useState, useEffect } from 'react';
+import { User } from 'firebase/auth';
+import { motion } from 'motion/react';
+import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
+import { collection, query, orderBy, getDocs, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase';
+import { cn, STATUS_NODES } from '../lib/utils';
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
+import { zhTW } from 'date-fns/locale';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '../firebase';
+import { compressImage } from '../lib/utils';
+
+interface AdminDashboardProps {
+  onBack: () => void;
+  user: User | null;
+}
+
+export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [allOrders, setAllOrders] = useState<any[]>([]); // For stats and calendar
+  const [priceList, setPriceList] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [commissionStatus, setCommissionStatus] = useState<'open' | 'closed'>('open');
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editData, setEditData] = useState<any>(null);
+  const [lastDoc, setLastDoc] = useState<any>(null);
+  const [hasMore, setHasMore] = useState(true);
+  const [currentMonth, setCurrentMonth] = useState(new Date());
+  
+  // Price list editing state
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [priceEditData, setPriceEditData] = useState<any>(null);
+  const [priceUploading, setPriceUploading] = useState(false);
+
+  // Check if user is admin
+  const isAdmin = user?.email === 'sara20001128@gmail.com';
+
+  useEffect(() => {
+    fetchOrders();
+    fetchAllOrders();
+    fetchSettings();
+    fetchPriceList();
+  }, []);
+
+  const fetchPriceList = async () => {
+    try {
+      const q = query(collection(db, 'priceList'), orderBy('order', 'asc'));
+      const snap = await getDocs(q);
+      setPriceList(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Fetch price list error:', err);
+    }
+  };
+
+  const fetchSettings = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'settings'));
+      const global = snap.docs.find(d => d.id === 'global');
+      if (global) {
+        setCommissionStatus(global.data().commissionStatus);
+      } else {
+        await setDoc(doc(db, 'settings', 'global'), { commissionStatus: 'open' });
+      }
+    } catch (err) {
+      console.error('Fetch settings error:', err);
+    }
+  };
+
+  const fetchAllOrders = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'orders'));
+      setAllOrders(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Fetch all orders error:', err);
+    }
+  };
+
+  const fetchOrders = async (isNext = false) => {
+    setLoading(true);
+    try {
+      let q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(10));
+      if (isNext && lastDoc) {
+        q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), startAfter(lastDoc), limit(10));
+      }
+
+      const snap = await getDocs(q);
+      const newOrders = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      
+      if (isNext) {
+        setOrders(prev => [...prev, ...newOrders]);
+      } else {
+        setOrders(newOrders);
+      }
+
+      setLastDoc(snap.docs[snap.docs.length - 1]);
+      setHasMore(snap.docs.length === 10);
+    } catch (err) {
+      console.error('Fetch orders error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleCommission = async () => {
+    const newStatus = commissionStatus === 'open' ? 'closed' : 'open';
+    try {
+      await updateDoc(doc(db, 'settings', 'global'), { commissionStatus: newStatus });
+      setCommissionStatus(newStatus);
+    } catch (err) {
+      console.error('Toggle error:', err);
+    }
+  };
+
+  const handleEdit = (order: any) => {
+    setEditingId(order.id);
+    setEditData({ ...order, expectedDates: order.expectedDates || {} });
+  };
+
+  const handleSave = async () => {
+    if (!editingId) return;
+    try {
+      const oldOrder = orders.find(o => o.id === editingId);
+      let newProgressHistory = { ...(oldOrder.progressHistory || {}) };
+      
+      // If status changed, record it in progressHistory
+      if (oldOrder.status !== editData.status) {
+        newProgressHistory[editData.status] = {
+          updatedAt: serverTimestamp(),
+          dateString: new Date().toISOString()
+        };
+      }
+
+      const updatedData = {
+        ...editData,
+        progressHistory: newProgressHistory
+      };
+
+      await updateDoc(doc(db, 'orders', editingId), updatedData);
+      setOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
+      setAllOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
+      setEditingId(null);
+    } catch (err) {
+      console.error('Save error:', err);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('確定要銷毀此契嗎？')) return;
+    try {
+      await deleteDoc(doc(db, 'orders', id));
+      setOrders(prev => prev.filter(o => o.id !== id));
+      setAllOrders(prev => prev.filter(o => o.id !== id));
+    } catch (err) {
+      console.error('Delete error:', err);
+    }
+  };
+
+  const handleRejectOrder = async (order: any) => {
+    if (!window.confirm(`確定要婉拒 ${order.nickname} 的委託嗎？`)) return;
+    
+    // Email Template A
+    const emailContent = `龍契局已收到你的願望。
+
+這次的委託內容這邊評估後，暫時無法承接，很抱歉。
+目前狀態或方向上不太適合接下這個案子。
+也謝謝你的信任與喜歡。
+
+如果之後有其他類型的委託，也很歡迎再來詢問龍契局
+願你未來在合適的時機，再度踏入此局。`;
+
+    console.log(`Sending rejection email to ${order.contact}:\n\n${emailContent}`);
+    // TODO: Integrate actual email sending service here
+
+    try {
+      // Assuming 'closed' or a similar status exists, or we just delete it. 
+      // Let's set it to a 'closed' state if we had one, or just delete for now as per previous logic, 
+      // but user requested "設為已關閉". We will add 'closed' to STATUS_NODES conceptually or just update it.
+      // For now, we'll update the status to 'closed' even if it's not in the main tracking nodes.
+      await updateDoc(doc(db, 'orders', order.id), { status: 'closed' });
+      setOrders(prev => prev.filter(o => o.id !== order.id)); // Remove from active view
+      setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'closed' } : o));
+      alert('已婉拒並發送通知信（模擬）。');
+    } catch (err) {
+      console.error('Reject error:', err);
+    }
+  };
+
+  const handleAcceptOrder = async (order: any) => {
+    const officialId = `MAA-${order.orderId.substring(0, 4).toUpperCase()}`;
+    if (!window.confirm(`確定要接受 ${order.nickname} 的委託嗎？將分配編號 #${officialId}`)) return;
+
+    // Email Template B
+    const emailContent = `此契，成立。
+
+你的委託已收到，並進入排單與評估流程。
+若無特殊狀況，將依順序開始製作。
+
+在契約成立後，以下事項將生效：
+・依排單順序進行製作
+・修改與退款規則依委託須知執行
+・驚喜包不可進行大幅更動
+
+龍契已受理。
+#${officialId}
+
+——瑪阿`;
+
+    console.log(`Sending acceptance email to ${order.contact}:\n\n${emailContent}`);
+    // TODO: Integrate actual email sending service here
+
+    try {
+      const updatedData = {
+        status: 'queued',
+        officialOrderId: officialId,
+        progressHistory: {
+          ...order.progressHistory,
+          queued: {
+            updatedAt: serverTimestamp(),
+            dateString: new Date().toISOString()
+          }
+        }
+      };
+      await updateDoc(doc(db, 'orders', order.id), updatedData);
+      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updatedData } : o));
+      setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updatedData } : o));
+      alert('已接受並發送通知信（模擬）。');
+    } catch (err) {
+      console.error('Accept error:', err);
+    }
+  };
+
+  const scrollToOrder = (id: string) => {
+    const el = document.getElementById(`order-${id}`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('bg-red-50');
+      setTimeout(() => el.classList.remove('bg-red-50'), 2000);
+    }
+  };
+
+  const handleAddPriceItem = async () => {
+    const newItem = {
+      title: '新委託項目',
+      description: '請輸入說明與價格',
+      imageUrl: '',
+      order: priceList.length
+    };
+    try {
+      const docRef = doc(collection(db, 'priceList'));
+      await setDoc(docRef, newItem);
+      setPriceList([...priceList, { id: docRef.id, ...newItem }]);
+      setEditingPriceId(docRef.id);
+      setPriceEditData({ id: docRef.id, ...newItem });
+    } catch (err) {
+      console.error('Add price item error:', err);
+    }
+  };
+
+  const handleSavePriceItem = async () => {
+    if (!editingPriceId) return;
+    try {
+      await updateDoc(doc(db, 'priceList', editingPriceId), {
+        title: priceEditData.title,
+        description: priceEditData.description,
+        imageUrl: priceEditData.imageUrl,
+        order: priceEditData.order
+      });
+      setPriceList(prev => prev.map(p => p.id === editingPriceId ? priceEditData : p).sort((a, b) => a.order - b.order));
+      setEditingPriceId(null);
+    } catch (err) {
+      console.error('Save price item error:', err);
+    }
+  };
+
+  const handleDeletePriceItem = async (id: string) => {
+    if (!window.confirm('確定要刪除此價目項目嗎？')) return;
+    try {
+      await deleteDoc(doc(db, 'priceList', id));
+      setPriceList(prev => prev.filter(p => p.id !== id));
+    } catch (err) {
+      console.error('Delete price item error:', err);
+    }
+  };
+
+  const handlePriceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingPriceId) return;
+
+    setPriceUploading(true);
+    try {
+      const compressedBlob = await compressImage(file);
+      const storageRef = ref(storage, `priceList/${editingPriceId}.webp`);
+      await uploadBytes(storageRef, compressedBlob);
+      const url = await getDownloadURL(storageRef);
+      setPriceEditData({ ...priceEditData, imageUrl: url });
+    } catch (err) {
+      console.error('Upload error:', err);
+      alert('上傳失敗，請稍後再試。');
+    } finally {
+      setPriceUploading(false);
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
+        <h2 className="text-2xl font-bold mb-4">權限不足</h2>
+        <p className="text-gray-400 mb-8">您沒有訪問管理後台的權限。</p>
+        <button onClick={onBack} className="btn-primary">返回首頁</button>
+      </div>
+    );
+  }
+
+  // Stats
+  const totalOrders = allOrders.length;
+  const completedOrders = allOrders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
+  const pendingOrders = totalOrders - completedOrders;
+
+  // Calendar Days
+  const daysInMonth = eachDayOfInterval({
+    start: startOfMonth(currentMonth),
+    end: endOfMonth(currentMonth)
+  });
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-7xl mx-auto px-6 py-10"
+    >
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b-2 border-[#1a1a1a] pb-6">
+        <div>
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-4 transition-colors tracking-widest">
+            <ChevronLeft size={20} />
+            <span>返回大廳</span>
+          </button>
+          <h2 className="text-4xl font-black tracking-widest">龍契局・後台</h2>
+        </div>
+
+        <div className="flex items-center gap-4 neo-box !p-4">
+          <div className="flex flex-col">
+            <span className="text-[10px] uppercase tracking-widest text-gray-500">局門狀態</span>
+            <span className={cn("text-sm font-bold tracking-widest", commissionStatus === 'open' ? "text-green-700" : "text-[#8b0000]")}>
+              {commissionStatus === 'open' ? '開局接契' : '局門緊閉'}
+            </span>
+          </div>
+          <button 
+            onClick={toggleCommission}
+            className={cn(
+              "p-3 border-2 transition-all duration-300",
+              commissionStatus === 'open' ? "border-green-700 text-green-700 hover:bg-green-50" : "border-[#8b0000] text-[#8b0000] hover:bg-red-50"
+            )}
+          >
+            {commissionStatus === 'open' ? <Power size={20} /> : <PowerOff size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+        <div className="neo-box text-center">
+          <p className="text-sm tracking-widest text-gray-500 mb-2">總書契數</p>
+          <p className="text-4xl font-black">{totalOrders}</p>
+        </div>
+        <div className="neo-box text-center">
+          <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
+          <p className="text-4xl font-black text-[#8b0000]">{pendingOrders}</p>
+        </div>
+        <div className="neo-box text-center">
+          <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
+          <p className="text-4xl font-black text-green-700">{completedOrders}</p>
+        </div>
+      </div>
+
+      {/* Calendar */}
+      <div className="neo-box mb-16">
+        <div className="flex justify-between items-center mb-6 border-b-2 border-gray-200 pb-4">
+          <h3 className="text-xl font-black tracking-widest flex items-center gap-2">
+            <CalendarIcon size={24} />
+            契期曆
+          </h3>
+          <div className="flex items-center gap-4">
+            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 hover:bg-gray-100">
+              <ChevronLeft size={20} />
+            </button>
+            <span className="font-bold tracking-widest">{format(currentMonth, 'yyyy 年 MM 月')}</span>
+            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 hover:bg-gray-100">
+              <ChevronRight size={20} />
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-7 gap-2">
+          {['日', '一', '二', '三', '四', '五', '六'].map(d => (
+            <div key={d} className="text-center text-sm font-bold tracking-widest py-2 border-b-2 border-[#1a1a1a]">{d}</div>
+          ))}
+          {Array.from({ length: daysInMonth[0].getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
+          {daysInMonth.map(day => {
+            const dayOrders = allOrders.filter(o => {
+              if (!o.expectedDates) return false;
+              return Object.values(o.expectedDates).some((dateStr: any) => {
+                try { return isSameDay(parseISO(dateStr), day); } catch(e) { return false; }
+              });
+            });
+
+            return (
+              <div key={day.toISOString()} className={cn(
+                "min-h-[100px] border-2 p-2 transition-colors",
+                isSameDay(day, new Date()) ? "border-[#8b0000] bg-red-50/30" : "border-gray-200 hover:border-gray-400"
+              )}>
+                <div className="text-right text-sm font-bold mb-2">{format(day, 'd')}</div>
+                <div className="space-y-1">
+                  {dayOrders.map(o => (
+                    <button 
+                      key={o.id}
+                      onClick={() => scrollToOrder(o.id)}
+                      className="block w-full text-left text-[10px] truncate bg-[#1a1a1a] text-white px-1 py-0.5 hover:bg-[#8b0000] transition-colors"
+                    >
+                      {o.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* New Order Queue */}
+      {orders.filter(o => o.status === 'pending').length > 0 && (
+        <div className="mb-16">
+          <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">待確認之契</h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {orders.filter(o => o.status === 'pending').map(order => (
+              <div key={order.id} className="neo-box border-[#8b0000] bg-red-50/10">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h4 className="text-lg font-black tracking-widest">{order.title}</h4>
+                    <p className="text-sm text-gray-500 tracking-widest">{order.nickname} | {order.category}</p>
+                  </div>
+                  <span className="text-xs font-mono text-gray-400">#{order.orderId.substring(0, 4).toUpperCase()}</span>
+                </div>
+                <p className="text-sm text-gray-600 mb-6 line-clamp-3">{order.description || '無詳細描述'}</p>
+                <div className="flex justify-end gap-4">
+                  <button 
+                    onClick={() => handleRejectOrder(order)}
+                    className="px-4 py-2 border-2 border-[#1a1a1a] text-sm tracking-widest hover:bg-gray-100 transition-colors"
+                  >
+                    婉拒
+                  </button>
+                  <button 
+                    onClick={() => handleAcceptOrder(order)}
+                    className="px-4 py-2 bg-[#8b0000] text-white text-sm tracking-widest hover:bg-red-900 transition-colors"
+                  >
+                    接受
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Price List Management */}
+      <div className="mb-16">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-2xl font-black tracking-widest text-[#8b0000]">價目表管理</h3>
+          <button onClick={handleAddPriceItem} className="btn-primary py-2 px-4 text-sm">
+            + 新增項目
+          </button>
+        </div>
+        <div className="space-y-4">
+          {priceList.map((item) => (
+            <div key={item.id} className="neo-box !p-4 flex flex-col md:flex-row gap-6 items-start">
+              {editingPriceId === item.id ? (
+                <>
+                  <div className="w-full md:w-1/3 space-y-4">
+                    <div className="aspect-[4/3] bg-gray-100 border-2 border-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
+                      {priceEditData.imageUrl ? (
+                        <img src={priceEditData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-gray-400 text-sm">無圖片</span>
+                      )}
+                      <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 hover:opacity-100 cursor-pointer transition-opacity">
+                        {priceUploading ? (
+                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <span className="text-xs tracking-widest">上傳圖片</span>
+                        )}
+                        <input type="file" className="hidden" accept="image/*" onChange={handlePriceImageUpload} disabled={priceUploading} />
+                      </label>
+                    </div>
+                    <input 
+                      type="number" 
+                      className="input-field py-1 text-sm" 
+                      placeholder="排序 (數字越小越前面)"
+                      value={priceEditData.order}
+                      onChange={e => setPriceEditData({...priceEditData, order: Number(e.target.value)})}
+                    />
+                  </div>
+                  <div className="w-full md:w-2/3 flex flex-col h-full gap-4">
+                    <input 
+                      type="text" 
+                      className="input-field font-bold text-lg" 
+                      placeholder="委託名稱"
+                      value={priceEditData.title}
+                      onChange={e => setPriceEditData({...priceEditData, title: e.target.value})}
+                    />
+                    <textarea 
+                      className="input-field flex-1 min-h-[120px] resize-none text-sm leading-loose" 
+                      placeholder="價格與說明..."
+                      value={priceEditData.description}
+                      onChange={e => setPriceEditData({...priceEditData, description: e.target.value})}
+                    />
+                    <div className="flex justify-end gap-4 mt-auto">
+                      <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border-2 border-[#1a1a1a] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                        取消
+                      </button>
+                      <button onClick={handleSavePriceItem} className="px-4 py-2 bg-green-700 text-white text-sm tracking-widest hover:bg-green-800 transition-colors">
+                        儲存
+                      </button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border-2 border-[#1a1a1a] overflow-hidden">
+                    {item.imageUrl ? (
+                      <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">無圖片</div>
+                    )}
+                  </div>
+                  <div className="w-full md:w-3/4 flex flex-col justify-between h-full">
+                    <div>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="text-xl font-black tracking-widest">{item.title}</h4>
+                        <span className="text-xs text-gray-400 font-mono">排序: {item.order}</span>
+                      </div>
+                      <p className="text-sm text-gray-600 tracking-widest leading-loose whitespace-pre-wrap line-clamp-3">
+                        {item.description}
+                      </p>
+                    </div>
+                    <div className="flex justify-end gap-4 mt-4">
+                      <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] text-sm tracking-widest hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors">
+                        <Edit2 size={14} /> 編輯
+                      </button>
+                      <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#8b0000] text-[#8b0000] text-sm tracking-widest hover:bg-red-50 transition-colors">
+                        <Trash2 size={14} /> 刪除
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          ))}
+          {priceList.length === 0 && (
+            <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-200 tracking-widest">
+              目前尚無價目項目。
+            </div>
+          )}
+        </div>
+      </div>
+
+      <h3 className="text-2xl font-black tracking-widest mb-6">卷宗列表</h3>
+      <div className="space-y-6">
+        {orders.filter(o => o.status !== 'pending' && o.status !== 'closed').map(order => (
+          <div key={order.id} id={`order-${order.id}`} className="neo-box transition-colors duration-1000">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Left: Info */}
+              <div className="flex-1 space-y-4">
+                <div className="flex justify-between items-start border-b-2 border-gray-200 pb-4">
+                  <div>
+                    <h4 className="text-xl font-black tracking-widest mb-1">{order.title}</h4>
+                    <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
+                  </div>
+                  <div className="text-right">
+                    {editingId === order.id ? (
+                      <input 
+                        type="text" 
+                        placeholder="輸入正式編號"
+                        className="input-field py-1 text-sm w-32 text-right"
+                        value={editData.officialOrderId || ''}
+                        onChange={(e) => setEditData({ ...editData, officialOrderId: e.target.value })}
+                      />
+                    ) : (
+                      <span className="font-mono font-bold text-sm">{order.officialOrderId || '未編號'}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="text-sm tracking-widest leading-relaxed">
+                  <p className="text-gray-500 mb-1">聯絡方式：<span className="text-[#1a1a1a]">{order.contact}</span></p>
+                  <p className="text-gray-500 mb-1">需求描述：<span className="text-[#1a1a1a]">{order.description || '無'}</span></p>
+                </div>
+
+                {/* References */}
+                <div>
+                  <p className="text-sm text-gray-500 tracking-widest mb-2">參考資料：</p>
+                  {order.referenceType === 'link' ? (
+                    <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#8b0000] hover:underline text-sm tracking-widest">
+                      <ExternalLink size={16} /> 開啟連結
+                    </a>
+                  ) : order.referenceImages?.length > 0 ? (
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {order.referenceImages.map((img: string, i: number) => (
+                        <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                          <img src={img} alt="Ref" className="w-16 h-16 object-cover border border-[#1a1a1a] hover:opacity-80" />
+                        </a>
+                      ))}
+                    </div>
+                  ) : <span className="text-sm text-gray-400">無</span>}
+                </div>
+              </div>
+
+              {/* Right: Status & Actions */}
+              <div className="lg:w-72 flex flex-col justify-between border-t-2 lg:border-t-0 lg:border-l-2 border-gray-200 pt-4 lg:pt-0 lg:pl-8">
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
+                    {editingId === order.id ? (
+                      <select 
+                        className="input-field py-2 text-sm appearance-none font-bold"
+                        value={editData.status}
+                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                      >
+                        {STATUS_NODES.map(node => <option key={node.id} value={node.id}>{node.label}</option>)}
+                      </select>
+                    ) : (
+                      <span className="inline-block px-4 py-2 bg-[#1a1a1a] text-[#faf9f6] text-sm font-bold tracking-widest">
+                        {STATUS_NODES.find(n => n.id === order.status)?.label}
+                      </span>
+                    )}
+                  </div>
+
+                  {editingId === order.id && (
+                    <div className="space-y-4 border-t-2 border-gray-200 pt-4">
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 tracking-widest">當前進度達成日 (可選)</p>
+                        <input 
+                          type="date"
+                          className="input-field py-2 text-sm"
+                          value={editData.progressHistory?.[editData.status]?.dateString ? format(parseISO(editData.progressHistory[editData.status].dateString), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                            setEditData({
+                              ...editData,
+                              progressHistory: {
+                                ...editData.progressHistory,
+                                [editData.status]: {
+                                  ...editData.progressHistory?.[editData.status],
+                                  dateString: dateStr
+                                }
+                              }
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 tracking-widest">預計完稿日 (可選)</p>
+                        <input 
+                          type="date"
+                          className="input-field py-2 text-sm"
+                          value={editData.expectedDates?.completed ? format(parseISO(editData.expectedDates.completed), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                            setEditData({
+                              ...editData,
+                              expectedDates: { ...editData.expectedDates, completed: dateStr }
+                            });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex justify-end gap-4 mt-6">
+                  {editingId === order.id ? (
+                    <>
+                      <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white tracking-widest hover:bg-green-800 transition-colors">
+                        <Save size={16} /> 儲存
+                      </button>
+                      <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] tracking-widest hover:bg-gray-100 transition-colors">
+                        取消
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] tracking-widest hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors">
+                        <Edit2 size={16} /> 編輯
+                      </button>
+                      <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#8b0000] text-[#8b0000] tracking-widest hover:bg-red-50 transition-colors">
+                        <Trash2 size={16} /> 銷毀
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {hasMore && (
+        <div className="mt-12 text-center">
+          <button 
+            onClick={() => fetchOrders(true)} 
+            disabled={loading}
+            className="btn-secondary"
+          >
+            {loading ? '翻閱中...' : '翻閱更多卷宗'}
+          </button>
+        </div>
+      )}
+
+      {orders.length === 0 && !loading && (
+        <div className="py-20 text-center text-gray-400 border-2 border-dashed border-gray-200 mt-4 tracking-widest">
+          目前尚無卷宗。
+        </div>
+      )}
+    </motion.div>
+  );
+}

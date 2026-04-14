@@ -1,0 +1,81 @@
+{
+  "entities": {
+    "Order": {
+      "title": "Order",
+      "description": "A commission order request",
+      "type": "object",
+      "properties": {
+        "nickname": { "type": "string", "description": "User's nickname" },
+        "contact": { "type": "string", "description": "User's contact info" },
+        "title": { "type": "string", "description": "Commission title" },
+        "category": { "type": "string", "description": "Commission category" },
+        "referenceType": { "type": "string", "enum": ["image", "link"], "description": "Type of reference provided" },
+        "referenceImages": { "type": "array", "items": { "type": "string" }, "description": "URLs to reference images" },
+        "referenceLink": { "type": "string", "description": "URL to reference link" },
+        "description": { "type": "string", "description": "Detailed requirements" },
+        "status": { 
+          "type": "string", 
+          "enum": ["pending", "queued", "draft", "lineart", "coloring", "completed", "delivered"],
+          "description": "Current progress status" 
+        },
+        "progressHistory": {
+          "type": "object",
+          "description": "History of progress updates",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "updatedAt": { "type": "string", "format": "date-time" },
+              "dateString": { "type": "string" }
+            }
+          }
+        },
+        "expectedDates": {
+          "type": "object",
+          "description": "Expected dates for each stage",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp" },
+        "orderId": { "type": "string", "description": "Temporary UUID" },
+        "officialOrderId": { "type": "string", "description": "Admin assigned official ID" }
+      },
+      "required": ["nickname", "contact", "title", "category", "status", "createdAt", "orderId"]
+    },
+    "Settings": {
+      "title": "Settings",
+      "description": "Global application settings",
+      "type": "object",
+      "properties": {
+        "commissionStatus": { "type": "string", "enum": ["open", "closed"], "description": "Whether commissions are open" }
+      },
+      "required": ["commissionStatus"]
+    },
+    "PriceListItem": {
+      "title": "PriceListItem",
+      "description": "An item in the price list",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string", "description": "Title of the commission type" },
+        "description": { "type": "string", "description": "Description and price details" },
+        "imageUrl": { "type": "string", "description": "URL to the display image" },
+        "order": { "type": "number", "description": "Order for sorting" }
+      },
+      "required": ["title", "imageUrl", "order"]
+    }
+  },
+  "firestore": {
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Commission orders"
+    },
+    "/settings/global": {
+      "schema": "Settings",
+      "description": "Global settings"
+    },
+    "/priceList/{itemId}": {
+      "schema": "PriceListItem",
+      "description": "Price list items"
+    }
+  }
+}
