@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { ChevronLeft, Upload, X, CheckCircle2, Link as LinkIcon, Image as ImageIcon } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import { cn, compressImage, CATEGORIES } from '../lib/utils';
@@ -16,6 +16,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
   const [step, setStep] = useState<'terms' | 'form' | 'success'>('terms');
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [priceList, setPriceList] = useState<any[]>([]);
   
   const [refType, setRefType] = useState<'image' | 'link'>('image');
   const [files, setFiles] = useState<File[]>([]);
@@ -23,12 +24,35 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
   
   const [formData, setFormData] = useState({
     nickname: '',
+    email: '',
     contact: '',
     title: '',
-    category: CATEGORIES[0],
+    category: '',
     referenceLink: '',
     description: '',
   });
+
+  useEffect(() => {
+    const fetchPriceList = async () => {
+      try {
+        const q = query(collection(db, 'priceList'), orderBy('order', 'asc'));
+        const snap = await getDocs(q);
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        setPriceList(items);
+        if (items.length > 0 && !formData.category) {
+          setFormData(prev => ({ ...prev, category: items[0].title }));
+        } else if (!formData.category) {
+          setFormData(prev => ({ ...prev, category: CATEGORIES[0] }));
+        }
+      } catch (err) {
+        console.error('Fetch price list error:', err);
+        if (!formData.category) {
+          setFormData(prev => ({ ...prev, category: CATEGORIES[0] }));
+        }
+      }
+    };
+    fetchPriceList();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(e.target.files || []);
@@ -73,6 +97,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
 
       await addDoc(collection(db, 'orders'), {
         nickname: formData.nickname,
+        email: formData.email,
         contact: formData.contact,
         title: formData.title,
         category: formData.category,
@@ -90,6 +115,28 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
         createdAt: serverTimestamp(),
         orderId: tempId,
       });
+
+      // Find price from priceList
+      const matchedItem = priceList.find(p => p.title === formData.category);
+      const priceText = matchedItem ? matchedItem.description : '請確認價目表';
+
+      // Send webhook
+      try {
+        await fetch('/api/webhook/discord', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            nickname: formData.nickname,
+            category: formData.category,
+            price: priceText,
+            contact: formData.contact,
+            email: formData.email
+          })
+        });
+      } catch (webhookErr) {
+        console.error('Failed to trigger webhook:', webhookErr);
+        // Do not block the user if webhook fails
+      }
 
       setOrderId(tempId);
       setStep('success');
@@ -249,7 +296,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
       <h2 className="text-3xl font-black mb-8 tracking-widest">委託書契</h2>
       
       <form onSubmit={handleSubmit} className="space-y-8">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
           <div>
             <label className="block text-sm tracking-widest font-bold mb-2">稱呼 Nickname</label>
             <input 
@@ -261,11 +308,21 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             />
           </div>
           <div>
+            <label className="block text-sm tracking-widest font-bold mb-2">信箱 Email</label>
+            <input 
+              required
+              type="email" 
+              className="input-field" 
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
+          </div>
+          <div>
             <label className="block text-sm tracking-widest font-bold mb-2">聯絡方式 Contact</label>
             <input 
               required
               type="text" 
-              placeholder="Email / Discord / Twitter"
+              placeholder="Discord / Twitter / FB"
               className="input-field" 
               value={formData.contact}
               onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
@@ -291,7 +348,10 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             value={formData.category}
             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
           >
-            {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+            {priceList.length > 0 
+              ? priceList.map(item => <option key={item.id} value={item.title}>{item.title}</option>)
+              : CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)
+            }
           </select>
         </div>
 

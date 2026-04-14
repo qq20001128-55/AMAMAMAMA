@@ -45,8 +45,9 @@ service cloud.firestore {
     }
 
     function isValidOrder(data) {
-      return data.keys().hasAll(['nickname', 'contact', 'title', 'category', 'status', 'createdAt', 'orderId']) &&
+      return data.keys().hasAll(['nickname', 'email', 'contact', 'title', 'category', 'status', 'createdAt', 'orderId']) &&
              data.nickname is string && data.nickname.size() > 0 && data.nickname.size() < 100 &&
+             data.email is string && data.email.size() > 0 && data.email.size() < 150 &&
              data.contact is string && data.contact.size() > 0 && data.contact.size() < 200 &&
              data.title is string && data.title.size() > 0 && data.title.size() < 200 &&
              data.category is string &&

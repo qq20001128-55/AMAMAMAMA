@@ -6,6 +6,7 @@
       "type": "object",
       "properties": {
         "nickname": { "type": "string", "description": "User's nickname" },
+        "email": { "type": "string", "description": "User's email" },
         "contact": { "type": "string", "description": "User's contact info" },
         "title": { "type": "string", "description": "Commission title" },
         "category": { "type": "string", "description": "Commission category" },
@@ -40,7 +41,7 @@
         "orderId": { "type": "string", "description": "Temporary UUID" },
         "officialOrderId": { "type": "string", "description": "Admin assigned official ID" }
       },
-      "required": ["nickname", "contact", "title", "category", "status", "createdAt", "orderId"]
+      "required": ["nickname", "email", "contact", "title", "category", "status", "createdAt", "orderId"]
     },
     "Settings": {
       "title": "Settings",
