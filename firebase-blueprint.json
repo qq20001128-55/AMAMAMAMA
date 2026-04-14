@@ -108,7 +108,9 @@
       "type": "object",
       "properties": {
         "horizontalWatermarkUrl": { "type": "string" },
-        "verticalWatermarkUrl": { "type": "string" }
+        "verticalWatermarkUrl": { "type": "string" },
+        "squareWatermarkUrl": { "type": "string" },
+        "pcWatermarkUrl": { "type": "string" }
       }
     }
   },

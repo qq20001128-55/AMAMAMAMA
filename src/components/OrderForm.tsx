@@ -37,7 +37,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
       try {
         const q = query(collection(db, 'priceList'), orderBy('order', 'asc'));
         const snap = await getDocs(q);
-        const items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+        const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
         setPriceList(items);
         if (items.length > 0 && !formData.category) {
           setFormData(prev => ({ ...prev, category: items[0].title }));
@@ -55,7 +55,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFiles = Array.from(e.target.files || []);
+    const selectedFiles = Array.from(e.target.files || []) as File[];
     if (selectedFiles.length > 0) {
       setFiles(prev => [...prev, ...selectedFiles]);
       

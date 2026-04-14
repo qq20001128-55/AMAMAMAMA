@@ -112,6 +112,8 @@ export default function Portfolio({ onBack }: PortfolioProps) {
               alt={art.title}
               horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
               verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
+              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
+              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
               className="transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
@@ -143,6 +145,8 @@ export default function Portfolio({ onBack }: PortfolioProps) {
               alt="Full size artwork"
               horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
               verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
+              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
+              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
               className="max-w-full max-h-[90vh] object-contain shadow-2xl"
             />
           </div>

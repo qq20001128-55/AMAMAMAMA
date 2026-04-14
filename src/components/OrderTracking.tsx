@@ -1,11 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft, Search, Clock, CheckCircle2, ExternalLink } from 'lucide-react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { ChevronLeft, Search, Clock, CheckCircle2, ExternalLink, X } from 'lucide-react';
+import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { cn, STATUS_NODES } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
+import WatermarkedImage from './WatermarkedImage';
 
 interface OrderTrackingProps {
   onBack: () => void;
@@ -16,6 +17,22 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
   const [loading, setLoading] = useState(false);
   const [order, setOrder] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [systemSettings, setSystemSettings] = useState<any>({});
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settingsDoc = await getDoc(doc(db, 'system', 'settings'));
+        if (settingsDoc.exists()) {
+          setSystemSettings(settingsDoc.data());
+        }
+      } catch (err) {
+        console.error('Fetch settings error:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -264,9 +281,69 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               ) : (
                 <p className="text-gray-500 tracking-widest">無參考資料</p>
               )}
+
+              {/* Stage Previews */}
+              {['draft', 'lineart', 'coloring', 'completed'].some(stage => order.progressHistory?.[stage]?.imageUrl) && (
+                <div className="mt-12">
+                  <h4 className="text-lg font-black tracking-widest border-b-2 border-[#1a1a1a] pb-2 inline-block mb-6">進度預覽</h4>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                    {['draft', 'lineart', 'coloring', 'completed'].map(stage => {
+                      const imgUrl = order.progressHistory?.[stage]?.imageUrl;
+                      if (!imgUrl) return null;
+                      const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
+                      
+                      return (
+                        <div key={stage} className="space-y-2">
+                          <p className="text-sm font-bold tracking-widest text-center">{stageLabel}</p>
+                          <div 
+                            className="aspect-square border-2 border-gray-200 overflow-hidden cursor-pointer group"
+                            onClick={() => setLightboxImage(imgUrl)}
+                          >
+                            <WatermarkedImage 
+                              src={imgUrl} 
+                              alt={`${stageLabel} preview`}
+                              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
+                              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
+                              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
+                              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
+                              className="transition-transform duration-700 group-hover:scale-105"
+                            />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </motion.div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 md:p-10"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors z-10"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X size={32} />
+          </button>
+          <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
+            <WatermarkedImage 
+              src={lightboxImage} 
+              alt="Full size preview"
+              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
+              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
+              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
+              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
+              className="max-w-full max-h-[90vh] object-contain shadow-2xl"
+            />
+          </div>
+        </div>
       )}
     </motion.div>
   );

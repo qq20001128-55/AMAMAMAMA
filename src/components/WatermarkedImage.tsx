@@ -5,11 +5,13 @@ interface WatermarkedImageProps {
   alt?: string;
   horizontalWatermarkUrl?: string;
   verticalWatermarkUrl?: string;
+  squareWatermarkUrl?: string;
+  pcWatermarkUrl?: string;
   className?: string;
   onClick?: () => void;
 }
 
-export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, verticalWatermarkUrl, className, onClick }: WatermarkedImageProps) {
+export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, verticalWatermarkUrl, squareWatermarkUrl, pcWatermarkUrl, className, onClick }: WatermarkedImageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loaded, setLoaded] = useState(false);
 
@@ -38,9 +40,17 @@ export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, ver
         canvas.height = img.height;
         ctx.drawImage(img, 0, 0);
 
-        // Determine watermark to use
-        const isWide = img.width > img.height;
-        const watermarkUrl = isWide ? horizontalWatermarkUrl : verticalWatermarkUrl;
+        // Determine watermark to use based on aspect ratio
+        const ratio = img.width / img.height;
+        let watermarkUrl = verticalWatermarkUrl;
+        
+        if (ratio > 1.5) {
+          watermarkUrl = pcWatermarkUrl || horizontalWatermarkUrl; // Fallback to horizontal if pc not available
+        } else if (ratio > 1.1) {
+          watermarkUrl = horizontalWatermarkUrl;
+        } else if (ratio >= 0.9) {
+          watermarkUrl = squareWatermarkUrl || horizontalWatermarkUrl; // Fallback
+        }
 
         if (watermarkUrl) {
           const wmImg = new Image();

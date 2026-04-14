@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, Calendar as CalendarIcon, ExternalLink } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, Calendar as CalendarIcon, ExternalLink, X, CheckCircle2 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { cn, STATUS_NODES } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { storage } from '../firebase';
-import { compressImage } from '../lib/utils';
+import { compressImage, applyWatermark } from '../lib/utils';
+import { addDoc } from 'firebase/firestore';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -47,8 +48,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const isAdmin = user?.email === 'sara20001128@gmail.com';
 
   // System Settings state
-  const [systemSettings, setSystemSettings] = useState<any>({ horizontalWatermarkUrl: '', verticalWatermarkUrl: '' });
-  const [watermarkUploading, setWatermarkUploading] = useState<'horizontal' | 'vertical' | null>(null);
+  const [systemSettings, setSystemSettings] = useState<any>({ horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
+  const [watermarkUploading, setWatermarkUploading] = useState<'horizontal' | 'vertical' | 'square' | 'pc' | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -66,14 +67,14 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       if (settingsDoc) {
         setSystemSettings(settingsDoc.data());
       } else {
-        await setDoc(doc(db, 'system', 'settings'), { horizontalWatermarkUrl: '', verticalWatermarkUrl: '' });
+        await setDoc(doc(db, 'system', 'settings'), { horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
       }
     } catch (err) {
       console.error('Fetch system settings error:', err);
     }
   };
 
-  const handleWatermarkUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'horizontal' | 'vertical') => {
+  const handleWatermarkUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'horizontal' | 'vertical' | 'square' | 'pc') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -188,13 +189,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     try {
       const oldOrder = orders.find(o => o.id === editingId);
       let newProgressHistory = { ...(oldOrder.progressHistory || {}) };
+      let statusChanged = false;
       
       // If status changed, record it in progressHistory
       if (oldOrder.status !== editData.status) {
         newProgressHistory[editData.status] = {
+          ...newProgressHistory[editData.status],
           updatedAt: serverTimestamp(),
           dateString: new Date().toISOString()
         };
+        statusChanged = true;
       }
 
       const updatedData = {
@@ -206,8 +210,123 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       setOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
       setAllOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
       setEditingId(null);
+
+      // Send email if status changed
+      if (statusChanged && oldOrder.email) {
+        const stageLabel = STATUS_NODES.find(n => n.id === editData.status)?.label || editData.status;
+        const hasNewImage = newProgressHistory[editData.status]?.imageUrl && newProgressHistory[editData.status].imageUrl !== oldOrder.progressHistory?.[editData.status]?.imageUrl;
+        
+        const emailHtml = `
+          <p>承契者您好：</p>
+          <p>您的委託項目 <strong>${oldOrder.title}</strong> 已有新的進度更新！</p>
+          <p>目前階段：<strong>${stageLabel}</strong></p>
+          ${hasNewImage ? '<p>預覽圖已上傳，請前往網站查看（含浮水印保護）。</p>' : ''}
+          <p>您可以點擊下方連結，輸入您的訂單編號查看最新的預覽圖與詳細進度：</p>
+          <a href="${window.location.origin}/tracking">點此前往龍契局查詢進度</a>
+          <br/><br/>
+          <p>龍契局 瑪阿 敬上</p>
+        `;
+
+        await addDoc(collection(db, 'mail'), {
+          to: oldOrder.email,
+          message: {
+            subject: `【龍契局】委託進度更新通知 - 訂單編號：${oldOrder.officialOrderId || oldOrder.orderId.substring(0, 4).toUpperCase()}`,
+            html: emailHtml
+          }
+        });
+      }
     } catch (err) {
       console.error('Save error:', err);
+    }
+  };
+
+  const handleStageImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, stage: string) => {
+    const file = e.target.files?.[0];
+    if (!file || !editingId) return;
+
+    try {
+      // Apply watermark first
+      const watermarkedBlob = await applyWatermark(file, {
+        horizontal: systemSettings.horizontalWatermarkUrl,
+        vertical: systemSettings.verticalWatermarkUrl,
+        square: systemSettings.squareWatermarkUrl,
+        pc: systemSettings.pcWatermarkUrl
+      });
+
+      // Then compress
+      const compressedBlob = await compressImage(new File([watermarkedBlob], 'watermarked.webp', { type: 'image/webp' }));
+      
+      const storageRef = ref(storage, `orders/${editingId}/${stage}.webp`);
+      await uploadBytes(storageRef, compressedBlob);
+      const url = await getDownloadURL(storageRef);
+      
+      const newProgressHistory = { ...(editData.progressHistory || {}) };
+      newProgressHistory[stage] = {
+        ...newProgressHistory[stage],
+        imageUrl: url
+      };
+
+      setEditData({ ...editData, progressHistory: newProgressHistory });
+      alert('進度預覽圖上傳成功！請記得點擊「儲存」以保存變更。');
+    } catch (err) {
+      console.error('Upload stage image error:', err);
+      alert('上傳失敗，請稍後再試。');
+    }
+  };
+
+  const handleCloseOrder = async (order: any) => {
+    if (!window.confirm('是否確認委託人已收到圖？結案後將永久刪除所有訂單資料與參考圖。')) return;
+
+    try {
+      // Send final email
+      if (order.email) {
+        await addDoc(collection(db, 'mail'), {
+          to: order.email,
+          message: {
+            subject: `【龍契局】委託結案通知 - 訂單編號：${order.officialOrderId || order.orderId.substring(0, 4).toUpperCase()}`,
+            html: `<p>承契者您好：</p><p>您的委託已圓滿達成，相關個人資料與參考圖已從龍契局系統中移除，感謝您的委託！</p><br/><p>龍契局 瑪阿 敬上</p>`
+          }
+        });
+      }
+
+      // Delete from Firestore
+      await deleteDoc(doc(db, 'orders', order.id));
+
+      // Attempt to delete from Storage (Note: Client-side storage deletion of folders is not directly supported, 
+      // we have to delete files individually or rely on Cloud Functions. 
+      // For this prototype, we'll delete the known files if possible, or just leave it to a Cloud Function.
+      // Since we know the references are in order.referenceImages, we can delete them.)
+      if (order.referenceImages && order.referenceImages.length > 0) {
+        for (const imgUrl of order.referenceImages) {
+          try {
+            const imgRef = ref(storage, imgUrl);
+            await deleteObject(imgRef);
+          } catch (e) {
+            console.error('Failed to delete reference image:', e);
+          }
+        }
+      }
+
+      // Delete stage images
+      if (order.progressHistory) {
+        for (const stage of Object.keys(order.progressHistory)) {
+          if (order.progressHistory[stage].imageUrl) {
+            try {
+              const imgRef = ref(storage, order.progressHistory[stage].imageUrl);
+              await deleteObject(imgRef);
+            } catch (e) {
+              console.error('Failed to delete stage image:', e);
+            }
+          }
+        }
+      }
+
+      setOrders(prev => prev.filter(o => o.id !== order.id));
+      setAllOrders(prev => prev.filter(o => o.id !== order.id));
+      alert('訂單已結案並銷毀資料。');
+    } catch (err) {
+      console.error('Close order error:', err);
+      alert('結案失敗。');
     }
   };
 
@@ -399,7 +518,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   };
 
   const handleArtworkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
+    const files = Array.from(e.target.files || []) as File[];
     if (files.length === 0 || !selectedCategoryId) return;
 
     setArtworkUploading(true);
@@ -502,90 +621,26 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-        <div className="neo-box text-center">
-          <p className="text-sm tracking-widest text-gray-500 mb-2">總書契數</p>
-          <p className="text-4xl font-black">{totalOrders}</p>
-        </div>
-        <div className="neo-box text-center">
-          <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
-          <p className="text-4xl font-black text-[#8b0000]">{pendingOrders}</p>
-        </div>
-        <div className="neo-box text-center">
-          <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
-          <p className="text-4xl font-black text-green-700">{completedOrders}</p>
-        </div>
-      </div>
-
-      {/* Calendar */}
-      <div className="neo-box mb-16">
-        <div className="flex justify-between items-center mb-6 border-b-2 border-gray-200 pb-4">
-          <h3 className="text-xl font-black tracking-widest flex items-center gap-2">
-            <CalendarIcon size={24} />
-            契期曆
-          </h3>
-          <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-2 hover:bg-gray-100">
-              <ChevronLeft size={20} />
-            </button>
-            <span className="font-bold tracking-widest">{format(currentMonth, 'yyyy 年 MM 月')}</span>
-            <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-2 hover:bg-gray-100">
-              <ChevronRight size={20} />
-            </button>
+      <div className="flex flex-col lg:flex-row gap-8">
+        {/* Left Column - Main Content */}
+        <div className="flex-1 space-y-16 min-w-0">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="neo-box text-center">
+              <p className="text-sm tracking-widest text-gray-500 mb-2">總書契數</p>
+              <p className="text-4xl font-black">{totalOrders}</p>
+            </div>
+            <div className="neo-box text-center">
+              <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
+              <p className="text-4xl font-black text-[#8b0000]">{pendingOrders}</p>
+            </div>
+            <div className="neo-box text-center">
+              <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
+              <p className="text-4xl font-black text-green-700">{completedOrders}</p>
+            </div>
           </div>
-        </div>
-        <div className="grid grid-cols-7 gap-2">
-          {['日', '一', '二', '三', '四', '五', '六'].map(d => (
-            <div key={d} className="text-center text-sm font-bold tracking-widest py-2 border-b-2 border-[#1a1a1a]">{d}</div>
-          ))}
-          {Array.from({ length: daysInMonth[0].getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
-          {daysInMonth.map(day => {
-            const dayEvents: { order: any, stage: string, dateStr: string }[] = [];
-            
-            allOrders.forEach(o => {
-              if (o.expectedDates) {
-                Object.entries(o.expectedDates).forEach(([stage, dateStr]) => {
-                  try {
-                    if (isSameDay(parseISO(dateStr as string), day)) {
-                      dayEvents.push({ order: o, stage, dateStr: dateStr as string });
-                    }
-                  } catch(e) {}
-                });
-              }
-            });
 
-            return (
-              <div key={day.toISOString()} className={cn(
-                "min-h-[100px] border-2 p-2 transition-colors",
-                isSameDay(day, new Date()) ? "border-[#8b0000] bg-red-50/30" : "border-gray-200 hover:border-gray-400"
-              )}>
-                <div className="text-right text-sm font-bold mb-2">{format(day, 'd')}</div>
-                <div className="space-y-1">
-                  {dayEvents.map((event, idx) => {
-                    const stageLabel = STATUS_NODES.find(n => n.id === event.stage)?.label || event.stage;
-                    let bgColor = "bg-[#1a1a1a]"; // default black
-                    if (event.stage === 'draft') bgColor = "bg-gray-400";
-                    if (event.stage === 'lineart') bgColor = "bg-gray-600";
-                    if (event.stage === 'coloring') bgColor = "bg-gray-800";
 
-                    return (
-                      <button 
-                        key={`${event.order.id}-${idx}`}
-                        onClick={() => scrollToOrder(event.order.id)}
-                        className={cn("block w-full text-left text-[10px] truncate text-white px-1 py-0.5 hover:opacity-80 transition-opacity", bgColor)}
-                        title={`${event.order.title} - ${stageLabel}`}
-                      >
-                        {event.order.title} - {stageLabel}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* New Order Queue */}
       {orders.filter(o => o.status === 'pending').length > 0 && (
@@ -883,6 +938,42 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </label>
               </div>
             </div>
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">方形浮水印 (正方圖使用)</p>
+              <div className="aspect-square max-w-[250px] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {systemSettings.squareWatermarkUrl ? (
+                  <img src={systemSettings.squareWatermarkUrl} alt="Square Watermark" className="max-w-full max-h-full object-contain p-4" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {watermarkUploading === 'square' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳方形浮水印</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'square')} disabled={watermarkUploading !== null} />
+                </label>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">電腦螢幕浮水印 (極寬圖使用)</p>
+              <div className="aspect-[16/9] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {systemSettings.pcWatermarkUrl ? (
+                  <img src={systemSettings.pcWatermarkUrl} alt="PC Watermark" className="max-w-full max-h-full object-contain p-4" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {watermarkUploading === 'pc' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳電腦螢幕浮水印</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'pc')} disabled={watermarkUploading !== null} />
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -961,9 +1052,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
 
                   {editingId === order.id && (
-                    <div className="space-y-4 border-t-2 border-gray-200 pt-4">
-                      <div className="space-y-2">
-                        <p className="text-xs text-gray-500 tracking-widest">當前進度達成日 (可選)</p>
+                    <>
+                      <div className="space-y-4 border-t-2 border-gray-200 pt-4">
+                        <div className="space-y-2">
+                          <p className="text-xs text-gray-500 tracking-widest">當前進度達成日 (可選)</p>
                         <input 
                           type="date"
                           className="input-field py-2 text-sm"
@@ -1044,6 +1136,30 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         />
                       </div>
                     </div>
+                    
+                    {/* Stage Image Upload */}
+                    {['draft', 'lineart', 'coloring', 'completed'].includes(editData.status) && (
+                      <div className="mt-6 p-4 border-2 border-dashed border-gray-300 bg-gray-50">
+                        <p className="text-sm font-bold tracking-widest mb-2">上傳預覽圖 ({STATUS_NODES.find(n => n.id === editData.status)?.label})</p>
+                        <div className="flex items-center gap-4">
+                          <label className="btn-secondary text-sm px-4 py-2 cursor-pointer">
+                            選擇圖片
+                            <input 
+                              type="file" 
+                              className="hidden" 
+                              accept="image/*"
+                              onChange={(e) => handleStageImageUpload(e, editData.status)}
+                            />
+                          </label>
+                          {editData.progressHistory?.[editData.status]?.imageUrl && (
+                            <span className="text-xs text-green-700 tracking-widest flex items-center gap-1">
+                              <CheckCircle2 size={14} /> 已上傳
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    </>
                   )}
                 </div>
 
@@ -1062,6 +1178,11 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] tracking-widest hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors">
                         <Edit2 size={16} /> 編輯
                       </button>
+                      {(order.status === 'completed' || order.status === 'delivered') && (
+                        <button onClick={() => handleCloseOrder(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-green-700 text-green-700 tracking-widest hover:bg-green-50 transition-colors">
+                          <CheckCircle2 size={16} /> 確認交付並結案
+                        </button>
+                      )}
                       <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#8b0000] text-[#8b0000] tracking-widest hover:bg-red-50 transition-colors">
                         <Trash2 size={16} /> 銷毀
                       </button>
@@ -1091,6 +1212,81 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           目前尚無卷宗。
         </div>
       )}
+      </div>
+
+      {/* Right Column - Fixed Calendar */}
+      <div className="w-full lg:w-[350px] xl:w-[400px] shrink-0">
+        <div className="sticky top-24">
+          <div className="neo-box !p-4">
+            <div className="flex justify-between items-center mb-4 border-b-2 border-gray-200 pb-2">
+              <h3 className="text-lg font-black tracking-widest flex items-center gap-2">
+                <CalendarIcon size={20} />
+                契期曆
+              </h3>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))} className="p-1 hover:bg-gray-100">
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-bold tracking-widest">{format(currentMonth, 'yyyy/MM')}</span>
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))} className="p-1 hover:bg-gray-100">
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 gap-1">
+              {['日', '一', '二', '三', '四', '五', '六'].map(d => (
+                <div key={d} className="text-center text-xs font-bold tracking-widest py-1 border-b border-[#1a1a1a]">{d}</div>
+              ))}
+              {Array.from({ length: daysInMonth[0].getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
+              {daysInMonth.map(day => {
+                const dayEvents: { order: any, stage: string, dateStr: string }[] = [];
+                
+                allOrders.forEach(o => {
+                  if (o.expectedDates) {
+                    Object.entries(o.expectedDates).forEach(([stage, dateStr]) => {
+                      try {
+                        if (isSameDay(parseISO(dateStr as string), day)) {
+                          dayEvents.push({ order: o, stage, dateStr: dateStr as string });
+                        }
+                      } catch(e) {}
+                    });
+                  }
+                });
+
+                return (
+                  <div key={day.toISOString()} className={cn(
+                    "min-h-[60px] border p-1 transition-colors overflow-hidden",
+                    isSameDay(day, new Date()) ? "border-[#8b0000] bg-red-50/30" : "border-gray-200 hover:border-gray-400"
+                  )}>
+                    <div className="text-right text-[10px] font-bold mb-1">{format(day, 'd')}</div>
+                    <div className="space-y-0.5">
+                      {dayEvents.map((event, idx) => {
+                        const stageLabel = STATUS_NODES.find(n => n.id === event.stage)?.label || event.stage;
+                        let bgColor = "bg-[#1a1a1a]"; // default black
+                        if (event.stage === 'draft') bgColor = "bg-gray-400";
+                        if (event.stage === 'lineart') bgColor = "bg-gray-600";
+                        if (event.stage === 'coloring') bgColor = "bg-gray-800";
+
+                        return (
+                          <button 
+                            key={`${event.order.id}-${idx}`}
+                            onClick={() => scrollToOrder(event.order.id)}
+                            className={cn("block w-full text-left text-[8px] truncate text-white px-1 py-0.5 hover:opacity-80 transition-opacity", bgColor)}
+                            title={`${event.order.title} - ${stageLabel}`}
+                          >
+                            {event.order.title}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+      </div>
 
       {/* Lightbox Modal */}
       {lightboxImage && (
