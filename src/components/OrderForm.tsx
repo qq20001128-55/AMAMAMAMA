@@ -155,7 +155,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
         animate={{ opacity: 1 }}
         className="max-w-2xl mx-auto px-6 py-10"
       >
-        <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-8 transition-colors tracking-widest">
+        <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
           <ChevronLeft size={20} />
           <span>返回</span>
         </button>
@@ -166,7 +166,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             <p className="text-center">在你提出委託之前，請先閱讀以下規則。<br/>一旦委託成立，即視為契約已定，並同意遵守以下內容。</p>
             
             <div>
-              <h3 className="font-bold text-lg border-b-2 border-[#1a1a1a] inline-block mb-2">一、關於修改</h3>
+              <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">一、關於修改</h3>
               <ul className="list-none space-y-1">
                 <li>・草稿與色草階段可提出修改（請盡量一次整理完整）</li>
                 <li>・完稿後僅接受小幅調整（如顏色、細節）</li>
@@ -175,7 +175,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             </div>
 
             <div>
-              <h3 className="font-bold text-lg border-b-2 border-[#1a1a1a] inline-block mb-2">二、關於退款</h3>
+              <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">二、關於退款</h3>
               <ul className="list-none space-y-1">
                 <li>・委託一旦開始，將依繪製進度計算費用</li>
                 <li>・若中途取消，將依完成比例進行退款</li>
@@ -185,18 +185,18 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             </div>
 
             <div>
-              <h3 className="font-bold text-lg border-b-2 border-[#1a1a1a] inline-block mb-2">三、關於驚喜包</h3>
+              <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">三、關於驚喜包</h3>
               <ul className="list-none space-y-1">
                 <li>・驚喜包為自由發揮類型委託</li>
                 <li>・內容與呈現方式可以許願但大致都將由龍契局決定</li>
                 <li>・不接受大幅修改</li>
                 <li>・僅提供小幅調整（如顏色、細節）</li>
               </ul>
-              <p className="mt-2 text-sm text-[#8b0000]">請確認能接受此類型再進行委託</p>
+              <p className="mt-2 text-sm text-[#53565b]">請確認能接受此類型再進行委託</p>
             </div>
 
             <div>
-              <h3 className="font-bold text-lg border-b-2 border-[#1a1a1a] inline-block mb-2">四、關於時程</h3>
+              <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">四、關於時程</h3>
               <ul className="list-none space-y-1">
                 <li>・依排單順序進行製作</li>
                 <li>・請避免頻繁催稿</li>
@@ -205,7 +205,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             </div>
 
             <div>
-              <h3 className="font-bold text-lg border-b-2 border-[#1a1a1a] inline-block mb-2">五、其他事項</h3>
+              <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">五、其他事項</h3>
               <ul className="list-none space-y-1">
                 <li>・請提供清楚的委託需求與參考資料</li>
                 <li>・委託確認後，內容不可隨意更改</li>
@@ -223,7 +223,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             id="agree" 
             checked={agreed} 
             onChange={(e) => setAgreed(e.target.checked)}
-            className="w-5 h-5 border-2 border-[#1a1a1a] rounded-none focus:ring-0 cursor-pointer accent-[#8b0000]"
+            className="w-5 h-5 border-2 border-[#53565b] rounded-none focus:ring-0 cursor-pointer accent-[#53565b]"
           />
           <label htmlFor="agree" className="text-sm cursor-pointer select-none tracking-widest font-bold">我已同意上述須知，願立此契</label>
         </div>
@@ -246,14 +246,14 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
         className="max-w-md mx-auto px-6 py-20 text-center"
       >
         <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 border-4 border-[#8b0000] rounded-full flex items-center justify-center text-[#8b0000]">
+          <div className="w-20 h-20 border-4 border-[#53565b] rounded-full flex items-center justify-center text-[#53565b]">
             <span className="text-3xl font-black">契</span>
           </div>
         </div>
         <h2 className="text-3xl font-black mb-4 tracking-widest">契約已立</h2>
         <div className="neo-box mb-8">
           <p className="text-xs text-gray-500 tracking-widest mb-2">訂單編號</p>
-          <p className="font-mono text-lg break-all font-bold text-[#8b0000]">#MAA-{orderId?.substring(0, 4).toUpperCase()}</p>
+          <p className="font-mono text-lg break-all font-bold text-[#53565b]">#MAA-{orderId?.substring(0, 4).toUpperCase()}</p>
         </div>
         <div className="text-gray-700 mb-8 tracking-widest leading-loose text-sm text-left space-y-4">
           <p>若需確認進度，請使用訂單編號查詢。<br/>確認進行將會發送信件或臉書訊息請多留意<br/>感謝你的委託與信任。</p>
@@ -289,7 +289,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
       animate={{ opacity: 1, x: 0 }}
       className="max-w-2xl mx-auto px-6 py-10"
     >
-      <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-8 transition-colors tracking-widest">
+      <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />
         <span>返回須知</span>
       </button>
@@ -362,14 +362,14 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             <button
               type="button"
               onClick={() => setRefType('image')}
-              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[#1a1a1a] text-[#faf9f6]" : "hover:bg-gray-100")}
+              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[#53565b] text-[#f5f5f5]" : "hover:bg-gray-100")}
             >
               <ImageIcon size={18} /> 上傳圖片
             </button>
             <button
               type="button"
               onClick={() => setRefType('link')}
-              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[#1a1a1a] text-[#faf9f6]" : "hover:bg-gray-100")}
+              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[#53565b] text-[#f5f5f5]" : "hover:bg-gray-100")}
             >
               <LinkIcon size={18} /> 附上連結
             </button>
@@ -379,18 +379,18 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             <div className="space-y-4">
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                 {previews.map((preview, index) => (
-                  <div key={index} className="relative aspect-square border-2 border-[#1a1a1a] overflow-hidden group">
+                  <div key={index} className="relative aspect-square border-2 border-[#53565b] overflow-hidden group">
                     <img src={preview} alt={`Preview ${index}`} className="w-full h-full object-cover" />
                     <button 
                       type="button"
                       onClick={() => removeFile(index)}
-                      className="absolute top-1 right-1 p-1 bg-[#1a1a1a] text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-[#53565b] text-white opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X size={14} />
                     </button>
                   </div>
                 ))}
-                <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-[#1a1a1a] hover:bg-gray-100 cursor-pointer transition-colors">
+                <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-[#53565b] hover:bg-gray-100 cursor-pointer transition-colors">
                   <Upload size={24} className="mb-2" />
                   <span className="text-xs tracking-widest">新增圖片</span>
                   <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileChange} />
@@ -427,7 +427,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
           className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-[#faf9f6] border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-[#f5f5f5] border-t-transparent rounded-full animate-spin" />
           ) : (
             '立契'
           )}

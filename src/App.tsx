@@ -15,6 +15,7 @@ import AdminDashboard from './components/AdminDashboard';
 import FollowMe from './components/FollowMe';
 import PriceList from './components/PriceList';
 import CommissionQueue from './components/CommissionQueue';
+import { CloudBackground } from './components/CloudBackground';
 import { motion, AnimatePresence } from 'motion/react';
 
 type Page = 'home' | 'order' | 'tracking' | 'portfolio' | 'admin' | 'follow' | 'pricelist';
@@ -45,7 +46,7 @@ export default function App() {
   if (!isAuthReady) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-white">
-        <div className="w-8 h-8 border-2 border-[#1a1a1a] border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -58,15 +59,47 @@ export default function App() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="max-w-4xl mx-auto px-6 py-20 text-center"
+            className="max-w-4xl mx-auto px-6 py-20 text-center relative"
           >
+            {/* Animated Clouds for Home Page */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, x: -50 }}
+              animate={{ opacity: 0.8, scale: 1, x: 0 }}
+              transition={{ duration: 2, ease: "easeOut" }}
+              className="absolute top-0 left-0 w-64 h-64 pointer-events-none -z-10"
+              style={{
+                backgroundImage: `url("/cloud-pattern.png")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                mixBlendMode: 'multiply',
+                maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
+                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)'
+              }}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8, x: 50 }}
+              animate={{ opacity: 0.8, scale: 1, x: 0 }}
+              transition={{ duration: 2.5, ease: "easeOut", delay: 0.5 }}
+              className="absolute bottom-20 right-0 w-80 h-80 pointer-events-none -z-10"
+              style={{
+                backgroundImage: `url("/cloud-pattern.png")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                mixBlendMode: 'multiply',
+                maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
+                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)'
+              }}
+            />
+
             <div className="mb-12 relative inline-block">
-              <h1 className="text-6xl md:text-8xl font-black tracking-widest text-[#1a1a1a] mb-8" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', height: '400px' }}>
+              <h1 className="text-6xl md:text-8xl font-black tracking-widest text-[#53565b] mb-8" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', height: '400px' }}>
                 龍契局
               </h1>
               <div className="absolute top-0 -right-16 md:-right-24 h-full flex flex-col items-center justify-center">
-                <div className="w-[2px] h-full bg-[#8b0000] opacity-20"></div>
-                <div className="absolute w-8 h-8 border-2 border-[#8b0000] rotate-45 bg-[#faf9f6]"></div>
+                <div className="w-[2px] h-full bg-[#53565b] opacity-20"></div>
+                <div className="absolute w-8 h-8 border-2 border-[#53565b] rotate-45 bg-[#f5f5f5]"></div>
               </div>
             </div>
             
@@ -131,14 +164,15 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#faf9f6] text-[#1a1a1a] font-serif">
+    <div className="min-h-screen bg-[#f5f5f5] text-[#53565b] font-serif relative overflow-hidden">
+      <CloudBackground />
       <Navbar setPage={setPage} currentPage={page} user={user} />
-      <main className="pt-20">
+      <main className="pt-20 relative z-10">
         <AnimatePresence mode="wait">
           {renderPage()}
         </AnimatePresence>
       </main>
-      <footer className="py-10 border-t-2 border-[#1a1a1a] text-center text-xs text-gray-500 tracking-widest mt-20 relative">
+      <footer className="py-10 border-t-2 border-[#53565b] text-center text-xs text-gray-500 tracking-widest mt-20 relative z-10">
         <span 
           onDoubleClick={() => !user && signInWithGoogle()} 
           className="cursor-default select-none"

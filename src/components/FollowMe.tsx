@@ -80,7 +80,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
       animate={{ opacity: 1 }}
       className="max-w-4xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-8 transition-colors tracking-widest">
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />
         <span>返回大廳</span>
       </button>
@@ -89,9 +89,9 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
         {/* Left: Avatar & Intro */}
         <div className="w-full md:w-1/3 flex flex-col items-center text-center space-y-6">
           <div className="relative group">
-            <div className="w-48 h-48 rounded-full border-4 border-[#1a1a1a] overflow-hidden bg-[#faf9f6] flex items-center justify-center">
+            <div className="w-48 h-48 rounded-full border-4 border-[#53565b] overflow-hidden bg-[#f5f5f5] flex items-center justify-center">
               {loading ? (
-                <div className="w-8 h-8 border-2 border-[#1a1a1a] border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
               ) : avatarUrl ? (
                 <img src={avatarUrl} alt="瑪阿" className="w-full h-full object-cover" />
               ) : (
@@ -116,7 +116,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
 
           <div>
             <h2 className="text-3xl font-black tracking-widest mb-2">瑪阿</h2>
-            <p className="text-sm text-[#8b0000] tracking-widest font-bold mb-6">龍契局・承契者</p>
+            <p className="text-sm text-[#53565b] tracking-widest font-bold mb-6">龍契局・承契者</p>
             <div className="text-sm text-gray-600 tracking-widest leading-loose text-left">
               <p>我是瑪阿，龍契局的承契者。</p>
               <br/>
@@ -131,7 +131,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
 
         {/* Right: Social Links */}
         <div className="w-full md:w-2/3">
-          <h3 className="text-2xl font-black tracking-widest mb-8 border-b-2 border-[#1a1a1a] pb-4">追蹤我</h3>
+          <h3 className="text-2xl font-black tracking-widest mb-8 border-b-2 border-[#53565b] pb-4">追蹤我</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {SOCIAL_LINKS.map((link) => (
               <a 
@@ -139,7 +139,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="neo-box !p-4 flex items-center justify-between hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors group"
+                className="neo-box !p-4 flex items-center justify-between hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors group"
               >
                 <span className="font-bold tracking-widest">{link.label}</span>
                 <span className="text-xs tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">前往 &rarr;</span>

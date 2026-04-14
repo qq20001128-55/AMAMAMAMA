@@ -1,0 +1,34 @@
+const fs = require('fs');
+const path = require('path');
+
+function walk(dir) {
+  let results = [];
+  const list = fs.readdirSync(dir);
+  list.forEach(file => {
+    file = path.join(dir, file);
+    const stat = fs.statSync(file);
+    if (stat && stat.isDirectory()) {
+      results = results.concat(walk(file));
+    } else {
+      if (file.endsWith('.tsx') || file.endsWith('.ts') || file.endsWith('.css')) {
+        results.push(file);
+      }
+    }
+  });
+  return results;
+}
+
+const files = walk('src');
+
+files.forEach(file => {
+  let content = fs.readFileSync(file, 'utf8');
+  let original = content;
+  
+  // Replace #d9d9d6 with #e2e8f0 globally
+  content = content.replace(/#d9d9d6/g, '#e2e8f0');
+  
+  if (content !== original) {
+    fs.writeFileSync(file, content, 'utf8');
+    console.log('Updated', file);
+  }
+});

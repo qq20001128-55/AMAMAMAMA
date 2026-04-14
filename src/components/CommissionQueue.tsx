@@ -33,17 +33,17 @@ export default function CommissionQueue() {
 
   return (
     <div className="max-w-2xl mx-auto mt-20 mb-10">
-      <div className="neo-box !p-6 border-[#1a1a1a]">
-        <h3 className="text-xl font-black tracking-widest mb-6 text-center border-b-2 border-[#1a1a1a] pb-4">當前局內進度</h3>
+      <div className="neo-box !p-6 border-[#53565b]">
+        <h3 className="text-xl font-black tracking-widest mb-6 text-center border-b-2 border-[#53565b] pb-4">當前局內進度</h3>
         <div className="space-y-3">
           {queue.map(order => {
             const statusLabel = STATUS_NODES.find(n => n.id === order.status)?.label || order.status;
             return (
               <div key={order.id} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
-                <span className="font-mono text-sm font-bold tracking-widest text-[#8b0000]">
+                <span className="font-mono text-sm font-bold tracking-widest text-[#53565b]">
                   {order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`}
                 </span>
-                <span className="text-sm tracking-widest bg-[#1a1a1a] text-white px-3 py-1">
+                <span className="text-sm tracking-widest bg-[#53565b] text-white px-3 py-1">
                   {statusLabel}中
                 </span>
               </div>

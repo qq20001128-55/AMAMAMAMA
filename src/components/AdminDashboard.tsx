@@ -62,12 +62,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const fetchSystemSettings = async () => {
     try {
-      const snap = await getDocs(collection(db, 'system'));
-      const settingsDoc = snap.docs.find(d => d.id === 'settings');
+      const snap = await getDocs(collection(db, 'settings'));
+      const settingsDoc = snap.docs.find(d => d.id === 'watermark');
       if (settingsDoc) {
         setSystemSettings(settingsDoc.data());
       } else {
-        await setDoc(doc(db, 'system', 'settings'), { horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
+        await setDoc(doc(db, 'settings', 'watermark'), { horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
       }
     } catch (err) {
       console.error('Fetch system settings error:', err);
@@ -80,12 +80,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
     setWatermarkUploading(type);
     try {
-      const storageRef = ref(storage, `system/${type}Watermark.png`);
+      const storageRef = ref(storage, `system/watermarks/${type}.png`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       
       const newSettings = { ...systemSettings, [`${type}WatermarkUrl`]: url };
-      await updateDoc(doc(db, 'system', 'settings'), newSettings);
+      await setDoc(doc(db, 'settings', 'watermark'), newSettings, { merge: true });
       setSystemSettings(newSettings);
       alert('浮水印上傳成功！');
     } catch (err) {
@@ -413,8 +413,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     const el = document.getElementById(`order-${id}`);
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('bg-red-50');
-      setTimeout(() => el.classList.remove('bg-red-50'), 2000);
+      el.classList.add('bg-gray-100');
+      setTimeout(() => el.classList.remove('bg-gray-100'), 2000);
     }
   };
 
@@ -593,9 +593,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto px-6 py-10"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b-2 border-[#1a1a1a] pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b-2 border-[#53565b] pb-6">
         <div>
-          <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-4 transition-colors tracking-widest">
+          <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-4 transition-colors tracking-widest">
             <ChevronLeft size={20} />
             <span>返回大廳</span>
           </button>
@@ -605,7 +605,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         <div className="flex items-center gap-4 neo-box !p-4">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-widest text-gray-500">局門狀態</span>
-            <span className={cn("text-sm font-bold tracking-widest", commissionStatus === 'open' ? "text-green-700" : "text-[#8b0000]")}>
+            <span className={cn("text-sm font-bold tracking-widest", commissionStatus === 'open' ? "text-gray-800" : "text-[#53565b]")}>
               {commissionStatus === 'open' ? '開局接契' : '局門緊閉'}
             </span>
           </div>
@@ -613,7 +613,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             onClick={toggleCommission}
             className={cn(
               "p-3 border-2 transition-all duration-300",
-              commissionStatus === 'open' ? "border-green-700 text-green-700 hover:bg-green-50" : "border-[#8b0000] text-[#8b0000] hover:bg-red-50"
+              commissionStatus === 'open' ? "border-gray-800 text-gray-800 hover:bg-gray-100" : "border-[#53565b] text-[#53565b] hover:bg-gray-100"
             )}
           >
             {commissionStatus === 'open' ? <Power size={20} /> : <PowerOff size={20} />}
@@ -621,7 +621,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex flex-col xl:flex-row gap-8">
         {/* Left Column - Main Content */}
         <div className="flex-1 space-y-16 min-w-0">
           {/* Stats */}
@@ -632,11 +632,11 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             </div>
             <div className="neo-box text-center">
               <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
-              <p className="text-4xl font-black text-[#8b0000]">{pendingOrders}</p>
+              <p className="text-4xl font-black text-[#53565b]">{pendingOrders}</p>
             </div>
             <div className="neo-box text-center">
               <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
-              <p className="text-4xl font-black text-green-700">{completedOrders}</p>
+              <p className="text-4xl font-black text-gray-800">{completedOrders}</p>
             </div>
           </div>
 
@@ -645,10 +645,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {/* New Order Queue */}
       {orders.filter(o => o.status === 'pending').length > 0 && (
         <div className="mb-16">
-          <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">待確認之契</h3>
+          <h3 className="text-2xl font-black tracking-widest mb-6 text-[#53565b]">待確認之契</h3>
           <div className="grid grid-cols-1 gap-6">
             {orders.filter(o => o.status === 'pending').map(order => (
-              <div key={order.id} className="neo-box border-[#8b0000] bg-red-50/10 flex flex-col md:flex-row gap-6">
+              <div key={order.id} className="neo-box border-[#53565b] bg-gray-100/10 flex flex-col md:flex-row gap-6">
                 <div className="flex-1">
                   <div className="flex justify-between items-start mb-4">
                     <div>
@@ -663,14 +663,14 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   <div>
                     <p className="text-xs text-gray-500 tracking-widest mb-2">參考資料：</p>
                     {order.referenceType === 'link' ? (
-                      <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#8b0000] hover:underline text-sm tracking-widest">
+                      <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#53565b] hover:underline text-sm tracking-widest">
                         <ExternalLink size={14} /> {order.referenceLink}
                       </a>
                     ) : order.referenceImages?.length > 0 ? (
                       <div className="flex gap-2 overflow-x-auto pb-2">
                         {order.referenceImages.map((img: string, i: number) => (
                           <button key={i} onClick={() => setLightboxImage(img)} className="shrink-0">
-                            <img src={img} alt="Ref" className="w-20 h-20 object-cover border border-gray-300 hover:border-[#1a1a1a] transition-colors" />
+                            <img src={img} alt="Ref" className="w-20 h-20 object-cover border border-gray-300 hover:border-[#53565b] transition-colors" />
                           </button>
                         ))}
                       </div>
@@ -680,13 +680,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <div className="flex md:flex-col justify-end gap-4 md:border-l-2 md:border-gray-200 md:pl-6">
                   <button 
                     onClick={() => handleAcceptOrder(order)}
-                    className="px-6 py-3 bg-[#8b0000] text-white text-sm font-bold tracking-widest hover:bg-red-900 transition-colors w-full md:w-auto"
+                    className="px-6 py-3 bg-[#53565b] text-white text-sm font-bold tracking-widest hover:bg-gray-900 transition-colors w-full md:w-auto"
                   >
                     接受
                   </button>
                   <button 
                     onClick={() => handleRejectOrder(order)}
-                    className="px-6 py-3 border-2 border-[#1a1a1a] text-sm font-bold tracking-widest hover:bg-gray-100 transition-colors w-full md:w-auto"
+                    className="px-6 py-3 border-2 border-[#53565b] text-sm font-bold tracking-widest hover:bg-gray-100 transition-colors w-full md:w-auto"
                   >
                     婉拒
                   </button>
@@ -700,7 +700,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {/* Price List Management */}
       <div className="mb-16">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-black tracking-widest text-[#8b0000]">價目表管理</h3>
+          <h3 className="text-2xl font-black tracking-widest text-[#53565b]">價目表管理</h3>
           <button onClick={handleAddPriceItem} className="btn-primary py-2 px-4 text-sm">
             + 新增項目
           </button>
@@ -711,7 +711,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               {editingPriceId === item.id ? (
                 <>
                   <div className="w-full md:w-1/3 space-y-4">
-                    <div className="aspect-[4/3] bg-gray-100 border-2 border-[#1a1a1a] relative flex items-center justify-center overflow-hidden">
+                    <div className="aspect-[4/3] bg-gray-100 border-2 border-[#53565b] relative flex items-center justify-center overflow-hidden">
                       {priceEditData.imageUrl ? (
                         <img src={priceEditData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
                       ) : (
@@ -749,10 +749,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       onChange={e => setPriceEditData({...priceEditData, description: e.target.value})}
                     />
                     <div className="flex justify-end gap-4 mt-auto">
-                      <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border-2 border-[#1a1a1a] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                      <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border-2 border-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
                         取消
                       </button>
-                      <button onClick={handleSavePriceItem} className="px-4 py-2 bg-green-700 text-white text-sm tracking-widest hover:bg-green-800 transition-colors">
+                      <button onClick={handleSavePriceItem} className="px-4 py-2 bg-gray-800 text-white text-sm tracking-widest hover:bg-gray-900 transition-colors">
                         儲存
                       </button>
                     </div>
@@ -760,7 +760,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </>
               ) : (
                 <>
-                  <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border-2 border-[#1a1a1a] overflow-hidden">
+                  <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border-2 border-[#53565b] overflow-hidden">
                     {item.imageUrl ? (
                       <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
                     ) : (
@@ -778,10 +778,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       </p>
                     </div>
                     <div className="flex justify-end gap-4 mt-4">
-                      <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] text-sm tracking-widest hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors">
+                      <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-sm tracking-widest hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors">
                         <Edit2 size={14} /> 編輯
                       </button>
-                      <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#8b0000] text-[#8b0000] text-sm tracking-widest hover:bg-red-50 transition-colors">
+                      <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
                         <Trash2 size={14} /> 刪除
                       </button>
                     </div>
@@ -800,7 +800,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
       {/* Portfolio Management */}
       <div className="mb-16">
-        <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">作品集管理</h3>
+        <h3 className="text-2xl font-black tracking-widest mb-6 text-[#53565b]">作品集管理</h3>
         
         {/* Categories */}
         <div className="neo-box mb-6">
@@ -821,7 +821,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             {portfolioCategories.map(cat => (
               <div key={cat.id} className="flex items-center gap-2 bg-gray-100 px-3 py-1 border border-gray-300">
                 <span className="text-sm tracking-widest">{cat.name}</span>
-                <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[#8b0000]">
+                <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[#53565b]">
                   <X size={14} />
                 </button>
               </div>
@@ -873,7 +873,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <img src={art.imageUrl} alt={art.title} className="w-full h-full object-cover" />
                         <button 
                           onClick={() => handleDeleteArtwork(art.id)}
-                          className="absolute top-1 right-1 p-1 bg-white/80 text-[#8b0000] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
+                          className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
                         >
                           <X size={16} />
                         </button>
@@ -894,7 +894,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
       {/* System Settings */}
       <div className="mb-16">
-        <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">系統設定</h3>
+        <h3 className="text-2xl font-black tracking-widest mb-6 text-[#53565b]">系統設定</h3>
         <div className="neo-box">
           <h4 className="text-lg font-bold tracking-widest mb-4">浮水印設定</h4>
           <p className="text-sm text-gray-500 tracking-widest mb-6 leading-loose">
@@ -1006,22 +1006,22 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
 
                 <div className="text-sm tracking-widest leading-relaxed">
-                  <p className="text-gray-500 mb-1">聯絡方式：<span className="text-[#1a1a1a]">{order.contact}</span></p>
-                  <p className="text-gray-500 mb-1">需求描述：<span className="text-[#1a1a1a]">{order.description || '無'}</span></p>
+                  <p className="text-gray-500 mb-1">聯絡方式：<span className="text-[#53565b]">{order.contact}</span></p>
+                  <p className="text-gray-500 mb-1">需求描述：<span className="text-[#53565b]">{order.description || '無'}</span></p>
                 </div>
 
                 {/* References */}
                 <div>
                   <p className="text-sm text-gray-500 tracking-widest mb-2">參考資料：</p>
                   {order.referenceType === 'link' ? (
-                    <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#8b0000] hover:underline text-sm tracking-widest">
+                    <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#53565b] hover:underline text-sm tracking-widest">
                       <ExternalLink size={16} /> 開啟連結
                     </a>
                   ) : order.referenceImages?.length > 0 ? (
                     <div className="flex gap-2 overflow-x-auto pb-2">
                       {order.referenceImages.map((img: string, i: number) => (
                         <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                          <img src={img} alt="Ref" className="w-16 h-16 object-cover border border-[#1a1a1a] hover:opacity-80" />
+                          <img src={img} alt="Ref" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
                         </a>
                       ))}
                     </div>
@@ -1045,7 +1045,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         ))}
                       </select>
                     ) : (
-                      <span className="inline-block px-4 py-2 bg-[#1a1a1a] text-[#faf9f6] text-sm font-bold tracking-widest">
+                      <span className="inline-block px-4 py-2 bg-[#53565b] text-[#f5f5f5] text-sm font-bold tracking-widest">
                         {STATUS_NODES.find(n => n.id === order.status)?.label}
                       </span>
                     )}
@@ -1152,7 +1152,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             />
                           </label>
                           {editData.progressHistory?.[editData.status]?.imageUrl && (
-                            <span className="text-xs text-green-700 tracking-widest flex items-center gap-1">
+                            <span className="text-xs text-gray-800 tracking-widest flex items-center gap-1">
                               <CheckCircle2 size={14} /> 已上傳
                             </span>
                           )}
@@ -1166,24 +1166,24 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <div className="flex justify-end gap-4 mt-6">
                   {editingId === order.id ? (
                     <>
-                      <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white tracking-widest hover:bg-green-800 transition-colors">
+                      <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
                         <Save size={16} /> 儲存
                       </button>
-                      <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] tracking-widest hover:bg-gray-100 transition-colors">
+                      <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
                         取消
                       </button>
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#1a1a1a] tracking-widest hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors">
+                      <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors">
                         <Edit2 size={16} /> 編輯
                       </button>
                       {(order.status === 'completed' || order.status === 'delivered') && (
-                        <button onClick={() => handleCloseOrder(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-green-700 text-green-700 tracking-widest hover:bg-green-50 transition-colors">
+                        <button onClick={() => handleCloseOrder(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-gray-800 text-gray-800 tracking-widest hover:bg-gray-100 transition-colors">
                           <CheckCircle2 size={16} /> 確認交付並結案
                         </button>
                       )}
-                      <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#8b0000] text-[#8b0000] tracking-widest hover:bg-red-50 transition-colors">
+                      <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
                         <Trash2 size={16} /> 銷毀
                       </button>
                     </>
@@ -1215,7 +1215,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       </div>
 
       {/* Right Column - Fixed Calendar */}
-      <div className="w-full lg:w-[350px] xl:w-[400px] shrink-0">
+      <div className="w-full xl:w-[450px] shrink-0">
         <div className="sticky top-24">
           <div className="neo-box !p-4">
             <div className="flex justify-between items-center mb-4 border-b-2 border-gray-200 pb-2">
@@ -1235,7 +1235,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             </div>
             <div className="grid grid-cols-7 gap-1">
               {['日', '一', '二', '三', '四', '五', '六'].map(d => (
-                <div key={d} className="text-center text-xs font-bold tracking-widest py-1 border-b border-[#1a1a1a]">{d}</div>
+                <div key={d} className="text-center text-xs font-bold tracking-widest py-1 border-b border-[#53565b]">{d}</div>
               ))}
               {Array.from({ length: daysInMonth[0].getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
               {daysInMonth.map(day => {
@@ -1255,23 +1255,23 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
                 return (
                   <div key={day.toISOString()} className={cn(
-                    "min-h-[60px] border p-1 transition-colors overflow-hidden",
-                    isSameDay(day, new Date()) ? "border-[#8b0000] bg-red-50/30" : "border-gray-200 hover:border-gray-400"
+                    "min-h-[80px] border p-1.5 transition-colors overflow-hidden",
+                    isSameDay(day, new Date()) ? "border-[#53565b] bg-gray-100/30" : "border-gray-200 hover:border-gray-400"
                   )}>
-                    <div className="text-right text-[10px] font-bold mb-1">{format(day, 'd')}</div>
-                    <div className="space-y-0.5">
+                    <div className="text-right text-xs font-bold mb-1">{format(day, 'd')}</div>
+                    <div className="space-y-1">
                       {dayEvents.map((event, idx) => {
                         const stageLabel = STATUS_NODES.find(n => n.id === event.stage)?.label || event.stage;
-                        let bgColor = "bg-[#1a1a1a]"; // default black
+                        let bgColor = "bg-[#53565b]"; // default black
                         if (event.stage === 'draft') bgColor = "bg-gray-400";
-                        if (event.stage === 'lineart') bgColor = "bg-gray-600";
-                        if (event.stage === 'coloring') bgColor = "bg-gray-800";
+                        if (event.stage === 'lineart') bgColor = "bg-gray-500";
+                        if (event.stage === 'coloring') bgColor = "bg-gray-600";
 
                         return (
                           <button 
                             key={`${event.order.id}-${idx}`}
                             onClick={() => scrollToOrder(event.order.id)}
-                            className={cn("block w-full text-left text-[8px] truncate text-white px-1 py-0.5 hover:opacity-80 transition-opacity", bgColor)}
+                            className={cn("block w-full text-left text-[10px] truncate text-white px-1.5 py-1 hover:opacity-80 transition-opacity", bgColor)}
                             title={`${event.order.title} - ${stageLabel}`}
                           >
                             {event.order.title}

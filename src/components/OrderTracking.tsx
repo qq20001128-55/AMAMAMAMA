@@ -85,7 +85,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     if (!ctx) return;
 
     // Background
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#53565b';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // Decorative elements
@@ -93,12 +93,12 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     ctx.lineWidth = 2;
     ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
     
-    ctx.fillStyle = '#8b0000';
+    ctx.fillStyle = '#53565b';
     ctx.fillRect(canvas.width / 2 - 20, 80, 40, 40);
 
     // Text settings
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#faf9f6';
+    ctx.fillStyle = '#f5f5f5';
 
     // Title
     ctx.font = 'bold 60px "Noto Serif TC", serif';
@@ -106,12 +106,12 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
     // Order ID
     ctx.font = '40px monospace';
-    ctx.fillStyle = '#8b0000';
+    ctx.fillStyle = '#53565b';
     ctx.fillText(order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`, canvas.width / 2, 350);
 
     // Nickname
     ctx.font = 'bold 50px "Noto Serif TC", serif';
-    ctx.fillStyle = '#faf9f6';
+    ctx.fillStyle = '#f5f5f5';
     ctx.fillText(`委託人：${order.nickname}`, canvas.width / 2, 500);
 
     // Status
@@ -138,7 +138,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       animate={{ opacity: 1 }}
       className="max-w-5xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-8 transition-colors tracking-widest">
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />
         <span>返回大廳</span>
       </button>
@@ -162,7 +162,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       </form>
 
       {error && (
-        <div className="text-center py-10 text-[#8b0000] border-2 border-dashed border-[#8b0000] tracking-widest">
+        <div className="text-center py-10 text-[#53565b] border-2 border-dashed border-[#53565b] tracking-widest">
           {error}
         </div>
       )}
@@ -173,7 +173,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-16"
         >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-8 border-b-2 border-[#1a1a1a]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-8 border-b-2 border-[#53565b]">
             <div>
               <p className="text-xs text-gray-500 tracking-widest mb-2">契約標題</p>
               <h3 className="text-3xl font-black tracking-widest">{order.title}</h3>
@@ -181,11 +181,11 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             <div className="text-left md:text-right flex flex-col items-start md:items-end gap-4">
               <div>
                 <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
-                <p className="text-xl font-bold tracking-widest text-[#8b0000]">{STATUS_NODES[currentStatusIndex]?.label}</p>
+                <p className="text-xl font-bold tracking-widest text-[#53565b]">{STATUS_NODES[currentStatusIndex]?.label}</p>
               </div>
               <button 
                 onClick={generateProgressCard}
-                className="px-4 py-2 bg-[#1a1a1a] text-white text-sm tracking-widest hover:bg-[#8b0000] transition-colors"
+                className="px-4 py-2 bg-[#53565b] text-white text-sm tracking-widest hover:bg-[#53565b] transition-colors"
               >
                 下載進度卡
               </button>
@@ -197,7 +197,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               {/* Progress Line */}
               <div className="absolute top-14 left-10 right-10 h-0.5 bg-gray-200 -z-10" />
               <div 
-                className="absolute top-14 left-10 h-0.5 bg-[#8b0000] transition-all duration-1000 -z-10" 
+                className="absolute top-14 left-10 h-0.5 bg-[#53565b] transition-all duration-1000 -z-10" 
                 style={{ width: `calc(${(currentStatusIndex / (STATUS_NODES.length - 1)) * 100}% - 20px)` }}
               />
 
@@ -211,15 +211,15 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                   return (
                     <div key={node.id} className="flex flex-col items-center group w-24">
                       <div className={cn(
-                        "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#faf9f6] mb-4",
-                        isCompleted ? "border-[#8b0000] text-[#8b0000]" : "border-gray-200 text-gray-300",
-                        isCurrent && "ring-4 ring-red-50 bg-[#8b0000] text-white"
+                        "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#f5f5f5] mb-4",
+                        isCompleted ? "border-[#53565b] text-[#53565b]" : "border-gray-200 text-gray-300",
+                        isCurrent && "ring-4 ring-gray-100 bg-[#53565b] text-white"
                       )}>
                         {isCompleted ? <CheckCircle2 size={24} /> : <Clock size={24} />}
                       </div>
                       <span className={cn(
                         "text-sm tracking-widest transition-colors mb-2 text-center",
-                        isCompleted ? "text-[#1a1a1a] font-bold" : "text-gray-400"
+                        isCompleted ? "text-[#53565b] font-bold" : "text-gray-400"
                       )}>
                         {node.label}
                       </span>
@@ -241,7 +241,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="neo-box lg:col-span-1 space-y-6">
-              <h4 className="text-lg font-black tracking-widest border-b-2 border-[#1a1a1a] pb-2 inline-block">契約詳情</h4>
+              <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block">契約詳情</h4>
               <div className="space-y-4 text-sm tracking-widest">
                 <div>
                   <span className="text-gray-500 block mb-1">委託人</span>
@@ -259,13 +259,13 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             </div>
             
             <div className="lg:col-span-2 space-y-6">
-              <h4 className="text-lg font-black tracking-widest border-b-2 border-[#1a1a1a] pb-2 inline-block">參考資料</h4>
+              <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block">參考資料</h4>
               {order.referenceType === 'link' ? (
                 <a 
                   href={order.referenceLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[#8b0000] hover:underline tracking-widest p-4 border-2 border-dashed border-[#8b0000] bg-red-50/50"
+                  className="flex items-center gap-2 text-[#53565b] hover:underline tracking-widest p-4 border-2 border-dashed border-[#53565b] bg-gray-100/50"
                 >
                   <ExternalLink size={20} />
                   前往參考連結
@@ -273,7 +273,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               ) : order.referenceImages?.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {order.referenceImages.map((img: string, i: number) => (
-                    <div key={i} className="aspect-square border-2 border-[#1a1a1a] overflow-hidden">
+                    <div key={i} className="aspect-square border-2 border-[#53565b] overflow-hidden">
                       <img src={img} alt={`Reference ${i}`} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
                     </div>
                   ))}
@@ -283,14 +283,17 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               )}
 
               {/* Stage Previews */}
-              {['draft', 'lineart', 'coloring', 'completed'].some(stage => order.progressHistory?.[stage]?.imageUrl) && (
+              {['draft', 'lineart', 'coloring', 'completed'].some(stage => {
+                const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
+                return order.progressHistory?.[stage]?.imageUrl || order.deadlines?.[stageLabel]?.imageUrl;
+              }) && (
                 <div className="mt-12">
-                  <h4 className="text-lg font-black tracking-widest border-b-2 border-[#1a1a1a] pb-2 inline-block mb-6">進度預覽</h4>
+                  <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block mb-6">進度預覽</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                     {['draft', 'lineart', 'coloring', 'completed'].map(stage => {
-                      const imgUrl = order.progressHistory?.[stage]?.imageUrl;
-                      if (!imgUrl) return null;
                       const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
+                      const imgUrl = order.progressHistory?.[stage]?.imageUrl || order.deadlines?.[stageLabel]?.imageUrl;
+                      if (!imgUrl) return null;
                       
                       return (
                         <div key={stage} className="space-y-2">
@@ -299,14 +302,14 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                             className="aspect-square border-2 border-gray-200 overflow-hidden cursor-pointer group"
                             onClick={() => setLightboxImage(imgUrl)}
                           >
-                            <WatermarkedImage 
+                            <img 
                               src={imgUrl} 
                               alt={`${stageLabel} preview`}
-                              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
-                              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
-                              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
-                              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
-                              className="transition-transform duration-700 group-hover:scale-105"
+                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              onError={(e) => {
+                                console.error(`Failed to load image for stage ${stageLabel}:`, imgUrl, e);
+                              }}
+                              referrerPolicy="no-referrer"
                             />
                           </div>
                         </div>

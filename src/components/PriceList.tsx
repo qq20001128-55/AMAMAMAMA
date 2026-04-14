@@ -47,7 +47,7 @@ export default function PriceList({ onBack }: PriceListProps) {
       animate={{ opacity: 1 }}
       className="max-w-5xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-8 transition-colors tracking-widest">
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />
         <span>返回大廳</span>
       </button>
@@ -59,7 +59,7 @@ export default function PriceList({ onBack }: PriceListProps) {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-2 border-[#1a1a1a] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
         <div className="text-center py-20 text-gray-400 border-2 border-dashed border-gray-200 tracking-widest">
@@ -72,7 +72,7 @@ export default function PriceList({ onBack }: PriceListProps) {
               {items.map((item) => (
                 <div key={item.id} className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_80%] md:flex-[0_0_60%] lg:flex-[0_0_50%] pl-4">
                   <div className="neo-box h-full flex flex-col">
-                    <div className="w-full aspect-[4/3] bg-gray-100 mb-6 border-2 border-[#1a1a1a] overflow-hidden relative group">
+                    <div className="w-full aspect-[4/3] bg-gray-100 mb-6 border-2 border-[#53565b] overflow-hidden relative group">
                       {item.imageUrl ? (
                         <img 
                           src={item.imageUrl} 
@@ -83,7 +83,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                         <div className="w-full h-full flex items-center justify-center text-gray-300">無圖片</div>
                       )}
                     </div>
-                    <h3 className="text-2xl font-black tracking-widest mb-4 border-b-2 border-[#1a1a1a] pb-2 inline-block">{item.title}</h3>
+                    <h3 className="text-2xl font-black tracking-widest mb-4 border-b-2 border-[#53565b] pb-2 inline-block">{item.title}</h3>
                     <div className="text-sm tracking-widest leading-loose text-gray-600 whitespace-pre-wrap flex-1">
                       {item.description}
                     </div>
@@ -95,13 +95,13 @@ export default function PriceList({ onBack }: PriceListProps) {
           
           <button 
             onClick={scrollPrev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 w-12 h-12 bg-[#faf9f6] border-2 border-[#1a1a1a] flex items-center justify-center hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors z-10"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 w-12 h-12 bg-[#f5f5f5] border-2 border-[#53565b] flex items-center justify-center hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors z-10"
           >
             <ChevronLeft size={24} />
           </button>
           <button 
             onClick={scrollNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 w-12 h-12 bg-[#faf9f6] border-2 border-[#1a1a1a] flex items-center justify-center hover:bg-[#1a1a1a] hover:text-[#faf9f6] transition-colors z-10"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 w-12 h-12 bg-[#f5f5f5] border-2 border-[#53565b] flex items-center justify-center hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors z-10"
           >
             <ChevronRight size={24} />
           </button>
