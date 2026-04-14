@@ -7,34 +7,118 @@
 
 @layer base {
   body {
-    @apply bg-[#f5f5f5] text-[#53565b] font-serif antialiased;
-    background-image: 
-      linear-gradient(45deg, #f5f5f5 25%, transparent 25%, transparent 75%, #f5f5f5 75%, #f5f5f5), 
-      linear-gradient(45deg, #f5f5f5 25%, transparent 25%, transparent 75%, #f5f5f5 75%, #f5f5f5);
-    background-size: 40px 40px;
-    background-position: 0 0, 20px 20px;
+    @apply bg-[#fafafa] text-[#53565b] font-serif antialiased;
+    position: relative;
+    min-height: 100vh;
+  }
+  
+  body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: var(--page-bg-url, none);
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+    opacity: 0.15;
+    z-index: -1;
+    pointer-events: none;
+  }
+  
+  body.is-home::before {
+    background-image: var(--home-bg-url, none);
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply px-8 py-3 bg-[#53565b] text-gray-200 border border-[#53565b] outline outline-1 outline-offset-2 outline-[#53565b] hover:bg-[#3a3c40] hover:outline-[#3a3c40] hover:border-[#3a3c40] hover:text-[#f5f5f5] transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed tracking-widest relative m-1;
+    @apply px-8 py-3 bg-transparent transition-all duration-500 disabled:opacity-50 disabled:cursor-not-allowed tracking-widest relative m-1 font-black;
+    color: var(--theme-color, #53565b);
+    border: 2px solid var(--theme-color, #53565b);
+    box-shadow: inset 0 0 0 2px #fafafa, inset 0 0 0 4px var(--theme-color, #53565b);
+    border-radius: 4px;
+  }
+  .btn-primary:hover {
+    @apply text-[#fafafa];
+    background-color: var(--theme-color, #53565b);
+    box-shadow: inset 0 0 0 2px var(--theme-color, #53565b), inset 0 0 0 4px #fafafa;
   }
   .btn-secondary {
-    @apply px-8 py-3 bg-[#f5f5f5]/90 backdrop-blur-sm text-[#53565b] border border-[#53565b] outline outline-1 outline-offset-2 outline-[#53565b] hover:outline-[#3a3c40] hover:border-[#3a3c40] hover:text-gray-600 transition-all duration-500 tracking-widest relative m-1;
+    @apply px-8 py-3 bg-transparent text-[#53565b] border-2 border-[#53565b] hover:bg-[#53565b] hover:text-[#fafafa] transition-all duration-500 tracking-widest relative m-1;
+    border-radius: 2px;
   }
   .input-field {
     @apply w-full px-4 py-3 bg-white/80 backdrop-blur-sm border-b-2 border-[#53565b] focus:outline-none focus:border-gray-500 transition-all placeholder:text-gray-400;
   }
   .neo-box {
-    @apply border border-[#53565b] bg-[#f5f5f5]/95 backdrop-blur-sm p-6 relative outline outline-1 outline-offset-4 outline-[#53565b] m-2 shadow-[4px_4px_0px_0px_rgba(83,86,91,0.3)];
+    @apply border border-[#53565b] bg-[#fafafa]/95 backdrop-blur-sm p-6 relative m-2;
+    box-shadow: 0 0 0 4px #fafafa, 0 0 0 5px #53565b;
   }
-  .neo-box::before {
-    content: '';
-    @apply absolute -top-3 -left-3 w-6 h-6 border-t-2 border-l-2 border-[#53565b];
+  .window-box, .window-box-octagon {
+    @apply relative p-8 bg-[#fafafa] m-3;
+    border: 1px solid var(--theme-color, #53565b);
   }
-  .neo-box::after {
+  .window-box::before, .window-box-octagon::before {
     content: '';
-    @apply absolute -bottom-3 -right-3 w-6 h-6 border-b-2 border-r-2 border-[#53565b];
+    @apply absolute pointer-events-none;
+    border: 1px solid var(--theme-color, #53565b);
+    top: -5px;
+    left: -5px;
+    right: -5px;
+    bottom: -5px;
+  }
+  .window-box::after, .window-box-octagon::after {
+    content: '';
+    @apply absolute pointer-events-none;
+    top: -9px; bottom: -9px; left: -9px; right: -9px;
+    background: 
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) top left / 16px 2px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) top left / 2px 16px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) top right / 16px 2px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) top right / 2px 16px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) bottom left / 16px 2px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) bottom left / 2px 16px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) bottom right / 16px 2px no-repeat,
+      linear-gradient(var(--theme-color, #53565b), var(--theme-color, #53565b)) bottom right / 2px 16px no-repeat;
+  }
+
+  .window-box-circle {
+    @apply relative p-8 bg-[#fafafa] m-2 rounded-full border-2 border-[#53565b];
+  }
+  .window-box-circle::before {
+    content: '';
+    @apply absolute inset-2 pointer-events-none rounded-full border border-[#53565b] opacity-50;
+  }
+  
+  .section-title-decorated {
+    @apply relative inline-flex items-center justify-center;
+  }
+  .section-title-decorated::before,
+  .section-title-decorated::after {
+    content: '';
+    display: inline-block;
+    width: 40px;
+    height: 40px;
+    background-image: var(--title-style-url, none);
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    opacity: 0.8;
+  }
+  .section-title-decorated::before {
+    margin-right: 16px;
+    transform: scaleX(-1);
+  }
+  .section-title-decorated::after {
+    margin-left: 16px;
+  }
+
+  .modal-scroll-bg {
+    background-color: #fafafa;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100' height='100' filter='url(%23noise)' opacity='0.08'/%3E%3C/svg%3E");
+    box-shadow: inset 0 0 30px rgba(83, 86, 91, 0.1);
   }
 }

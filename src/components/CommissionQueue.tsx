@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '../firebase';
 import { STATUS_NODES } from '../lib/utils';
+import { SectionTitle } from './SectionTitle';
 
 export default function CommissionQueue() {
   const [queue, setQueue] = useState<any[]>([]);
@@ -33,8 +34,8 @@ export default function CommissionQueue() {
 
   return (
     <div className="max-w-2xl mx-auto mt-20 mb-10">
-      <div className="neo-box !p-6 border-[#53565b]">
-        <h3 className="text-xl font-black tracking-widest mb-6 text-center border-b-2 border-[#53565b] pb-4">當前局內進度</h3>
+      <div className="window-box-octagon">
+        <SectionTitle className="!mb-6 !text-2xl">當前局內進度</SectionTitle>
         <div className="space-y-3">
           {queue.map(order => {
             const statusLabel = STATUS_NODES.find(n => n.id === order.status)?.label || order.status;

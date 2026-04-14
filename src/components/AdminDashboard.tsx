@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, Calendar as CalendarIcon, ExternalLink, X, CheckCircle2 } from 'lucide-react';
-import { collection, query, orderBy, getDocs, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
 import { cn, STATUS_NODES } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
@@ -51,6 +51,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [systemSettings, setSystemSettings] = useState<any>({ horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
   const [watermarkUploading, setWatermarkUploading] = useState<'horizontal' | 'vertical' | 'square' | 'pc' | null>(null);
 
+  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37' });
+  const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | null>(null);
+
   useEffect(() => {
     fetchOrders();
     fetchAllOrders();
@@ -58,7 +61,53 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     fetchPriceList();
     fetchPortfolioData();
     fetchSystemSettings();
+    fetchSiteConfig();
   }, []);
+
+  const fetchSiteConfig = async () => {
+    try {
+      const docSnap = await getDoc(doc(db, 'settings', 'siteConfig'));
+      if (docSnap.exists()) {
+        setSiteConfig(docSnap.data());
+      } else {
+        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37' });
+      }
+    } catch (err) {
+      console.error('Fetch site config error:', err);
+    }
+  };
+
+  const handleSiteConfigUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'homeBg' | 'pageBg' | 'titleStyle') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSiteConfigUploading(type);
+    try {
+      const storageRef = ref(storage, `system/custom_ui/${type}.png`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      const newConfig = { ...siteConfig, [`${type}Url`]: url };
+      await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
+      setSiteConfig(newConfig);
+      alert('上傳成功！');
+    } catch (err) {
+      console.error('Upload site config error:', err);
+      alert('上傳失敗，請稍後再試。');
+    } finally {
+      setSiteConfigUploading(null);
+    }
+  };
+
+  const handleThemeColorChange = async (color: string) => {
+    const newConfig = { ...siteConfig, themeColor: color };
+    setSiteConfig(newConfig);
+    try {
+      await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
+    } catch (err) {
+      console.error('Update theme color error:', err);
+    }
+  };
 
   const fetchSystemSettings = async () => {
     try {
@@ -778,7 +827,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       </p>
                     </div>
                     <div className="flex justify-end gap-4 mt-4">
-                      <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-sm tracking-widest hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors">
+                      <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-sm tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
                         <Edit2 size={14} /> 編輯
                       </button>
                       <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
@@ -895,6 +944,83 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {/* System Settings */}
       <div className="mb-16">
         <h3 className="text-2xl font-black tracking-widest mb-6 text-[#53565b]">系統設定</h3>
+        
+        <div className="neo-box mb-8">
+          <h4 className="text-lg font-bold tracking-widest mb-4">視覺設定</h4>
+          <p className="text-sm text-gray-500 tracking-widest mb-6 leading-loose">
+            上傳全站的背景圖與標題裝飾圖。
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">首頁底圖</p>
+              <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {siteConfig.homeBgUrl ? (
+                  <img src={siteConfig.homeBgUrl} alt="Home Background" className="max-w-full max-h-full object-cover" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {siteConfigUploading === 'homeBg' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳首頁底圖</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'homeBg')} disabled={siteConfigUploading !== null} />
+                </label>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">分頁底圖</p>
+              <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {siteConfig.pageBgUrl ? (
+                  <img src={siteConfig.pageBgUrl} alt="Page Background" className="max-w-full max-h-full object-cover" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {siteConfigUploading === 'pageBg' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳分頁底圖</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'pageBg')} disabled={siteConfigUploading !== null} />
+                </label>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">標題裝飾圖</p>
+              <div className="aspect-square max-w-[200px] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {siteConfig.titleStyleUrl ? (
+                  <img src={siteConfig.titleStyleUrl} alt="Title Style" className="max-w-full max-h-full object-contain p-4" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {siteConfigUploading === 'titleStyle' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳標題裝飾圖</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'titleStyle')} disabled={siteConfigUploading !== null} />
+                </label>
+              </div>
+            </div>
+          </div>
+          
+          <div className="mt-8 border-t border-gray-200 pt-6">
+            <p className="text-sm font-bold tracking-widest mb-4">主題強調色</p>
+            <div className="flex items-center gap-4">
+              <input 
+                type="color" 
+                value={siteConfig.themeColor || '#d4af37'} 
+                onChange={(e) => handleThemeColorChange(e.target.value)}
+                className="w-12 h-12 rounded cursor-pointer border-0 p-0"
+              />
+              <span className="font-mono text-sm">{siteConfig.themeColor || '#d4af37'}</span>
+            </div>
+          </div>
+        </div>
+
         <div className="neo-box">
           <h4 className="text-lg font-bold tracking-widest mb-4">浮水印設定</h4>
           <p className="text-sm text-gray-500 tracking-widest mb-6 leading-loose">
@@ -1045,7 +1171,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         ))}
                       </select>
                     ) : (
-                      <span className="inline-block px-4 py-2 bg-[#53565b] text-[#f5f5f5] text-sm font-bold tracking-widest">
+                      <span className="inline-block px-4 py-2 bg-[#53565b] text-[#fafafa] text-sm font-bold tracking-widest">
                         {STATUS_NODES.find(n => n.id === order.status)?.label}
                       </span>
                     )}
@@ -1175,7 +1301,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     </>
                   ) : (
                     <>
-                      <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors">
+                      <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
                         <Edit2 size={16} /> 編輯
                       </button>
                       {(order.status === 'completed' || order.status === 'delivered') && (
@@ -1291,13 +1417,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 modal-scroll-bg flex items-center justify-center p-4"
           onClick={() => setLightboxImage(null)}
         >
           <img 
             src={lightboxImage} 
             alt="Full size reference" 
-            className="max-w-full max-h-full object-contain"
+            className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
           />
         </div>
       )}

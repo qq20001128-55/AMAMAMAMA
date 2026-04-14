@@ -15,8 +15,8 @@ import AdminDashboard from './components/AdminDashboard';
 import FollowMe from './components/FollowMe';
 import PriceList from './components/PriceList';
 import CommissionQueue from './components/CommissionQueue';
-import { CloudBackground } from './components/CloudBackground';
 import { motion, AnimatePresence } from 'motion/react';
+import { SectionTitle } from './components/SectionTitle';
 
 type Page = 'home' | 'order' | 'tracking' | 'portfolio' | 'admin' | 'follow' | 'pricelist';
 
@@ -25,6 +25,7 @@ export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [commissionStatus, setCommissionStatus] = useState<'open' | 'closed'>('open');
+  const [siteConfig, setSiteConfig] = useState<any>({});
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -42,6 +43,28 @@ export default function App() {
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'settings', 'siteConfig'), (doc) => {
+      if (doc.exists()) {
+        const data = doc.data();
+        setSiteConfig(data);
+        if (data.homeBgUrl) document.documentElement.style.setProperty('--home-bg-url', `url("${data.homeBgUrl}")`);
+        if (data.pageBgUrl) document.documentElement.style.setProperty('--page-bg-url', `url("${data.pageBgUrl}")`);
+        if (data.titleStyleUrl) document.documentElement.style.setProperty('--title-style-url', `url("${data.titleStyleUrl}")`);
+        if (data.themeColor) document.documentElement.style.setProperty('--theme-color', data.themeColor);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (page === 'home') {
+      document.body.classList.add('is-home');
+    } else {
+      document.body.classList.remove('is-home');
+    }
+  }, [page]);
 
   if (!isAuthReady) {
     return (
@@ -61,45 +84,13 @@ export default function App() {
             exit={{ opacity: 0, y: -20 }}
             className="max-w-4xl mx-auto px-6 py-20 text-center relative"
           >
-            {/* Animated Clouds for Home Page */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, x: -50 }}
-              animate={{ opacity: 0.8, scale: 1, x: 0 }}
-              transition={{ duration: 2, ease: "easeOut" }}
-              className="absolute top-0 left-0 w-64 h-64 pointer-events-none -z-10"
-              style={{
-                backgroundImage: `url("/cloud-pattern.png")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                mixBlendMode: 'multiply',
-                maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
-                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)'
-              }}
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, x: 50 }}
-              animate={{ opacity: 0.8, scale: 1, x: 0 }}
-              transition={{ duration: 2.5, ease: "easeOut", delay: 0.5 }}
-              className="absolute bottom-20 right-0 w-80 h-80 pointer-events-none -z-10"
-              style={{
-                backgroundImage: `url("/cloud-pattern.png")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                mixBlendMode: 'multiply',
-                maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
-                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)'
-              }}
-            />
-
             <div className="mb-12 relative inline-block">
               <h1 className="text-6xl md:text-8xl font-black tracking-widest text-[#53565b] mb-8" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', height: '400px' }}>
                 龍契局
               </h1>
               <div className="absolute top-0 -right-16 md:-right-24 h-full flex flex-col items-center justify-center">
                 <div className="w-[2px] h-full bg-[#53565b] opacity-20"></div>
-                <div className="absolute w-8 h-8 border-2 border-[#53565b] rotate-45 bg-[#f5f5f5]"></div>
+                <div className="absolute w-8 h-8 border-2 border-[#53565b] rotate-45 bg-[#fafafa]"></div>
               </div>
             </div>
             
@@ -164,8 +155,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] text-[#53565b] font-serif relative overflow-hidden">
-      <CloudBackground />
+    <div className="min-h-screen bg-[#fafafa] text-[#53565b] font-serif relative overflow-hidden">
       <Navbar setPage={setPage} currentPage={page} user={user} />
       <main className="pt-20 relative z-10">
         <AnimatePresence mode="wait">

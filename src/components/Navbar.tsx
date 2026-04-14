@@ -14,13 +14,13 @@ export default function Navbar({ setPage, currentPage, user }: NavbarProps) {
   const isAdmin = user?.email === 'sara20001128@gmail.com';
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-[#f5f5f5]/90 backdrop-blur-md z-50 border-b-2 border-[#53565b]">
+    <nav className="fixed top-0 left-0 right-0 bg-[#fafafa]/90 backdrop-blur-md z-50 border-b-2 border-[#53565b]">
       <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
         <button 
           onClick={() => setPage('home')}
           className="text-2xl font-black tracking-widest hover:text-[#53565b] transition-colors flex items-center gap-2"
         >
-          <span className="w-8 h-8 border-2 border-[#53565b] flex items-center justify-center text-sm font-bold bg-[#53565b] text-[#f5f5f5]">龍</span>
+          <span className="w-8 h-8 border-2 border-[#53565b] flex items-center justify-center text-sm font-bold bg-[#53565b] text-[#fafafa]">龍</span>
           龍契局
         </button>
 

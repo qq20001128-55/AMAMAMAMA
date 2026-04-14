@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import useEmblaCarousel from 'embla-carousel-react';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { SectionTitle } from './SectionTitle';
 
 interface PriceListItem {
   id: string;
@@ -53,7 +54,7 @@ export default function PriceList({ onBack }: PriceListProps) {
       </button>
 
       <div className="text-center mb-12">
-        <h2 className="text-4xl font-black tracking-widest mb-4">價目表</h2>
+        <SectionTitle>價目表</SectionTitle>
         <p className="text-gray-500 tracking-widest">龍契局各項委託之代價與說明</p>
       </div>
 
@@ -71,7 +72,7 @@ export default function PriceList({ onBack }: PriceListProps) {
             <div className="flex touch-pan-y">
               {items.map((item) => (
                 <div key={item.id} className="flex-[0_0_100%] min-w-0 sm:flex-[0_0_80%] md:flex-[0_0_60%] lg:flex-[0_0_50%] pl-4">
-                  <div className="neo-box h-full flex flex-col">
+                  <div className="window-box-octagon h-full flex flex-col">
                     <div className="w-full aspect-[4/3] bg-gray-100 mb-6 border-2 border-[#53565b] overflow-hidden relative group">
                       {item.imageUrl ? (
                         <img 
@@ -95,13 +96,13 @@ export default function PriceList({ onBack }: PriceListProps) {
           
           <button 
             onClick={scrollPrev}
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 w-12 h-12 bg-[#f5f5f5] border-2 border-[#53565b] flex items-center justify-center hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors z-10"
+            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 md:-translate-x-12 w-12 h-12 bg-[#fafafa] border-2 border-[#53565b] flex items-center justify-center hover:bg-[#53565b] hover:text-[#fafafa] transition-colors z-10"
           >
             <ChevronLeft size={24} />
           </button>
           <button 
             onClick={scrollNext}
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 w-12 h-12 bg-[#f5f5f5] border-2 border-[#53565b] flex items-center justify-center hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors z-10"
+            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 md:translate-x-12 w-12 h-12 bg-[#fafafa] border-2 border-[#53565b] flex items-center justify-center hover:bg-[#53565b] hover:text-[#fafafa] transition-colors z-10"
           >
             <ChevronRight size={24} />
           </button>

@@ -6,6 +6,7 @@ import { collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'fi
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import { cn, compressImage, CATEGORIES } from '../lib/utils';
+import { SectionTitle } from './SectionTitle';
 
 interface OrderFormProps {
   onBack: () => void;
@@ -159,24 +160,24 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
           <ChevronLeft size={20} />
           <span>返回</span>
         </button>
-        <div className="neo-box mb-10">
-          <h2 className="text-3xl font-black mb-8 tracking-widest text-center">注意事項</h2>
-          <div className="prose prose-sm max-w-none text-gray-700 space-y-6 leading-loose tracking-widest">
-            <p className="text-center font-bold text-lg">歡迎來到龍契局。</p>
-            <p className="text-center">在你提出委託之前，請先閱讀以下規則。<br/>一旦委託成立，即視為契約已定，並同意遵守以下內容。</p>
+        <div className="window-box-octagon mb-10">
+          <SectionTitle>注意事項</SectionTitle>
+          <div className="prose prose-sm max-w-none text-gray-700 space-y-6 leading-loose tracking-widest text-center flex flex-col items-center">
+            <p className="font-bold text-lg">歡迎來到龍契局。</p>
+            <p>在你提出委託之前，請先閱讀以下規則。<br/>一旦委託成立，即視為契約已定，並同意遵守以下內容。</p>
             
-            <div>
+            <div className="w-full max-w-md">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">一、關於修改</h3>
-              <ul className="list-none space-y-1">
+              <ul className="list-none space-y-1 p-0 m-0">
                 <li>・草稿與色草階段可提出修改（請盡量一次整理完整）</li>
                 <li>・完稿後僅接受小幅調整（如顏色、細節）</li>
                 <li>・大幅修改（如構圖、姿勢、主題更動）不在委託範圍內</li>
               </ul>
             </div>
 
-            <div>
+            <div className="w-full max-w-md">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">二、關於退款</h3>
-              <ul className="list-none space-y-1">
+              <ul className="list-none space-y-1 p-0 m-0">
                 <li>・委託一旦開始，將依繪製進度計算費用</li>
                 <li>・若中途取消，將依完成比例進行退款</li>
                 <li>・已完成部分需支付對應費用</li>
@@ -184,9 +185,9 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
               </ul>
             </div>
 
-            <div>
+            <div className="w-full max-w-md">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">三、關於驚喜包</h3>
-              <ul className="list-none space-y-1">
+              <ul className="list-none space-y-1 p-0 m-0">
                 <li>・驚喜包為自由發揮類型委託</li>
                 <li>・內容與呈現方式可以許願但大致都將由龍契局決定</li>
                 <li>・不接受大幅修改</li>
@@ -195,25 +196,25 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
               <p className="mt-2 text-sm text-[#53565b]">請確認能接受此類型再進行委託</p>
             </div>
 
-            <div>
+            <div className="w-full max-w-md">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">四、關於時程</h3>
-              <ul className="list-none space-y-1">
+              <ul className="list-none space-y-1 p-0 m-0">
                 <li>・依排單順序進行製作</li>
                 <li>・請避免頻繁催稿</li>
                 <li>・若有特殊時程需求，請事先告知</li>
               </ul>
             </div>
 
-            <div>
+            <div className="w-full max-w-md">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-2">五、其他事項</h3>
-              <ul className="list-none space-y-1">
+              <ul className="list-none space-y-1 p-0 m-0">
                 <li>・請提供清楚的委託需求與參考資料</li>
                 <li>・委託確認後，內容不可隨意更改</li>
                 <li>・如有問題，歡迎事先詢問</li>
               </ul>
             </div>
 
-            <p className="text-center font-bold mt-8">請在確認以上內容後，再決定是否提交委託。<br/>一旦立契，便請遵守其約。</p>
+            <p className="font-bold mt-8">請在確認以上內容後，再決定是否提交委託。<br/>一旦立契，便請遵守其約。</p>
           </div>
         </div>
         
@@ -250,8 +251,8 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
             <span className="text-3xl font-black">契</span>
           </div>
         </div>
-        <h2 className="text-3xl font-black mb-4 tracking-widest">契約已立</h2>
-        <div className="neo-box mb-8">
+        <SectionTitle>契約已立</SectionTitle>
+        <div className="window-box-octagon mb-8">
           <p className="text-xs text-gray-500 tracking-widest mb-2">訂單編號</p>
           <p className="font-mono text-lg break-all font-bold text-[#53565b]">#MAA-{orderId?.substring(0, 4).toUpperCase()}</p>
         </div>
@@ -293,7 +294,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
         <ChevronLeft size={20} />
         <span>返回須知</span>
       </button>
-      <h2 className="text-3xl font-black mb-8 tracking-widest">委託書契</h2>
+      <SectionTitle>委託書契</SectionTitle>
       
       <form onSubmit={handleSubmit} className="space-y-8">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
@@ -355,21 +356,21 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
           </select>
         </div>
 
-        <div className="neo-box">
+        <div className="window-box-octagon">
           <label className="block text-sm tracking-widest font-bold mb-4">參考資料 Reference</label>
           
           <div className="flex gap-4 mb-6 border-b-2 border-gray-200 pb-4">
             <button
               type="button"
               onClick={() => setRefType('image')}
-              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[#53565b] text-[#f5f5f5]" : "hover:bg-gray-100")}
+              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[#53565b] text-[#fafafa]" : "hover:bg-gray-100")}
             >
               <ImageIcon size={18} /> 上傳圖片
             </button>
             <button
               type="button"
               onClick={() => setRefType('link')}
-              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[#53565b] text-[#f5f5f5]" : "hover:bg-gray-100")}
+              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[#53565b] text-[#fafafa]" : "hover:bg-gray-100")}
             >
               <LinkIcon size={18} /> 附上連結
             </button>
@@ -427,7 +428,7 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
           className="btn-primary w-full py-4 text-lg flex items-center justify-center gap-2"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-[#f5f5f5] border-t-transparent rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-[#fafafa] border-t-transparent rounded-full animate-spin" />
           ) : (
             '立契'
           )}

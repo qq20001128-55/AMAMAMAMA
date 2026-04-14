@@ -6,6 +6,7 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase';
 import { compressImage } from '../lib/utils';
 import { User } from 'firebase/auth';
+import { SectionTitle } from './SectionTitle';
 
 interface FollowMeProps {
   onBack: () => void;
@@ -89,7 +90,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
         {/* Left: Avatar & Intro */}
         <div className="w-full md:w-1/3 flex flex-col items-center text-center space-y-6">
           <div className="relative group">
-            <div className="w-48 h-48 rounded-full border-4 border-[#53565b] overflow-hidden bg-[#f5f5f5] flex items-center justify-center">
+            <div className="w-48 h-48 rounded-full border-4 border-[#53565b] overflow-hidden bg-[#fafafa] flex items-center justify-center">
               {loading ? (
                 <div className="w-8 h-8 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
               ) : avatarUrl ? (
@@ -115,7 +116,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
           </div>
 
           <div>
-            <h2 className="text-3xl font-black tracking-widest mb-2">瑪阿</h2>
+            <SectionTitle className="!mb-2">瑪阿</SectionTitle>
             <p className="text-sm text-[#53565b] tracking-widest font-bold mb-6">龍契局・承契者</p>
             <div className="text-sm text-gray-600 tracking-widest leading-loose text-left">
               <p>我是瑪阿，龍契局的承契者。</p>
@@ -139,7 +140,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="neo-box !p-4 flex items-center justify-between hover:bg-[#53565b] hover:text-[#f5f5f5] transition-colors group"
+                className="window-box-octagon !p-4 flex items-center justify-between hover:bg-[#53565b] hover:text-[#fafafa] transition-colors group"
               >
                 <span className="font-bold tracking-widest">{link.label}</span>
                 <span className="text-xs tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">前往 &rarr;</span>

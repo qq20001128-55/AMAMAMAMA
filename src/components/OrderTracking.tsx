@@ -7,6 +7,7 @@ import { cn, STATUS_NODES } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import WatermarkedImage from './WatermarkedImage';
+import { SectionTitle } from './SectionTitle';
 
 interface OrderTrackingProps {
   onBack: () => void;
@@ -98,7 +99,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
     // Text settings
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#f5f5f5';
+    ctx.fillStyle = '#fafafa';
 
     // Title
     ctx.font = 'bold 60px "Noto Serif TC", serif';
@@ -111,7 +112,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
     // Nickname
     ctx.font = 'bold 50px "Noto Serif TC", serif';
-    ctx.fillStyle = '#f5f5f5';
+    ctx.fillStyle = '#fafafa';
     ctx.fillText(`委託人：${order.nickname}`, canvas.width / 2, 500);
 
     // Status
@@ -143,7 +144,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
         <span>返回大廳</span>
       </button>
 
-      <h2 className="text-3xl font-black mb-12 tracking-widest text-center">探問因果</h2>
+      <SectionTitle>探問因果</SectionTitle>
 
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 mb-16 max-w-2xl mx-auto">
         <div className="relative flex-1">
@@ -211,7 +212,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                   return (
                     <div key={node.id} className="flex flex-col items-center group w-24">
                       <div className={cn(
-                        "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#f5f5f5] mb-4",
+                        "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#fafafa] mb-4",
                         isCompleted ? "border-[#53565b] text-[#53565b]" : "border-gray-200 text-gray-300",
                         isCurrent && "ring-4 ring-gray-100 bg-[#53565b] text-white"
                       )}>
@@ -240,7 +241,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="neo-box lg:col-span-1 space-y-6">
+            <div className="window-box-octagon lg:col-span-1 space-y-6">
               <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block">契約詳情</h4>
               <div className="space-y-4 text-sm tracking-widest">
                 <div>
@@ -326,11 +327,11 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 md:p-10"
+          className="fixed inset-0 z-50 modal-scroll-bg flex items-center justify-center p-4 md:p-10"
           onClick={() => setLightboxImage(null)}
         >
           <button 
-            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors z-10"
+            className="absolute top-6 right-6 text-[#53565b] hover:text-gray-500 transition-colors z-10"
             onClick={() => setLightboxImage(null)}
           >
             <X size={32} />
@@ -343,7 +344,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
               squareWatermarkUrl={systemSettings.squareWatermarkUrl}
               pcWatermarkUrl={systemSettings.pcWatermarkUrl}
-              className="max-w-full max-h-[90vh] object-contain shadow-2xl"
+              className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
             />
           </div>
         </div>

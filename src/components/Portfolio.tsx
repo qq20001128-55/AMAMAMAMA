@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { cn } from '../lib/utils';
 import { X, ChevronLeft } from 'lucide-react';
 import WatermarkedImage from './WatermarkedImage';
+import { SectionTitle } from './SectionTitle';
 
 interface PortfolioProps {
   onBack: () => void;
@@ -65,7 +66,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
       </button>
 
       <div className="flex justify-between items-end mb-12">
-        <h2 className="text-4xl font-black tracking-widest">作品集</h2>
+        <SectionTitle className="!mb-0">作品集</SectionTitle>
         <p className="text-gray-400 text-sm uppercase tracking-widest">Selected Works</p>
       </div>
 
@@ -75,7 +76,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
           onClick={() => setActiveCategory('all')}
           className={cn(
             "px-6 py-2 tracking-widest text-sm transition-colors",
-            activeCategory === 'all' ? "bg-[#53565b] text-[#f5f5f5]" : "border-2 border-[#53565b] hover:bg-gray-100"
+            activeCategory === 'all' ? "bg-[#53565b] text-[#fafafa]" : "border-2 border-[#53565b] hover:bg-gray-100"
           )}
         >
           全部
@@ -86,7 +87,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             onClick={() => setActiveCategory(cat.id)}
             className={cn(
               "px-6 py-2 tracking-widest text-sm transition-colors",
-              activeCategory === cat.id ? "bg-[#53565b] text-[#f5f5f5]" : "border-2 border-[#53565b] hover:bg-gray-100"
+              activeCategory === cat.id ? "bg-[#53565b] text-[#fafafa]" : "border-2 border-[#53565b] hover:bg-gray-100"
             )}
           >
             {cat.name}
@@ -108,24 +109,6 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             className="relative aspect-[3/4] cursor-pointer group overflow-hidden border-2 border-transparent hover:border-[#53565b] transition-colors"
             onClick={() => setLightboxImage(art.imageUrl)}
           >
-            {/* Scroll-triggered Cloud Animation */}
-            <motion.div
-              initial={{ opacity: 0, x: -20, y: 20 }}
-              whileInView={{ opacity: 0.8, x: 0, y: 0 }}
-              viewport={{ once: true, margin: "-50px" }}
-              transition={{ duration: 1, delay: 0.2 }}
-              className="absolute bottom-0 left-0 w-32 h-32 pointer-events-none z-10"
-              style={{
-                backgroundImage: `url("/cloud-pattern.png")`,
-                backgroundRepeat: 'no-repeat',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                opacity: 0.4,
-                mixBlendMode: 'multiply',
-                maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)',
-                WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 70%)'
-              }}
-            />
             <WatermarkedImage 
               src={art.imageUrl} 
               alt={art.title}
@@ -149,11 +132,11 @@ export default function Portfolio({ onBack }: PortfolioProps) {
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 md:p-10"
+          className="fixed inset-0 z-50 modal-scroll-bg flex items-center justify-center p-4 md:p-10"
           onClick={() => setLightboxImage(null)}
         >
           <button 
-            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors z-10"
+            className="absolute top-6 right-6 text-[#53565b] hover:text-gray-500 transition-colors z-10"
             onClick={() => setLightboxImage(null)}
           >
             <X size={32} />
@@ -166,7 +149,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
               verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
               squareWatermarkUrl={systemSettings.squareWatermarkUrl}
               pcWatermarkUrl={systemSettings.pcWatermarkUrl}
-              className="max-w-full max-h-[90vh] object-contain shadow-2xl"
+              className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
             />
           </div>
         </div>
