@@ -63,6 +63,53 @@
         "order": { "type": "number", "description": "Order for sorting" }
       },
       "required": ["title", "imageUrl", "order"]
+    },
+    "Mail": {
+      "title": "Mail",
+      "description": "Email to be sent by Trigger Email extension",
+      "type": "object",
+      "properties": {
+        "to": { "type": "string" },
+        "message": {
+          "type": "object",
+          "properties": {
+            "subject": { "type": "string" },
+            "html": { "type": "string" }
+          }
+        }
+      },
+      "required": ["to", "message"]
+    },
+    "PortfolioCategory": {
+      "title": "PortfolioCategory",
+      "description": "Category for portfolio artworks",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "order": { "type": "number" }
+      },
+      "required": ["name", "order"]
+    },
+    "Artwork": {
+      "title": "Artwork",
+      "description": "Portfolio artwork",
+      "type": "object",
+      "properties": {
+        "imageUrl": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "title": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["imageUrl", "categoryId", "createdAt"]
+    },
+    "SystemSettings": {
+      "title": "SystemSettings",
+      "description": "System settings like watermarks",
+      "type": "object",
+      "properties": {
+        "horizontalWatermarkUrl": { "type": "string" },
+        "verticalWatermarkUrl": { "type": "string" }
+      }
     }
   },
   "firestore": {
@@ -77,6 +124,22 @@
     "/priceList/{itemId}": {
       "schema": "PriceListItem",
       "description": "Price list items"
+    },
+    "/mail/{mailId}": {
+      "schema": "Mail",
+      "description": "Emails to send"
+    },
+    "/portfolioCategories/{categoryId}": {
+      "schema": "PortfolioCategory",
+      "description": "Portfolio categories"
+    },
+    "/artworks/{artworkId}": {
+      "schema": "Artwork",
+      "description": "Portfolio artworks"
+    },
+    "/system/settings": {
+      "schema": "SystemSettings",
+      "description": "System settings"
     }
   }
 }

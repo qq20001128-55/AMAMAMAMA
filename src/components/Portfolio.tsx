@@ -1,62 +1,153 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { ChevronLeft } from 'lucide-react';
+import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
+import { cn } from '../lib/utils';
+import { X, ChevronLeft } from 'lucide-react';
+import WatermarkedImage from './WatermarkedImage';
 
 interface PortfolioProps {
   onBack: () => void;
 }
 
-const WORKS = [
-  { id: 1, title: 'Void', category: 'Full Body', url: 'https://picsum.photos/seed/monochrome1/800/1000' },
-  { id: 2, title: 'Silence', category: 'Avatar', url: 'https://picsum.photos/seed/monochrome2/800/800' },
-  { id: 3, title: 'Echo', category: 'Illustration', url: 'https://picsum.photos/seed/monochrome3/1000/800' },
-  { id: 4, title: 'Shadow', category: 'Half Body', url: 'https://picsum.photos/seed/monochrome4/800/1000' },
-  { id: 5, title: 'Light', category: 'Illustration', url: 'https://picsum.photos/seed/monochrome5/1000/1200' },
-  { id: 6, title: 'Lines', category: 'Avatar', url: 'https://picsum.photos/seed/monochrome6/800/800' },
-];
-
 export default function Portfolio({ onBack }: PortfolioProps) {
+  const [categories, setCategories] = useState<any[]>([]);
+  const [artworks, setArtworks] = useState<any[]>([]);
+  const [systemSettings, setSystemSettings] = useState<any>({});
+  const [activeCategory, setActiveCategory] = useState<string>('all');
+  const [loading, setLoading] = useState(true);
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const catSnap = await getDocs(query(collection(db, 'portfolioCategories'), orderBy('order', 'asc')));
+        setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        const artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
+        setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+
+        const settingsDoc = await getDoc(doc(db, 'system', 'settings'));
+        if (settingsDoc.exists()) {
+          setSystemSettings(settingsDoc.data());
+        }
+      } catch (err) {
+        console.error('Fetch portfolio error:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const filteredArtworks = activeCategory === 'all' 
+    ? artworks 
+    : artworks.filter(a => a.categoryId === activeCategory);
+
+  if (loading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+        <div className="w-8 h-8 border-4 border-[#1a1a1a] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+        <p className="tracking-widest text-gray-500">載入中...</p>
+      </div>
+    );
+  }
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       className="max-w-7xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-black mb-8 transition-colors">
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#8b0000] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />
-        <span>返回首頁</span>
+        <span>返回大廳</span>
       </button>
 
       <div className="flex justify-between items-end mb-12">
-        <h2 className="text-4xl font-bold tracking-tight">作品集</h2>
+        <h2 className="text-4xl font-black tracking-widest">作品集</h2>
         <p className="text-gray-400 text-sm uppercase tracking-widest">Selected Works</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-        {WORKS.map((work, index) => (
-          <motion.div 
-            key={work.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            className="group cursor-pointer"
+      {/* Category Filter */}
+      <div className="flex flex-wrap gap-4 mb-12">
+        <button
+          onClick={() => setActiveCategory('all')}
+          className={cn(
+            "px-6 py-2 tracking-widest text-sm transition-colors",
+            activeCategory === 'all' ? "bg-[#1a1a1a] text-[#faf9f6]" : "border-2 border-[#1a1a1a] hover:bg-gray-100"
+          )}
+        >
+          全部
+        </button>
+        {categories.map(cat => (
+          <button
+            key={cat.id}
+            onClick={() => setActiveCategory(cat.id)}
+            className={cn(
+              "px-6 py-2 tracking-widest text-sm transition-colors",
+              activeCategory === cat.id ? "bg-[#1a1a1a] text-[#faf9f6]" : "border-2 border-[#1a1a1a] hover:bg-gray-100"
+            )}
           >
-            <div className="relative aspect-[4/5] overflow-hidden bg-gray-100 mb-4">
-              <img 
-                src={work.url} 
-                alt={work.title} 
-                referrerPolicy="no-referrer"
-                className="w-full h-full object-cover grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-700 ease-in-out" 
-              />
-              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            </div>
-            <div className="flex justify-between items-center">
-              <h3 className="font-bold uppercase tracking-widest text-sm">{work.title}</h3>
-              <span className="text-xs text-gray-400">{work.category}</span>
-            </div>
+            {cat.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Artworks Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {filteredArtworks.map(art => (
+          <motion.div 
+            layout
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            transition={{ duration: 0.3 }}
+            key={art.id} 
+            className="relative aspect-[3/4] cursor-pointer group overflow-hidden border-2 border-transparent hover:border-[#1a1a1a] transition-colors"
+            onClick={() => setLightboxImage(art.imageUrl)}
+          >
+            <WatermarkedImage 
+              src={art.imageUrl} 
+              alt={art.title}
+              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
+              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
+              className="transition-transform duration-700 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
           </motion.div>
         ))}
       </div>
+
+      {filteredArtworks.length === 0 && (
+        <div className="text-center py-20 text-gray-400 tracking-widest border-2 border-dashed border-gray-200">
+          此分類尚無作品。
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center p-4 md:p-10"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 text-white hover:text-gray-300 transition-colors z-10"
+            onClick={() => setLightboxImage(null)}
+          >
+            <X size={32} />
+          </button>
+          <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
+            <WatermarkedImage 
+              src={lightboxImage} 
+              alt="Full size artwork"
+              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
+              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
+              className="max-w-full max-h-[90vh] object-contain shadow-2xl"
+            />
+          </div>
+        </div>
+      )}
     </motion.div>
   );
 }

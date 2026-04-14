@@ -57,6 +57,64 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     }
   };
 
+  const generateProgressCard = async () => {
+    if (!order) return;
+
+    const canvas = document.createElement('canvas');
+    // 3:4 ratio for mobile sharing
+    canvas.width = 1080;
+    canvas.height = 1440;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Background
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Decorative elements
+    ctx.strokeStyle = '#333333';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+    
+    ctx.fillStyle = '#8b0000';
+    ctx.fillRect(canvas.width / 2 - 20, 80, 40, 40);
+
+    // Text settings
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#faf9f6';
+
+    // Title
+    ctx.font = 'bold 60px "Noto Serif TC", serif';
+    ctx.fillText('龍契局・進度卡', canvas.width / 2, 250);
+
+    // Order ID
+    ctx.font = '40px monospace';
+    ctx.fillStyle = '#8b0000';
+    ctx.fillText(order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`, canvas.width / 2, 350);
+
+    // Nickname
+    ctx.font = 'bold 50px "Noto Serif TC", serif';
+    ctx.fillStyle = '#faf9f6';
+    ctx.fillText(`委託人：${order.nickname}`, canvas.width / 2, 500);
+
+    // Status
+    const statusLabel = STATUS_NODES[currentStatusIndex]?.label || '未知';
+    ctx.font = 'bold 80px "Noto Serif TC", serif';
+    ctx.fillText(`當前進度：${statusLabel}`, canvas.width / 2, 700);
+
+    // Date
+    ctx.font = '30px monospace';
+    ctx.fillStyle = '#888888';
+    ctx.fillText(`生成日期：${format(new Date(), 'yyyy-MM-dd HH:mm')}`, canvas.width / 2, canvas.height - 150);
+
+    // Download
+    const dataUrl = canvas.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.download = `龍契局進度卡_${order.officialOrderId || order.orderId.substring(0, 4)}.png`;
+    link.href = dataUrl;
+    link.click();
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -103,9 +161,17 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               <p className="text-xs text-gray-500 tracking-widest mb-2">契約標題</p>
               <h3 className="text-3xl font-black tracking-widest">{order.title}</h3>
             </div>
-            <div className="text-left md:text-right">
-              <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
-              <p className="text-xl font-bold tracking-widest text-[#8b0000]">{STATUS_NODES[currentStatusIndex]?.label}</p>
+            <div className="text-left md:text-right flex flex-col items-start md:items-end gap-4">
+              <div>
+                <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
+                <p className="text-xl font-bold tracking-widest text-[#8b0000]">{STATUS_NODES[currentStatusIndex]?.label}</p>
+              </div>
+              <button 
+                onClick={generateProgressCard}
+                className="px-4 py-2 bg-[#1a1a1a] text-white text-sm tracking-widest hover:bg-[#8b0000] transition-colors"
+              >
+                下載進度卡
+              </button>
             </div>
           </div>
 

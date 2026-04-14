@@ -80,5 +80,25 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isAdmin();
     }
+
+    match /mail/{mailId} {
+      allow create: if isAdmin();
+      allow read, update, delete: if false; // Only extension should read/update
+    }
+
+    match /portfolioCategories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /artworks/{artworkId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /system/settings {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
   }
 }

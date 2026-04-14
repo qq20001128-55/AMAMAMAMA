@@ -33,15 +33,81 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [priceEditData, setPriceEditData] = useState<any>(null);
   const [priceUploading, setPriceUploading] = useState(false);
 
+  // Portfolio state
+  const [portfolioCategories, setPortfolioCategories] = useState<any[]>([]);
+  const [artworks, setArtworks] = useState<any[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
+  const [artworkUploading, setArtworkUploading] = useState(false);
+
+  // Lightbox state
+  const [lightboxImage, setLightboxImage] = useState<string | null>(null);
+
   // Check if user is admin
   const isAdmin = user?.email === 'sara20001128@gmail.com';
+
+  // System Settings state
+  const [systemSettings, setSystemSettings] = useState<any>({ horizontalWatermarkUrl: '', verticalWatermarkUrl: '' });
+  const [watermarkUploading, setWatermarkUploading] = useState<'horizontal' | 'vertical' | null>(null);
 
   useEffect(() => {
     fetchOrders();
     fetchAllOrders();
     fetchSettings();
     fetchPriceList();
+    fetchPortfolioData();
+    fetchSystemSettings();
   }, []);
+
+  const fetchSystemSettings = async () => {
+    try {
+      const snap = await getDocs(collection(db, 'system'));
+      const settingsDoc = snap.docs.find(d => d.id === 'settings');
+      if (settingsDoc) {
+        setSystemSettings(settingsDoc.data());
+      } else {
+        await setDoc(doc(db, 'system', 'settings'), { horizontalWatermarkUrl: '', verticalWatermarkUrl: '' });
+      }
+    } catch (err) {
+      console.error('Fetch system settings error:', err);
+    }
+  };
+
+  const handleWatermarkUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'horizontal' | 'vertical') => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setWatermarkUploading(type);
+    try {
+      const storageRef = ref(storage, `system/${type}Watermark.png`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      
+      const newSettings = { ...systemSettings, [`${type}WatermarkUrl`]: url };
+      await updateDoc(doc(db, 'system', 'settings'), newSettings);
+      setSystemSettings(newSettings);
+      alert('浮水印上傳成功！');
+    } catch (err) {
+      console.error('Upload watermark error:', err);
+      alert('上傳失敗，請稍後再試。');
+    } finally {
+      setWatermarkUploading(null);
+    }
+  };
+
+  const fetchPortfolioData = async () => {
+    try {
+      const catSnap = await getDocs(query(collection(db, 'portfolioCategories'), orderBy('order', 'asc')));
+      const cats = catSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setPortfolioCategories(cats);
+      if (cats.length > 0) setSelectedCategoryId(cats[0].id);
+
+      const artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
+      setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Fetch portfolio error:', err);
+    }
+  };
 
   const fetchPriceList = async () => {
     try {
@@ -160,27 +226,25 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     if (!window.confirm(`確定要婉拒 ${order.nickname} 的委託嗎？`)) return;
     
     // Email Template A
-    const emailContent = `龍契局已收到你的願望。
-
-這次的委託內容這邊評估後，暫時無法承接，很抱歉。
-目前狀態或方向上不太適合接下這個案子。
-也謝謝你的信任與喜歡。
-
-如果之後有其他類型的委託，也很歡迎再來詢問龍契局
-願你未來在合適的時機，再度踏入此局。`;
-
-    console.log(`Sending rejection email to ${order.contact}:\n\n${emailContent}`);
-    // TODO: Integrate actual email sending service here
+    const emailContent = `龍契局已收到你的願望。<br><br>這次的委託內容這邊評估後，暫時無法承接，很抱歉。<br>目前狀態或方向上不太適合接下這個案子。<br>也謝謝你的信任與喜歡。<br><br>如果之後有其他類型的委託，也很歡迎再來詢問龍契局<br>願你未來在合適的時機，再度踏入此局。`;
 
     try {
-      // Assuming 'closed' or a similar status exists, or we just delete it. 
-      // Let's set it to a 'closed' state if we had one, or just delete for now as per previous logic, 
-      // but user requested "設為已關閉". We will add 'closed' to STATUS_NODES conceptually or just update it.
-      // For now, we'll update the status to 'closed' even if it's not in the main tracking nodes.
       await updateDoc(doc(db, 'orders', order.id), { status: 'closed' });
+      
+      // Write to mail collection for Trigger Email extension
+      if (order.email) {
+        await addDoc(collection(db, 'mail'), {
+          to: order.email,
+          message: {
+            subject: `【龍契局】委託狀態通知 - ${order.nickname}`,
+            html: emailContent
+          }
+        });
+      }
+
       setOrders(prev => prev.filter(o => o.id !== order.id)); // Remove from active view
       setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'closed' } : o));
-      alert('已婉拒並發送通知信（模擬）。');
+      alert('已婉拒並發送通知信。');
     } catch (err) {
       console.error('Reject error:', err);
     }
@@ -191,23 +255,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     if (!window.confirm(`確定要接受 ${order.nickname} 的委託嗎？將分配編號 #${officialId}`)) return;
 
     // Email Template B
-    const emailContent = `此契，成立。
-
-你的委託已收到，並進入排單與評估流程。
-若無特殊狀況，將依順序開始製作。
-
-在契約成立後，以下事項將生效：
-・依排單順序進行製作
-・修改與退款規則依委託須知執行
-・驚喜包不可進行大幅更動
-
-龍契已受理。
-#${officialId}
-
-——瑪阿`;
-
-    console.log(`Sending acceptance email to ${order.contact}:\n\n${emailContent}`);
-    // TODO: Integrate actual email sending service here
+    const emailContent = `此契，成立。<br><br>你的委託已收到，並進入排單與評估流程。<br>若無特殊狀況，將依順序開始製作。<br><br>在契約成立後，以下事項將生效：<br>・依排單順序進行製作<br>・修改與退款規則依委託須知執行<br>・驚喜包不可進行大幅更動<br><br>龍契已受理。<br>#${officialId}<br><br>——瑪阿`;
 
     try {
       const updatedData = {
@@ -222,9 +270,21 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         }
       };
       await updateDoc(doc(db, 'orders', order.id), updatedData);
+
+      // Write to mail collection for Trigger Email extension
+      if (order.email) {
+        await addDoc(collection(db, 'mail'), {
+          to: order.email,
+          message: {
+            subject: `【龍契局】委託成立通知 - #${officialId}`,
+            html: emailContent
+          }
+        });
+      }
+
       setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updatedData } : o));
       setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updatedData } : o));
-      alert('已接受並發送通知信（模擬）。');
+      alert('已接受並發送通知信。');
     } catch (err) {
       console.error('Accept error:', err);
     }
@@ -299,6 +359,91 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       alert('上傳失敗，請稍後再試。');
     } finally {
       setPriceUploading(false);
+    }
+  };
+
+  // Portfolio Handlers
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    try {
+      const docRef = await addDoc(collection(db, 'portfolioCategories'), {
+        name: newCategoryName.trim(),
+        order: portfolioCategories.length
+      });
+      const newCat = { id: docRef.id, name: newCategoryName.trim(), order: portfolioCategories.length };
+      setPortfolioCategories([...portfolioCategories, newCat]);
+      setNewCategoryName('');
+      if (!selectedCategoryId) setSelectedCategoryId(docRef.id);
+    } catch (err) {
+      console.error('Add category error:', err);
+    }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('確定要刪除此分類嗎？這將會連同分類內的作品一併刪除！')) return;
+    try {
+      await deleteDoc(doc(db, 'portfolioCategories', id));
+      setPortfolioCategories(prev => prev.filter(c => c.id !== id));
+      if (selectedCategoryId === id) {
+        setSelectedCategoryId(portfolioCategories.find(c => c.id !== id)?.id || '');
+      }
+      // Delete associated artworks
+      const relatedArtworks = artworks.filter(a => a.categoryId === id);
+      for (const art of relatedArtworks) {
+        await deleteDoc(doc(db, 'artworks', art.id));
+      }
+      setArtworks(prev => prev.filter(a => a.categoryId !== id));
+    } catch (err) {
+      console.error('Delete category error:', err);
+    }
+  };
+
+  const handleArtworkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0 || !selectedCategoryId) return;
+
+    setArtworkUploading(true);
+    try {
+      const uploadPromises = files.map(async (file) => {
+        const compressedBlob = await compressImage(file);
+        const tempId = crypto.randomUUID();
+        const storageRef = ref(storage, `artworks/${tempId}.webp`);
+        await uploadBytes(storageRef, compressedBlob);
+        const url = await getDownloadURL(storageRef);
+        
+        const docRef = await addDoc(collection(db, 'artworks'), {
+          imageUrl: url,
+          categoryId: selectedCategoryId,
+          title: file.name,
+          createdAt: new Date().toISOString()
+        });
+        
+        return {
+          id: docRef.id,
+          imageUrl: url,
+          categoryId: selectedCategoryId,
+          title: file.name,
+          createdAt: new Date().toISOString()
+        };
+      });
+
+      const newArtworks = await Promise.all(uploadPromises);
+      setArtworks(prev => [...newArtworks, ...prev]);
+    } catch (err) {
+      console.error('Upload artworks error:', err);
+      alert('上傳失敗，請稍後再試。');
+    } finally {
+      setArtworkUploading(false);
+    }
+  };
+
+  const handleDeleteArtwork = async (id: string) => {
+    if (!window.confirm('確定要刪除此作品嗎？')) return;
+    try {
+      await deleteDoc(doc(db, 'artworks', id));
+      setArtworks(prev => prev.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Delete artwork error:', err);
     }
   };
 
@@ -396,11 +541,18 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           ))}
           {Array.from({ length: daysInMonth[0].getDay() }).map((_, i) => <div key={`empty-${i}`} />)}
           {daysInMonth.map(day => {
-            const dayOrders = allOrders.filter(o => {
-              if (!o.expectedDates) return false;
-              return Object.values(o.expectedDates).some((dateStr: any) => {
-                try { return isSameDay(parseISO(dateStr), day); } catch(e) { return false; }
-              });
+            const dayEvents: { order: any, stage: string, dateStr: string }[] = [];
+            
+            allOrders.forEach(o => {
+              if (o.expectedDates) {
+                Object.entries(o.expectedDates).forEach(([stage, dateStr]) => {
+                  try {
+                    if (isSameDay(parseISO(dateStr as string), day)) {
+                      dayEvents.push({ order: o, stage, dateStr: dateStr as string });
+                    }
+                  } catch(e) {}
+                });
+              }
             });
 
             return (
@@ -410,15 +562,24 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               )}>
                 <div className="text-right text-sm font-bold mb-2">{format(day, 'd')}</div>
                 <div className="space-y-1">
-                  {dayOrders.map(o => (
-                    <button 
-                      key={o.id}
-                      onClick={() => scrollToOrder(o.id)}
-                      className="block w-full text-left text-[10px] truncate bg-[#1a1a1a] text-white px-1 py-0.5 hover:bg-[#8b0000] transition-colors"
-                    >
-                      {o.title}
-                    </button>
-                  ))}
+                  {dayEvents.map((event, idx) => {
+                    const stageLabel = STATUS_NODES.find(n => n.id === event.stage)?.label || event.stage;
+                    let bgColor = "bg-[#1a1a1a]"; // default black
+                    if (event.stage === 'draft') bgColor = "bg-gray-400";
+                    if (event.stage === 'lineart') bgColor = "bg-gray-600";
+                    if (event.stage === 'coloring') bgColor = "bg-gray-800";
+
+                    return (
+                      <button 
+                        key={`${event.order.id}-${idx}`}
+                        onClick={() => scrollToOrder(event.order.id)}
+                        className={cn("block w-full text-left text-[10px] truncate text-white px-1 py-0.5 hover:opacity-80 transition-opacity", bgColor)}
+                        title={`${event.order.title} - ${stageLabel}`}
+                      >
+                        {event.order.title} - {stageLabel}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             );
@@ -430,29 +591,49 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {orders.filter(o => o.status === 'pending').length > 0 && (
         <div className="mb-16">
           <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">待確認之契</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             {orders.filter(o => o.status === 'pending').map(order => (
-              <div key={order.id} className="neo-box border-[#8b0000] bg-red-50/10">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h4 className="text-lg font-black tracking-widest">{order.title}</h4>
-                    <p className="text-sm text-gray-500 tracking-widest">{order.nickname} | {order.category}</p>
+              <div key={order.id} className="neo-box border-[#8b0000] bg-red-50/10 flex flex-col md:flex-row gap-6">
+                <div className="flex-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h4 className="text-lg font-black tracking-widest">{order.title}</h4>
+                      <p className="text-sm text-gray-500 tracking-widest">{order.nickname} | {order.category}</p>
+                    </div>
+                    <span className="text-xs font-mono text-gray-400">#{order.orderId.substring(0, 4).toUpperCase()}</span>
                   </div>
-                  <span className="text-xs font-mono text-gray-400">#{order.orderId.substring(0, 4).toUpperCase()}</span>
+                  <p className="text-sm text-gray-600 mb-4 line-clamp-3">{order.description || '無詳細描述'}</p>
+                  
+                  {/* References */}
+                  <div>
+                    <p className="text-xs text-gray-500 tracking-widest mb-2">參考資料：</p>
+                    {order.referenceType === 'link' ? (
+                      <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#8b0000] hover:underline text-sm tracking-widest">
+                        <ExternalLink size={14} /> {order.referenceLink}
+                      </a>
+                    ) : order.referenceImages?.length > 0 ? (
+                      <div className="flex gap-2 overflow-x-auto pb-2">
+                        {order.referenceImages.map((img: string, i: number) => (
+                          <button key={i} onClick={() => setLightboxImage(img)} className="shrink-0">
+                            <img src={img} alt="Ref" className="w-20 h-20 object-cover border border-gray-300 hover:border-[#1a1a1a] transition-colors" />
+                          </button>
+                        ))}
+                      </div>
+                    ) : <span className="text-sm text-gray-400">無</span>}
+                  </div>
                 </div>
-                <p className="text-sm text-gray-600 mb-6 line-clamp-3">{order.description || '無詳細描述'}</p>
-                <div className="flex justify-end gap-4">
-                  <button 
-                    onClick={() => handleRejectOrder(order)}
-                    className="px-4 py-2 border-2 border-[#1a1a1a] text-sm tracking-widest hover:bg-gray-100 transition-colors"
-                  >
-                    婉拒
-                  </button>
+                <div className="flex md:flex-col justify-end gap-4 md:border-l-2 md:border-gray-200 md:pl-6">
                   <button 
                     onClick={() => handleAcceptOrder(order)}
-                    className="px-4 py-2 bg-[#8b0000] text-white text-sm tracking-widest hover:bg-red-900 transition-colors"
+                    className="px-6 py-3 bg-[#8b0000] text-white text-sm font-bold tracking-widest hover:bg-red-900 transition-colors w-full md:w-auto"
                   >
                     接受
+                  </button>
+                  <button 
+                    onClick={() => handleRejectOrder(order)}
+                    className="px-6 py-3 border-2 border-[#1a1a1a] text-sm font-bold tracking-widest hover:bg-gray-100 transition-colors w-full md:w-auto"
+                  >
+                    婉拒
                   </button>
                 </div>
               </div>
@@ -562,6 +743,150 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
       </div>
 
+      {/* Portfolio Management */}
+      <div className="mb-16">
+        <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">作品集管理</h3>
+        
+        {/* Categories */}
+        <div className="neo-box mb-6">
+          <h4 className="text-lg font-bold tracking-widest mb-4">分類管理</h4>
+          <div className="flex gap-4 mb-6">
+            <input 
+              type="text" 
+              className="input-field flex-1" 
+              placeholder="新增分類名稱..."
+              value={newCategoryName}
+              onChange={e => setNewCategoryName(e.target.value)}
+            />
+            <button onClick={handleAddCategory} className="btn-primary whitespace-nowrap">
+              新增分類
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {portfolioCategories.map(cat => (
+              <div key={cat.id} className="flex items-center gap-2 bg-gray-100 px-3 py-1 border border-gray-300">
+                <span className="text-sm tracking-widest">{cat.name}</span>
+                <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[#8b0000]">
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {portfolioCategories.length === 0 && <span className="text-sm text-gray-400">尚無分類</span>}
+          </div>
+        </div>
+
+        {/* Upload & Preview */}
+        <div className="neo-box">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b-2 border-gray-200 pb-4">
+            <h4 className="text-lg font-bold tracking-widest">作品上傳與預覽</h4>
+            <div className="flex items-center gap-4 w-full md:w-auto">
+              <select 
+                className="input-field py-2 text-sm max-w-[200px]"
+                value={selectedCategoryId}
+                onChange={e => setSelectedCategoryId(e.target.value)}
+              >
+                {portfolioCategories.length === 0 && <option value="">請先新增分類</option>}
+                {portfolioCategories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <label className={cn("btn-primary whitespace-nowrap cursor-pointer", (!selectedCategoryId || artworkUploading) && "opacity-50 cursor-not-allowed")}>
+                {artworkUploading ? '上傳中...' : '上傳作品 (多圖)'}
+                <input 
+                  type="file" 
+                  className="hidden" 
+                  accept="image/*" 
+                  multiple 
+                  onChange={handleArtworkUpload} 
+                  disabled={!selectedCategoryId || artworkUploading} 
+                />
+              </label>
+            </div>
+          </div>
+
+          <div className="space-y-8">
+            {portfolioCategories.map(cat => {
+              const catArtworks = artworks.filter(a => a.categoryId === cat.id);
+              if (catArtworks.length === 0) return null;
+              
+              return (
+                <div key={cat.id}>
+                  <h5 className="text-md font-bold tracking-widest mb-4 text-gray-600">{cat.name}</h5>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {catArtworks.map(art => (
+                      <div key={art.id} className="relative aspect-square border-2 border-gray-200 group overflow-hidden">
+                        <img src={art.imageUrl} alt={art.title} className="w-full h-full object-cover" />
+                        <button 
+                          onClick={() => handleDeleteArtwork(art.id)}
+                          className="absolute top-1 right-1 p-1 bg-white/80 text-[#8b0000] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            {artworks.length === 0 && (
+              <div className="text-center py-10 text-gray-400 tracking-widest">
+                尚無作品。
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* System Settings */}
+      <div className="mb-16">
+        <h3 className="text-2xl font-black tracking-widest mb-6 text-[#8b0000]">系統設定</h3>
+        <div className="neo-box">
+          <h4 className="text-lg font-bold tracking-widest mb-4">浮水印設定</h4>
+          <p className="text-sm text-gray-500 tracking-widest mb-6 leading-loose">
+            請上傳含有透明背景的 PNG 檔案。<br/>
+            系統將於前端展示作品集時，自動依據圖片長寬比疊加對應的浮水印。
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">橫式浮水印 (寬圖使用)</p>
+              <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {systemSettings.horizontalWatermarkUrl ? (
+                  <img src={systemSettings.horizontalWatermarkUrl} alt="Horizontal Watermark" className="max-w-full max-h-full object-contain p-4" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {watermarkUploading === 'horizontal' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳橫式浮水印</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'horizontal')} disabled={watermarkUploading !== null} />
+                </label>
+              </div>
+            </div>
+            <div>
+              <p className="text-sm font-bold tracking-widest mb-2">直式浮水印 (長圖使用)</p>
+              <div className="aspect-[3/4] max-w-[250px] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                {systemSettings.verticalWatermarkUrl ? (
+                  <img src={systemSettings.verticalWatermarkUrl} alt="Vertical Watermark" className="max-w-full max-h-full object-contain p-4" />
+                ) : (
+                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                )}
+                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                  {watermarkUploading === 'vertical' ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <span className="text-xs tracking-widest">上傳直式浮水印</span>
+                  )}
+                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'vertical')} disabled={watermarkUploading !== null} />
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <h3 className="text-2xl font-black tracking-widest mb-6">卷宗列表</h3>
       <div className="space-y-6">
         {orders.filter(o => o.status !== 'pending' && o.status !== 'closed').map(order => (
@@ -624,7 +949,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         value={editData.status}
                         onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                       >
-                        {STATUS_NODES.map(node => <option key={node.id} value={node.id}>{node.label}</option>)}
+                        {(order.status === 'pending' ? STATUS_NODES : STATUS_NODES.filter(n => n.id !== 'pending')).map(node => (
+                          <option key={node.id} value={node.id}>{node.label}</option>
+                        ))}
                       </select>
                     ) : (
                       <span className="inline-block px-4 py-2 bg-[#1a1a1a] text-[#faf9f6] text-sm font-bold tracking-widest">
@@ -652,6 +979,51 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                                   dateString: dateStr
                                 }
                               }
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 tracking-widest">預計草稿日 (可選)</p>
+                        <input 
+                          type="date"
+                          className="input-field py-2 text-sm"
+                          value={editData.expectedDates?.draft ? format(parseISO(editData.expectedDates.draft), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                            setEditData({
+                              ...editData,
+                              expectedDates: { ...editData.expectedDates, draft: dateStr }
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 tracking-widest">預計線稿日 (可選)</p>
+                        <input 
+                          type="date"
+                          className="input-field py-2 text-sm"
+                          value={editData.expectedDates?.lineart ? format(parseISO(editData.expectedDates.lineart), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                            setEditData({
+                              ...editData,
+                              expectedDates: { ...editData.expectedDates, lineart: dateStr }
+                            });
+                          }}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <p className="text-xs text-gray-500 tracking-widest">預計色稿日 (可選)</p>
+                        <input 
+                          type="date"
+                          className="input-field py-2 text-sm"
+                          value={editData.expectedDates?.coloring ? format(parseISO(editData.expectedDates.coloring), 'yyyy-MM-dd') : ''}
+                          onChange={(e) => {
+                            const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                            setEditData({
+                              ...editData,
+                              expectedDates: { ...editData.expectedDates, coloring: dateStr }
                             });
                           }}
                         />
@@ -717,6 +1089,20 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {orders.length === 0 && !loading && (
         <div className="py-20 text-center text-gray-400 border-2 border-dashed border-gray-200 mt-4 tracking-widest">
           目前尚無卷宗。
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {lightboxImage && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightboxImage(null)}
+        >
+          <img 
+            src={lightboxImage} 
+            alt="Full size reference" 
+            className="max-w-full max-h-full object-contain"
+          />
         </div>
       )}
     </motion.div>

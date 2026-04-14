@@ -1,0 +1,92 @@
+import React, { useEffect, useRef, useState } from 'react';
+
+interface WatermarkedImageProps {
+  src: string;
+  alt?: string;
+  horizontalWatermarkUrl?: string;
+  verticalWatermarkUrl?: string;
+  className?: string;
+  onClick?: () => void;
+}
+
+export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, verticalWatermarkUrl, className, onClick }: WatermarkedImageProps) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const renderWatermark = async () => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      try {
+        // Load main image
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = src;
+        });
+
+        if (!isMounted) return;
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+
+        // Determine watermark to use
+        const isWide = img.width > img.height;
+        const watermarkUrl = isWide ? horizontalWatermarkUrl : verticalWatermarkUrl;
+
+        if (watermarkUrl) {
+          const wmImg = new Image();
+          wmImg.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => {
+            wmImg.onload = resolve;
+            wmImg.onerror = reject;
+            wmImg.src = watermarkUrl;
+          });
+
+          if (!isMounted) return;
+
+          // Calculate watermark size and position (e.g., center it, or scale it to fit)
+          // Let's scale it to 30% of the image width
+          const wmWidth = img.width * 0.3;
+          const wmRatio = wmImg.height / wmImg.width;
+          const wmHeight = wmWidth * wmRatio;
+          
+          const x = (img.width - wmWidth) / 2;
+          const y = (img.height - wmHeight) / 2;
+
+          // Draw watermark with some transparency
+          ctx.globalAlpha = 0.5;
+          ctx.drawImage(wmImg, x, y, wmWidth, wmHeight);
+          ctx.globalAlpha = 1.0;
+        }
+
+        setLoaded(true);
+      } catch (err) {
+        console.error('Error rendering watermark:', err);
+      }
+    };
+
+    renderWatermark();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [src, horizontalWatermarkUrl, verticalWatermarkUrl]);
+
+  return (
+    <canvas 
+      ref={canvasRef} 
+      className={`w-full h-full object-cover ${className || ''} ${loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}
+      onClick={onClick}
+      title={alt}
+    />
+  );
+}

@@ -14,6 +14,7 @@ import Portfolio from './components/Portfolio';
 import AdminDashboard from './components/AdminDashboard';
 import FollowMe from './components/FollowMe';
 import PriceList from './components/PriceList';
+import CommissionQueue from './components/CommissionQueue';
 import { motion, AnimatePresence } from 'motion/react';
 
 type Page = 'home' | 'order' | 'tracking' | 'portfolio' | 'admin' | 'follow' | 'pricelist';
@@ -108,6 +109,8 @@ export default function App() {
                 過往卷宗
               </button>
             </div>
+
+            <CommissionQueue />
           </motion.div>
         );
       case 'order':
