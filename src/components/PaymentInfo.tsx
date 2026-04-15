@@ -1,0 +1,148 @@
+import React from 'react';
+import { motion } from 'motion/react';
+import { ChevronLeft } from 'lucide-react';
+import { SectionTitle } from '../components/SectionTitle';
+
+interface PaymentInfoProps {
+  onBack: () => void;
+}
+
+export default function PaymentInfo({ onBack }: PaymentInfoProps) {
+  return (
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="max-w-4xl mx-auto px-6 py-10"
+    >
+      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
+        <ChevronLeft size={20} />
+        <span>返回</span>
+      </button>
+
+      <div className="text-center mb-12">
+        <SectionTitle>支付方式與手續費說明</SectionTitle>
+        <p className="text-gray-600 tracking-widest mt-4 leading-loose">
+          在「龍契局」進行委託，除原委託費用外，需根據您選擇的支付管道負擔相對應的<br/>
+          <span className="font-bold">交易手續費（皆為含稅金額）</span>。
+        </p>
+      </div>
+
+      <div className="space-y-12">
+        {/* 1. 信用卡與行動支付 */}
+        <section className="window-box">
+          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">1. 信用卡與行動支付</h3>
+          <p className="text-gray-600 mb-6 tracking-widest text-sm">最快速的付款方式，支援多種行動裝置。</p>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="border-b-2 border-[#53565b]">
+                  <th className="py-3 px-4 font-bold tracking-widest w-1/4">支付類型</th>
+                  <th className="py-3 px-4 font-bold tracking-widest w-1/2">合作銀行 / 管道</th>
+                  <th className="py-3 px-4 font-bold tracking-widest w-1/4">手續費率</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">一次付清</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">國內各大銀行信用卡</td>
+                  <td className="py-4 px-4 tracking-widest font-mono">2.8%</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">行動支付</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">Apple / Google / Samsung Pay、玉山 Wallet</td>
+                  <td className="py-4 px-4 tracking-widest font-mono">2.8%</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">國外信用卡</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">非台灣地區發行之信用卡</td>
+                  <td className="py-4 px-4 tracking-widest font-mono">3.5%</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">銀聯卡 / DCC</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">動態貨幣轉換支付</td>
+                  <td className="py-4 px-4 tracking-widest font-mono">2.8%</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* 2. 信用卡分期付款 */}
+        <section className="window-box">
+          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">2. 信用卡分期付款</h3>
+          <p className="text-gray-600 mb-6 tracking-widest text-sm">若金額較大，可選擇分期減輕負擔。</p>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+            {[
+              { term: '3 期', rate: '3.0%' },
+              { term: '6 期', rate: '3.5%' },
+              { term: '12 期', rate: '7.0%' },
+              { term: '24 期', rate: '12.0%' },
+              { term: '30 期', rate: '15.0%' },
+            ].map((item, idx) => (
+              <div key={idx} className="border border-[#53565b] p-4 text-center bg-white/50">
+                <div className="font-bold tracking-widest mb-2">{item.term}</div>
+                <div className="font-mono text-lg text-gray-600">{item.rate}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* 3. ATM 與 虛擬帳號 */}
+        <section className="window-box">
+          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">3. ATM 與 虛擬帳號</h3>
+          <p className="text-gray-600 mb-6 tracking-widest text-sm">適合習慣轉帳或無信用卡的委託人。</p>
+          
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[600px]">
+              <thead>
+                <tr className="border-b-2 border-[#53565b]">
+                  <th className="py-3 px-4 font-bold tracking-widest w-1/4">方式</th>
+                  <th className="py-3 px-4 font-bold tracking-widest w-1/2">說明</th>
+                  <th className="py-3 px-4 font-bold tracking-widest w-1/4">手續費</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">虛擬帳號 / ATM</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">智慧 ATM 2.0、網路轉帳</td>
+                  <td className="py-4 px-4 tracking-widest font-mono text-sm">1.0%<br/><span className="text-xs text-gray-400">(單筆下限 10 元 / 上限 20 元)</span></td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">超商代碼</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">至便利商店機台輸入代碼繳費</td>
+                  <td className="py-4 px-4 tracking-widest font-mono">28 元 / 筆</td>
+                </tr>
+                <tr className="hover:bg-gray-50 transition-colors">
+                  <td className="py-4 px-4 tracking-widest">條碼繳費</td>
+                  <td className="py-4 px-4 tracking-widest text-gray-600">出示手機條碼至櫃檯掃描</td>
+                  <td className="py-4 px-4 tracking-widest font-mono">20 元 / 筆</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {/* 委託須知 */}
+        <section className="neo-box mt-12 bg-white/80">
+          <h3 className="text-xl font-bold mb-6 tracking-widest text-center">委託須知</h3>
+          <ul className="space-y-4 tracking-widest text-sm leading-relaxed">
+            <li className="flex gap-4">
+              <span className="font-bold min-w-[80px]">付款時機：</span>
+              <span className="text-gray-600">請於確認排單後 3 日內完成付款，逾期將自動取消名額。</span>
+            </li>
+            <li className="flex gap-4">
+              <span className="font-bold min-w-[80px]">退款規範：</span>
+              <span className="text-gray-600">若因委託人因素中途取消，手續費（藍新金流端已扣除部分）將無法退還，僅針對剩餘委託款項依進度比例退費。</span>
+            </li>
+            <li className="flex gap-4">
+              <span className="font-bold min-w-[80px]">發票資訊：</span>
+              <span className="text-gray-600">交易完成後，電子發票將由藍新金流發送至您的電子信箱。</span>
+            </li>
+          </ul>
+        </section>
+      </div>
+    </motion.div>
+  );
+}

@@ -15,10 +15,11 @@ import AdminDashboard from './components/AdminDashboard';
 import FollowMe from './components/FollowMe';
 import PriceList from './components/PriceList';
 import CommissionQueue from './components/CommissionQueue';
+import PaymentInfo from './components/PaymentInfo';
 import { motion, AnimatePresence } from 'motion/react';
 import { SectionTitle } from './components/SectionTitle';
 
-type Page = 'home' | 'order' | 'tracking' | 'portfolio' | 'admin' | 'follow' | 'pricelist';
+type Page = 'home' | 'order' | 'tracking' | 'portfolio' | 'admin' | 'follow' | 'pricelist' | 'payment';
 
 export default function App() {
   const [page, setPage] = useState<Page>('home');
@@ -138,13 +139,15 @@ export default function App() {
           </motion.div>
         );
       case 'order':
-        return <OrderForm onBack={() => setPage('home')} commissionStatus={commissionStatus} />;
+        return <OrderForm onBack={() => setPage('home')} commissionStatus={commissionStatus} onPaymentInfoClick={() => setPage('payment')} />;
       case 'tracking':
         return <OrderTracking onBack={() => setPage('home')} />;
       case 'portfolio':
         return <Portfolio onBack={() => setPage('home')} />;
       case 'pricelist':
         return <PriceList onBack={() => setPage('home')} />;
+      case 'payment':
+        return <PaymentInfo onBack={() => setPage('order')} />;
       case 'follow':
         return <FollowMe onBack={() => setPage('home')} user={user} />;
       case 'admin':
@@ -155,14 +158,14 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fafafa] text-[#53565b] font-serif relative overflow-hidden">
+    <div className="min-h-screen text-[#53565b] font-serif relative overflow-hidden">
       <Navbar setPage={setPage} currentPage={page} user={user} />
-      <main className="pt-20 relative z-10">
+      <main className="pt-20 relative z-10 min-h-[calc(100vh-100px)] bg-white/70 backdrop-blur-[5px]">
         <AnimatePresence mode="wait">
           {renderPage()}
         </AnimatePresence>
       </main>
-      <footer className="py-10 border-t-2 border-[#53565b] text-center text-xs text-gray-500 tracking-widest mt-20 relative z-10">
+      <footer className="py-10 border-t-2 border-[#53565b] text-center text-xs text-gray-500 tracking-widest relative z-10 bg-white/70 backdrop-blur-[5px]">
         <span 
           onDoubleClick={() => !user && signInWithGoogle()} 
           className="cursor-default select-none"

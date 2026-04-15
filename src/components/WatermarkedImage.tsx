@@ -14,9 +14,17 @@ interface WatermarkedImageProps {
 export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, verticalWatermarkUrl, squareWatermarkUrl, pcWatermarkUrl, className, onClick }: WatermarkedImageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [loaded, setLoaded] = useState(false);
+  const [useFallback, setUseFallback] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
+
+    const hasAnyWatermark = horizontalWatermarkUrl || verticalWatermarkUrl || squareWatermarkUrl || pcWatermarkUrl;
+    
+    if (!hasAnyWatermark) {
+      setUseFallback(true);
+      return;
+    }
 
     const renderWatermark = async () => {
       const canvas = canvasRef.current;
@@ -81,6 +89,9 @@ export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, ver
         setLoaded(true);
       } catch (err) {
         console.error('Error rendering watermark:', err);
+        if (isMounted) {
+          setUseFallback(true);
+        }
       }
     };
 
@@ -89,7 +100,19 @@ export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, ver
     return () => {
       isMounted = false;
     };
-  }, [src, horizontalWatermarkUrl, verticalWatermarkUrl]);
+  }, [src, horizontalWatermarkUrl, verticalWatermarkUrl, squareWatermarkUrl, pcWatermarkUrl]);
+
+  if (useFallback) {
+    return (
+      <img 
+        src={src} 
+        alt={alt} 
+        className={`w-full h-full object-cover ${className || ''}`}
+        onClick={onClick}
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
 
   return (
     <canvas 

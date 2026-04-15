@@ -7,28 +7,16 @@
 
 @layer base {
   body {
-    @apply bg-[#fafafa] text-[#53565b] font-serif antialiased;
+    @apply text-[#53565b] font-serif antialiased;
     position: relative;
     min-height: 100vh;
-  }
-  
-  body::before {
-    content: '';
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
     background-image: var(--page-bg-url, none);
     background-attachment: fixed;
     background-size: cover;
     background-position: center;
-    opacity: 0.15;
-    z-index: -1;
-    pointer-events: none;
   }
   
-  body.is-home::before {
+  body.is-home {
     background-image: var(--home-bg-url, none);
   }
 }
@@ -54,11 +42,11 @@
     @apply w-full px-4 py-3 bg-white/80 backdrop-blur-sm border-b-2 border-[#53565b] focus:outline-none focus:border-gray-500 transition-all placeholder:text-gray-400;
   }
   .neo-box {
-    @apply border border-[#53565b] bg-[#fafafa]/95 backdrop-blur-sm p-6 relative m-2;
-    box-shadow: 0 0 0 4px #fafafa, 0 0 0 5px #53565b;
+    @apply border border-[#53565b] bg-[#fafafa]/80 backdrop-blur-sm p-6 relative m-2;
+    box-shadow: 0 0 0 4px rgba(250, 250, 250, 0.8), 0 0 0 5px #53565b;
   }
   .window-box, .window-box-octagon {
-    @apply relative p-8 bg-[#fafafa] m-3;
+    @apply relative p-8 bg-[#fafafa]/80 backdrop-blur-sm m-3;
     border: 1px solid var(--theme-color, #53565b);
   }
   .window-box::before, .window-box-octagon::before {

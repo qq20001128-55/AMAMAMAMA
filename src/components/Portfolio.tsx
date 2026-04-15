@@ -25,10 +25,16 @@ export default function Portfolio({ onBack }: PortfolioProps) {
         const catSnap = await getDocs(query(collection(db, 'portfolioCategories'), orderBy('order', 'asc')));
         setCategories(catSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        const artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
+        let artSnap;
+        try {
+          artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
+        } catch (err) {
+          console.warn('Failed to order artworks by createdAt, falling back to unordered fetch:', err);
+          artSnap = await getDocs(collection(db, 'artworks'));
+        }
         setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        const settingsDoc = await getDoc(doc(db, 'system', 'settings'));
+        const settingsDoc = await getDoc(doc(db, 'settings', 'siteConfig'));
         if (settingsDoc.exists()) {
           setSystemSettings(settingsDoc.data());
         }

@@ -11,9 +11,10 @@ import { SectionTitle } from './SectionTitle';
 interface OrderFormProps {
   onBack: () => void;
   commissionStatus: 'open' | 'closed';
+  onPaymentInfoClick?: () => void;
 }
 
-export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) {
+export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick }: OrderFormProps) {
   const [step, setStep] = useState<'terms' | 'form' | 'success'>('terms');
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -218,6 +219,17 @@ export default function OrderForm({ onBack, commissionStatus }: OrderFormProps) 
           </div>
         </div>
         
+        <div className="text-center mb-8">
+          <button 
+            onClick={() => {
+              if (onPaymentInfoClick) onPaymentInfoClick();
+            }}
+            className="text-sm tracking-widest text-[#53565b] underline hover:text-gray-500 transition-colors"
+          >
+            查看支付方式與手續費說明
+          </button>
+        </div>
+
         <div className="flex items-center justify-center gap-3 mb-8">
           <input 
             type="checkbox" 
