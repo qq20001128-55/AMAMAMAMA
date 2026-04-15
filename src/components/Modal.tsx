@@ -39,24 +39,19 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
 
           {/* Modal Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
-            animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
-            exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
+            className={`relative z-50 w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
             style={{ 
-              position: 'fixed',
-              top: '50%',
-              left: '50%',
-              zIndex: 1000,
               border: '1px solid var(--theme-color, #53565b)',
-              maxHeight: '90vh',
-              overflowY: 'auto'
+              maxHeight: '90vh'
             }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[#53565b]/20">
+            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-[#53565b]/20">
               <h3 className="text-xl font-bold tracking-widest text-[#53565b]">
                 {title}
               </h3>
@@ -69,7 +64,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
             </div>
 
             {/* Body */}
-            <div className="p-6 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
               {children}
             </div>
           </motion.div>

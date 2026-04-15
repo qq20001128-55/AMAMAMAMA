@@ -108,7 +108,7 @@ export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, ver
         src={src} 
         alt={alt} 
         crossOrigin="anonymous"
-        className={`w-full h-full object-cover ${className || ''}`}
+        className={className || 'w-full h-full object-cover'}
         onClick={onClick}
         referrerPolicy="no-referrer"
       />
@@ -118,7 +118,7 @@ export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, ver
   return (
     <canvas 
       ref={canvasRef} 
-      className={`w-full h-full object-cover ${className || ''} ${loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}
+      className={`${className || 'w-full h-full object-cover'} ${loaded ? 'opacity-100' : 'opacity-0'} transition-opacity duration-500`}
       onClick={onClick}
       title={alt}
     />
