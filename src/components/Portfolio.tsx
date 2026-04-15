@@ -128,7 +128,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-50 modal-scroll-bg flex items-center justify-center p-4 md:p-10"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-10 bg-black/60 backdrop-blur-sm"
           onClick={() => setLightboxImage(null)}
         >
           <button 
