@@ -26,7 +26,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
+        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
           {/* Overlay */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -43,7 +43,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative z-50 w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
+            className={`relative z-[1000] w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
             style={{ 
               border: '1px solid var(--theme-color, #53565b)',
               maxHeight: '90vh'

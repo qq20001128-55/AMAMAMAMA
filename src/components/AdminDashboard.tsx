@@ -44,8 +44,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37' });
   const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | null>(null);
 
-  const [activeModal, setActiveModal] = useState<'orders' | null>(null);
+  const [activeModal, setActiveModal] = useState<'orders' | 'calendarDay' | null>(null);
   const [modalOrdersType, setModalOrdersType] = useState<'pending' | 'completed' | 'all'>('all');
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -456,9 +457,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
       </div>
 
-      <div className="flex flex-col xl:flex-row gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         {/* Left Column: Operations */}
-        <div className="flex-1 w-full flex flex-col gap-8 bg-white/70 backdrop-blur-sm p-6 border border-[#53565b]">
+        <div className="xl:col-span-7 w-full flex flex-col gap-8 bg-white/70 backdrop-blur-sm p-6 border border-[#53565b]">
           
           {/* Order Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -489,7 +490,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           <div className="neo-box border border-[#53565b]">
             <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">最新進行中卷宗</h3>
             <div className="space-y-4">
-              {orders.slice(0, 3).map(order => (
+              {allOrders
+                .filter(o => !['completed', 'delivered', 'closed'].includes(o.status))
+                .sort((a, b) => {
+                  const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                  const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                  return timeB - timeA;
+                })
+                .slice(0, 3)
+                .map(order => (
                 <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
                     <h4 className="text-lg font-bold tracking-widest">{order.title}</h4>
@@ -515,7 +524,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
                 </div>
               ))}
-              {orders.length === 0 && (
+              {allOrders.filter(o => !['completed', 'delivered', 'closed'].includes(o.status)).length === 0 && (
                 <div className="text-center py-8 text-gray-400 tracking-widest">
                   目前無進行中的卷宗。
                 </div>
@@ -524,7 +533,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* Portfolio Management */}
-          <div className="neo-box border border-[#53565b] flex flex-col h-[600px]">
+          <div className="neo-box border border-[#53565b] flex flex-col h-[500px]">
             <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2 shrink-0">作品集管理</h3>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
               <div className="flex flex-col gap-4">
@@ -680,7 +689,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* Price List Settings */}
-          <div className="neo-box border border-[#53565b] flex flex-col h-[600px]">
+          <div className="neo-box border border-[#53565b] flex flex-col h-[500px]">
             <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2 shrink-0">
               <h3 className="text-xl font-black tracking-widest text-[#53565b]">價目表設定</h3>
               <button onClick={handleAddPriceItem} className="btn-primary py-1 px-3 text-sm">
@@ -783,7 +792,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
 
         {/* Right Column: Calendar */}
-        <div className="w-full xl:w-[450px] shrink-0">
+        <div className="xl:col-span-5 w-full">
           <div className="sticky top-24 neo-box border border-[#53565b] bg-white/90 backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black tracking-widest text-[#53565b]">排程日曆</h3>
@@ -813,10 +822,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   <div 
                     key={i} 
                     className={cn(
-                      "bg-white min-h-[80px] p-2 transition-colors hover:bg-gray-50",
+                      "bg-white min-h-[120px] p-2 transition-colors hover:bg-gray-50 cursor-pointer",
                       !isSameMonth(date, currentMonth) && "bg-gray-50/50 text-gray-400",
                       isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
                     )}
+                    onClick={() => {
+                      if (dayOrders.length > 0) {
+                        setSelectedCalendarDate(date);
+                        setActiveModal('calendarDay');
+                      }
+                    }}
                   >
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
@@ -840,6 +855,40 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Calendar Day Modal */}
+      <Modal 
+        isOpen={activeModal === 'calendarDay'} 
+        onClose={() => { setActiveModal(null); setSelectedCalendarDate(null); }} 
+        title={selectedCalendarDate ? `${format(selectedCalendarDate, 'yyyy-MM-dd')} 排程卷宗` : '排程卷宗'}
+        maxWidth="max-w-2xl"
+      >
+        <div className="space-y-4">
+          {selectedCalendarDate && allOrders.filter(o => 
+            o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), selectedCalendarDate))
+          ).map(order => (
+            <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
+              <div>
+                <h4 className="font-bold tracking-widest">{order.title}</h4>
+                <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
+              </div>
+              <button 
+                onClick={() => {
+                  setModalOrdersType('all');
+                  setActiveModal('orders');
+                  setTimeout(() => {
+                    const el = document.getElementById(`order-${order.id}`);
+                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  }, 100);
+                }}
+                className="text-sm text-[#53565b] hover:underline flex items-center gap-1"
+              >
+                <ExternalLink size={14} /> 詳情
+              </button>
+            </div>
+          ))}
+        </div>
+      </Modal>
 
       {/* Orders Modal */}
       <Modal 
