@@ -6,7 +6,6 @@ import { db } from '../firebase';
 import { cn, STATUS_NODES } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
-import WatermarkedImage from './WatermarkedImage';
 import { SectionTitle } from './SectionTitle';
 
 interface OrderTrackingProps {
@@ -338,13 +337,10 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             <X size={32} />
           </button>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
-            <WatermarkedImage 
+            <img 
               src={lightboxImage} 
               alt="Full size preview"
-              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
-              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
-              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
-              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
+              crossOrigin="anonymous"
               className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
             />
           </div>

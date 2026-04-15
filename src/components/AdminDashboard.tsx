@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { motion } from 'motion/react';
-import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, Calendar as CalendarIcon, ExternalLink, X, CheckCircle2 } from 'lucide-react';
-import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
+import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, ExternalLink, X, CheckCircle2 } from 'lucide-react';
+import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp, where } from 'firebase/firestore';
+import { db, storage } from '../firebase';
 import { cn, STATUS_NODES } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
-import { zhTW } from 'date-fns/locale';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
-import { storage } from '../firebase';
-import { compressImage, applyWatermark } from '../lib/utils';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { addDoc } from 'firebase/firestore';
 import Modal from './Modal';
 
@@ -20,7 +17,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [orders, setOrders] = useState<any[]>([]);
-  const [allOrders, setAllOrders] = useState<any[]>([]); // For stats and calendar
+  const [allOrders, setAllOrders] = useState<any[]>([]);
   const [priceList, setPriceList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [commissionStatus, setCommissionStatus] = useState<'open' | 'closed'>('open');
@@ -30,35 +27,25 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [hasMore, setHasMore] = useState(true);
   const [currentMonth, setCurrentMonth] = useState(new Date());
   
-  // Price list editing state
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
   const [priceEditData, setPriceEditData] = useState<any>(null);
   const [priceUploading, setPriceUploading] = useState(false);
 
-  // Portfolio state
   const [portfolioCategories, setPortfolioCategories] = useState<any[]>([]);
   const [artworks, setArtworks] = useState<any[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [artworkUploading, setArtworkUploading] = useState(false);
 
-  // Lightbox state
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  // Check if user is admin
   const isAdmin = user?.email === 'sara20001128@gmail.com';
-
-  // System Settings state
-  const [systemSettings, setSystemSettings] = useState<any>({ horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
-  const [watermarkUploading, setWatermarkUploading] = useState<'horizontal' | 'vertical' | 'square' | 'pc' | null>(null);
 
   const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37' });
   const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | null>(null);
 
-  // Modals state
-  const [activeModal, setActiveModal] = useState<'portfolio' | 'system' | 'price' | 'orders' | 'calendarDay' | null>(null);
+  const [activeModal, setActiveModal] = useState<'orders' | null>(null);
   const [modalOrdersType, setModalOrdersType] = useState<'pending' | 'completed' | 'all'>('all');
-  const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
   useEffect(() => {
     fetchOrders();
@@ -66,7 +53,6 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     fetchSettings();
     fetchPriceList();
     fetchPortfolioData();
-    fetchSystemSettings();
     fetchSiteConfig();
   }, []);
 
@@ -112,42 +98,6 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
     } catch (err) {
       console.error('Update theme color error:', err);
-    }
-  };
-
-  const fetchSystemSettings = async () => {
-    try {
-      const snap = await getDocs(collection(db, 'settings'));
-      const settingsDoc = snap.docs.find(d => d.id === 'watermark');
-      if (settingsDoc) {
-        setSystemSettings(settingsDoc.data());
-      } else {
-        await setDoc(doc(db, 'settings', 'watermark'), { horizontalWatermarkUrl: '', verticalWatermarkUrl: '', squareWatermarkUrl: '', pcWatermarkUrl: '' });
-      }
-    } catch (err) {
-      console.error('Fetch system settings error:', err);
-    }
-  };
-
-  const handleWatermarkUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'horizontal' | 'vertical' | 'square' | 'pc') => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setWatermarkUploading(type);
-    try {
-      const storageRef = ref(storage, `system/watermarks/${type}.png`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      
-      const newSettings = { ...systemSettings, [`${type}WatermarkUrl`]: url };
-      await setDoc(doc(db, 'settings', 'watermark'), newSettings, { merge: true });
-      setSystemSettings(newSettings);
-      alert('浮水印上傳成功！');
-    } catch (err) {
-      console.error('Upload watermark error:', err);
-      alert('上傳失敗，請稍後再試。');
-    } finally {
-      setWatermarkUploading(null);
     }
   };
 
@@ -201,9 +151,11 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const fetchOrders = async (isNext = false) => {
     setLoading(true);
     try {
-      let q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), limit(10));
+      // Only fetch active orders (queued, draft, lineart, coloring)
+      const allowedStatuses = ['queued', 'draft', 'lineart', 'coloring'];
+      let q = query(collection(db, 'orders'), where('status', 'in', allowedStatuses), orderBy('createdAt', 'desc'), limit(10));
       if (isNext && lastDoc) {
-        q = query(collection(db, 'orders'), orderBy('createdAt', 'desc'), startAfter(lastDoc), limit(10));
+        q = query(collection(db, 'orders'), where('status', 'in', allowedStatuses), orderBy('createdAt', 'desc'), startAfter(lastDoc), limit(10));
       }
 
       const snap = await getDocs(q);
@@ -227,16 +179,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const toggleCommission = async () => {
     const newStatus = commissionStatus === 'open' ? 'closed' : 'open';
     try {
-      await updateDoc(doc(db, 'settings', 'global'), { commissionStatus: newStatus });
+      await setDoc(doc(db, 'settings', 'global'), { commissionStatus: newStatus }, { merge: true });
       setCommissionStatus(newStatus);
     } catch (err) {
-      console.error('Toggle error:', err);
+      console.error('Toggle commission error:', err);
     }
   };
 
   const handleEdit = (order: any) => {
     setEditingId(order.id);
-    setEditData({ ...order, expectedDates: order.expectedDates || {} });
+    setEditData({ ...order });
   };
 
   const handleSave = async () => {
@@ -246,7 +198,6 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       let newProgressHistory = { ...(oldOrder.progressHistory || {}) };
       let statusChanged = false;
       
-      // If status changed, record it in progressHistory
       if (oldOrder.status !== editData.status) {
         newProgressHistory[editData.status] = {
           ...newProgressHistory[editData.status],
@@ -262,30 +213,30 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       };
 
       await updateDoc(doc(db, 'orders', editingId), updatedData);
-      setOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
+      
+      // If status is no longer active, remove from list
+      const allowedStatuses = ['queued', 'draft', 'lineart', 'coloring'];
+      if (!allowedStatuses.includes(updatedData.status)) {
+        setOrders(prev => prev.filter(o => o.id !== editingId));
+      } else {
+        setOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
+      }
       setAllOrders(prev => prev.map(o => o.id === editingId ? { ...updatedData } : o));
       setEditingId(null);
 
-      // Send email if status changed
       if (statusChanged && oldOrder.email) {
         const stageLabel = STATUS_NODES.find(n => n.id === editData.status)?.label || editData.status;
-        const hasNewImage = newProgressHistory[editData.status]?.imageUrl && newProgressHistory[editData.status].imageUrl !== oldOrder.progressHistory?.[editData.status]?.imageUrl;
-        
         const emailHtml = `
           <p>承契者您好：</p>
           <p>您的委託項目 <strong>${oldOrder.title}</strong> 已有新的進度更新！</p>
           <p>目前階段：<strong>${stageLabel}</strong></p>
-          ${hasNewImage ? '<p>預覽圖已上傳，請前往網站查看（含浮水印保護）。</p>' : ''}
-          <p>您可以點擊下方連結，輸入您的訂單編號查看最新的預覽圖與詳細進度：</p>
-          <a href="${window.location.origin}/tracking">點此前往龍契局查詢進度</a>
-          <br/><br/>
-          <p>龍契局 瑪阿 敬上</p>
+          <p>請前往龍契局網站查詢詳細進度與預覽圖。</p>
+          <p>——瑪阿</p>
         `;
-
         await addDoc(collection(db, 'mail'), {
           to: oldOrder.email,
           message: {
-            subject: `【龍契局】委託進度更新通知 - 訂單編號：${oldOrder.officialOrderId || oldOrder.orderId.substring(0, 4).toUpperCase()}`,
+            subject: `【龍契局】委託進度更新：${stageLabel}`,
             html: emailHtml
           }
         });
@@ -300,88 +251,22 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     if (!file || !editingId) return;
 
     try {
-      // Apply watermark first
-      const watermarkedBlob = await applyWatermark(file, {
-        horizontal: systemSettings.horizontalWatermarkUrl,
-        vertical: systemSettings.verticalWatermarkUrl,
-        square: systemSettings.squareWatermarkUrl,
-        pc: systemSettings.pcWatermarkUrl
-      });
-
-      // Then compress
-      const compressedBlob = await compressImage(new File([watermarkedBlob], 'watermarked.webp', { type: 'image/webp' }));
-      
       const storageRef = ref(storage, `orders/${editingId}/${stage}.webp`);
-      await uploadBytes(storageRef, compressedBlob);
+      await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       
       const newProgressHistory = { ...(editData.progressHistory || {}) };
       newProgressHistory[stage] = {
         ...newProgressHistory[stage],
-        imageUrl: url
+        imageUrl: url,
+        updatedAt: serverTimestamp()
       };
 
       setEditData({ ...editData, progressHistory: newProgressHistory });
-      alert('進度預覽圖上傳成功！請記得點擊「儲存」以保存變更。');
+      alert('預覽圖上傳成功！請記得點擊「儲存修改」。');
     } catch (err) {
       console.error('Upload stage image error:', err);
       alert('上傳失敗，請稍後再試。');
-    }
-  };
-
-  const handleCloseOrder = async (order: any) => {
-    if (!window.confirm('是否確認委託人已收到圖？結案後將永久刪除所有訂單資料與參考圖。')) return;
-
-    try {
-      // Send final email
-      if (order.email) {
-        await addDoc(collection(db, 'mail'), {
-          to: order.email,
-          message: {
-            subject: `【龍契局】委託結案通知 - 訂單編號：${order.officialOrderId || order.orderId.substring(0, 4).toUpperCase()}`,
-            html: `<p>承契者您好：</p><p>您的委託已圓滿達成，相關個人資料與參考圖已從龍契局系統中移除，感謝您的委託！</p><br/><p>龍契局 瑪阿 敬上</p>`
-          }
-        });
-      }
-
-      // Delete from Firestore
-      await deleteDoc(doc(db, 'orders', order.id));
-
-      // Attempt to delete from Storage (Note: Client-side storage deletion of folders is not directly supported, 
-      // we have to delete files individually or rely on Cloud Functions. 
-      // For this prototype, we'll delete the known files if possible, or just leave it to a Cloud Function.
-      // Since we know the references are in order.referenceImages, we can delete them.)
-      if (order.referenceImages && order.referenceImages.length > 0) {
-        for (const imgUrl of order.referenceImages) {
-          try {
-            const imgRef = ref(storage, imgUrl);
-            await deleteObject(imgRef);
-          } catch (e) {
-            console.error('Failed to delete reference image:', e);
-          }
-        }
-      }
-
-      // Delete stage images
-      if (order.progressHistory) {
-        for (const stage of Object.keys(order.progressHistory)) {
-          if (order.progressHistory[stage].imageUrl) {
-            try {
-              const imgRef = ref(storage, order.progressHistory[stage].imageUrl);
-              await deleteObject(imgRef);
-            } catch (e) {
-              console.error('Failed to delete stage image:', e);
-            }
-          }
-        }
-      }
-
-      setOrders(prev => prev.filter(o => o.id !== order.id));
-      setAllOrders(prev => prev.filter(o => o.id !== order.id));
-      alert('訂單已結案並銷毀資料。');
-    } catch (err) {
-      console.error('Close order error:', err);
-      alert('結案失敗。');
     }
   };
 
@@ -396,96 +281,84 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  const handleRejectOrder = async (order: any) => {
-    if (!window.confirm(`確定要婉拒 ${order.nickname} 的委託嗎？`)) return;
-    
-    // Email Template A
-    const emailContent = `龍契局已收到你的願望。<br><br>這次的委託內容這邊評估後，暫時無法承接，很抱歉。<br>目前狀態或方向上不太適合接下這個案子。<br>也謝謝你的信任與喜歡。<br><br>如果之後有其他類型的委託，也很歡迎再來詢問龍契局<br>願你未來在合適的時機，再度踏入此局。`;
-
+  const handleAddCategory = async () => {
+    if (!newCategoryName.trim()) return;
     try {
-      await updateDoc(doc(db, 'orders', order.id), { status: 'closed' });
-      
-      // Write to mail collection for Trigger Email extension
-      if (order.email) {
-        await addDoc(collection(db, 'mail'), {
-          to: order.email,
-          message: {
-            subject: `【龍契局】委託狀態通知 - ${order.nickname}`,
-            html: emailContent
-          }
-        });
-      }
-
-      setOrders(prev => prev.filter(o => o.id !== order.id)); // Remove from active view
-      setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'closed' } : o));
-      alert('已婉拒並發送通知信。');
-    } catch (err) {
-      console.error('Reject error:', err);
-    }
-  };
-
-  const handleAcceptOrder = async (order: any) => {
-    const officialId = `MAA-${order.orderId.substring(0, 4).toUpperCase()}`;
-    if (!window.confirm(`確定要接受 ${order.nickname} 的委託嗎？將分配編號 #${officialId}`)) return;
-
-    // Email Template B
-    const emailContent = `此契，成立。<br><br>你的委託已收到，並進入排單與評估流程。<br>若無特殊狀況，將依順序開始製作。<br><br>在契約成立後，以下事項將生效：<br>・依排單順序進行製作<br>・修改與退款規則依委託須知執行<br>・驚喜包不可進行大幅更動<br><br>龍契已受理。<br>#${officialId}<br><br>——瑪阿`;
-
-    try {
-      const updatedData = {
-        status: 'queued',
-        officialOrderId: officialId,
-        progressHistory: {
-          ...order.progressHistory,
-          queued: {
-            updatedAt: serverTimestamp(),
-            dateString: new Date().toISOString()
-          }
-        }
+      const newCat = {
+        name: newCategoryName,
+        order: portfolioCategories.length
       };
-      await updateDoc(doc(db, 'orders', order.id), updatedData);
-
-      // Write to mail collection for Trigger Email extension
-      if (order.email) {
-        await addDoc(collection(db, 'mail'), {
-          to: order.email,
-          message: {
-            subject: `【龍契局】委託成立通知 - #${officialId}`,
-            html: emailContent
-          }
-        });
-      }
-
-      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updatedData } : o));
-      setAllOrders(prev => prev.map(o => o.id === order.id ? { ...o, ...updatedData } : o));
-      alert('已接受並發送通知信。');
+      const docRef = await addDoc(collection(db, 'portfolioCategories'), newCat);
+      setPortfolioCategories([...portfolioCategories, { id: docRef.id, ...newCat }]);
+      setNewCategoryName('');
+      if (!selectedCategoryId) setSelectedCategoryId(docRef.id);
     } catch (err) {
-      console.error('Accept error:', err);
+      console.error('Add category error:', err);
     }
   };
 
-  const scrollToOrder = (id: string) => {
-    const el = document.getElementById(`order-${id}`);
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('bg-gray-100');
-      setTimeout(() => el.classList.remove('bg-gray-100'), 2000);
+  const handleDeleteCategory = async (id: string) => {
+    if (!window.confirm('確定刪除此分類？相關作品將會失去分類。')) return;
+    try {
+      await deleteDoc(doc(db, 'portfolioCategories', id));
+      setPortfolioCategories(portfolioCategories.filter(c => c.id !== id));
+      if (selectedCategoryId === id) setSelectedCategoryId('');
+    } catch (err) {
+      console.error('Delete category error:', err);
+    }
+  };
+
+  const handleArtworkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0 || !selectedCategoryId) return;
+
+    setArtworkUploading(true);
+    try {
+      const newArtworks = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const storageRef = ref(storage, `portfolio/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        
+        const artData = {
+          categoryId: selectedCategoryId,
+          imageUrl: url,
+          createdAt: serverTimestamp()
+        };
+        const docRef = await addDoc(collection(db, 'artworks'), artData);
+        newArtworks.push({ id: docRef.id, ...artData });
+      }
+      setArtworks(prev => [...newArtworks, ...prev]);
+      alert('作品上傳成功！');
+    } catch (err) {
+      console.error('Upload artwork error:', err);
+      alert('上傳失敗，請稍後再試。');
+    } finally {
+      setArtworkUploading(false);
+    }
+  };
+
+  const handleDeleteArtwork = async (id: string) => {
+    if (!window.confirm('確定刪除此作品？')) return;
+    try {
+      await deleteDoc(doc(db, 'artworks', id));
+      setArtworks(artworks.filter(a => a.id !== id));
+    } catch (err) {
+      console.error('Delete artwork error:', err);
     }
   };
 
   const handleAddPriceItem = async () => {
-    const newItem = {
-      title: '新委託項目',
-      description: '請輸入說明與價格',
-      imageUrl: '',
-      order: priceList.length
-    };
     try {
-      const docRef = doc(collection(db, 'priceList'));
-      await setDoc(docRef, newItem);
+      const newItem = {
+        title: '新項目',
+        description: '描述...',
+        order: priceList.length,
+        imageUrl: ''
+      };
+      const docRef = await addDoc(collection(db, 'priceList'), newItem);
       setPriceList([...priceList, { id: docRef.id, ...newItem }]);
-      setEditingPriceId(docRef.id);
-      setPriceEditData({ id: docRef.id, ...newItem });
     } catch (err) {
       console.error('Add price item error:', err);
     }
@@ -494,13 +367,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const handleSavePriceItem = async () => {
     if (!editingPriceId) return;
     try {
-      await updateDoc(doc(db, 'priceList', editingPriceId), {
-        title: priceEditData.title,
-        description: priceEditData.description,
-        imageUrl: priceEditData.imageUrl,
-        order: priceEditData.order
-      });
-      setPriceList(prev => prev.map(p => p.id === editingPriceId ? priceEditData : p).sort((a, b) => a.order - b.order));
+      await updateDoc(doc(db, 'priceList', editingPriceId), priceEditData);
+      setPriceList(priceList.map(item => item.id === editingPriceId ? priceEditData : item).sort((a, b) => a.order - b.order));
       setEditingPriceId(null);
     } catch (err) {
       console.error('Save price item error:', err);
@@ -508,10 +376,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   };
 
   const handleDeletePriceItem = async (id: string) => {
-    if (!window.confirm('確定要刪除此價目項目嗎？')) return;
+    if (!window.confirm('確定刪除此價目項目？')) return;
     try {
       await deleteDoc(doc(db, 'priceList', id));
-      setPriceList(prev => prev.filter(p => p.id !== id));
+      setPriceList(priceList.filter(item => item.id !== id));
     } catch (err) {
       console.error('Delete price item error:', err);
     }
@@ -523,101 +391,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
     setPriceUploading(true);
     try {
-      const compressedBlob = await compressImage(file);
       const storageRef = ref(storage, `priceList/${editingPriceId}.webp`);
-      await uploadBytes(storageRef, compressedBlob);
+      await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       setPriceEditData({ ...priceEditData, imageUrl: url });
     } catch (err) {
-      console.error('Upload error:', err);
-      alert('上傳失敗，請稍後再試。');
+      console.error('Upload price image error:', err);
+      alert('上傳失敗');
     } finally {
       setPriceUploading(false);
-    }
-  };
-
-  // Portfolio Handlers
-  const handleAddCategory = async () => {
-    if (!newCategoryName.trim()) return;
-    try {
-      const docRef = await addDoc(collection(db, 'portfolioCategories'), {
-        name: newCategoryName.trim(),
-        order: portfolioCategories.length
-      });
-      const newCat = { id: docRef.id, name: newCategoryName.trim(), order: portfolioCategories.length };
-      setPortfolioCategories([...portfolioCategories, newCat]);
-      setNewCategoryName('');
-      if (!selectedCategoryId) setSelectedCategoryId(docRef.id);
-    } catch (err) {
-      console.error('Add category error:', err);
-    }
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm('確定要刪除此分類嗎？這將會連同分類內的作品一併刪除！')) return;
-    try {
-      await deleteDoc(doc(db, 'portfolioCategories', id));
-      setPortfolioCategories(prev => prev.filter(c => c.id !== id));
-      if (selectedCategoryId === id) {
-        setSelectedCategoryId(portfolioCategories.find(c => c.id !== id)?.id || '');
-      }
-      // Delete associated artworks
-      const relatedArtworks = artworks.filter(a => a.categoryId === id);
-      for (const art of relatedArtworks) {
-        await deleteDoc(doc(db, 'artworks', art.id));
-      }
-      setArtworks(prev => prev.filter(a => a.categoryId !== id));
-    } catch (err) {
-      console.error('Delete category error:', err);
-    }
-  };
-
-  const handleArtworkUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []) as File[];
-    if (files.length === 0 || !selectedCategoryId) return;
-
-    setArtworkUploading(true);
-    try {
-      const uploadPromises = files.map(async (file) => {
-        const compressedBlob = await compressImage(file);
-        const tempId = crypto.randomUUID();
-        const storageRef = ref(storage, `artworks/${tempId}.webp`);
-        await uploadBytes(storageRef, compressedBlob);
-        const url = await getDownloadURL(storageRef);
-        
-        const docRef = await addDoc(collection(db, 'artworks'), {
-          imageUrl: url,
-          categoryId: selectedCategoryId,
-          title: file.name,
-          createdAt: new Date().toISOString()
-        });
-        
-        return {
-          id: docRef.id,
-          imageUrl: url,
-          categoryId: selectedCategoryId,
-          title: file.name,
-          createdAt: new Date().toISOString()
-        };
-      });
-
-      const newArtworks = await Promise.all(uploadPromises);
-      setArtworks(prev => [...newArtworks, ...prev]);
-    } catch (err) {
-      console.error('Upload artworks error:', err);
-      alert('上傳失敗，請稍後再試。');
-    } finally {
-      setArtworkUploading(false);
-    }
-  };
-
-  const handleDeleteArtwork = async (id: string) => {
-    if (!window.confirm('確定要刪除此作品嗎？')) return;
-    try {
-      await deleteDoc(doc(db, 'artworks', id));
-      setArtworks(prev => prev.filter(a => a.id !== id));
-    } catch (err) {
-      console.error('Delete artwork error:', err);
     }
   };
 
@@ -631,12 +413,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     );
   }
 
-  // Stats
   const totalOrders = allOrders.length;
   const completedOrders = allOrders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
   const pendingOrders = totalOrders - completedOrders;
 
-  // Calendar Days
   const daysInMonth = eachDayOfInterval({
     start: startOfMonth(currentMonth),
     end: endOfMonth(currentMonth)
@@ -646,9 +426,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto px-6 py-10"
+      className="max-w-[1600px] mx-auto px-4 sm:px-6 py-10"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 border-b-2 border-[#53565b] pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b-2 border-[#53565b] pb-6">
         <div>
           <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-4 transition-colors tracking-widest">
             <ChevronLeft size={20} />
@@ -657,7 +437,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           <h2 className="text-4xl font-black tracking-widest">龍契局・後台</h2>
         </div>
 
-        <div className="flex items-center gap-4 neo-box !p-4">
+        <div className="flex items-center gap-4 neo-box !p-4 border border-[#53565b]">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-widest text-gray-500">局門狀態</span>
             <span className={cn("text-sm font-bold tracking-widest", commissionStatus === 'open' ? "text-gray-800" : "text-[#53565b]")}>
@@ -676,166 +456,53 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-8">
-        {/* Stats - Full Width */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div 
-            className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => { setModalOrdersType('all'); setActiveModal('orders'); }}
-          >
-            <p className="text-sm tracking-widest text-gray-500 mb-2">總書契數</p>
-            <p className="text-4xl font-black">{totalOrders}</p>
-          </div>
-          <div 
-            className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => { setModalOrdersType('pending'); setActiveModal('orders'); }}
-          >
-            <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
-            <p className="text-4xl font-black text-[#53565b]">{pendingOrders}</p>
-          </div>
-          <div 
-            className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors"
-            onClick={() => { setModalOrdersType('completed'); setActiveModal('orders'); }}
-          >
-            <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
-            <p className="text-4xl font-black text-gray-800">{completedOrders}</p>
-          </div>
-        </div>
-
-        {/* Giant Calendar System */}
-        <div className="neo-box min-h-[700px] flex flex-col">
-          <div className="flex justify-between items-center mb-6">
-            <h3 className="text-2xl font-black tracking-widest text-[#53565b]">排程日曆</h3>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <ChevronLeft size={20} />
-              </button>
-              <span className="text-lg font-bold tracking-widest">{format(currentMonth, 'yyyy 年 MM 月')}</span>
-              <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-                <ChevronRight size={20} />
-              </button>
-            </div>
-          </div>
+      <div className="flex flex-col xl:flex-row gap-8 items-start">
+        {/* Left Column: Operations */}
+        <div className="flex-1 w-full flex flex-col gap-8 bg-white/70 backdrop-blur-sm p-6 border border-[#53565b]">
           
-          <div className="grid grid-cols-7 gap-px bg-gray-200 flex-1 border border-gray-200">
-            {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-              <div key={day} className="bg-gray-50 py-3 text-center text-sm font-bold tracking-widest text-gray-500">
-                {day}
-              </div>
-            ))}
-            {daysInMonth.map((date, i) => {
-              // Find orders with expected dates matching this day
-              const dayOrders = allOrders.filter(o => 
-                o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), date))
-              );
-              
-              return (
-                <div 
-                  key={i} 
-                  className={cn(
-                    "bg-white min-h-[100px] p-2 transition-colors hover:bg-gray-50 cursor-pointer",
-                    !isSameMonth(date, currentMonth) && "bg-gray-50/50 text-gray-400",
-                    isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
-                  )}
-                  onClick={() => {
-                    setSelectedCalendarDate(date);
-                    setActiveModal('calendarDay');
-                  }}
-                >
-                  <div className="text-right text-sm mb-1">{format(date, 'd')}</div>
-                  <div className="space-y-1">
-                    {dayOrders.map((order, idx) => (
-                      <div key={idx} className="text-xs truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm">
-                        {order.title}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Modular Admin Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="neo-box flex flex-col justify-between">
-            <div>
-              <h3 className="text-xl font-black tracking-widest mb-2 text-[#53565b]">作品集管理</h3>
-              <p className="text-sm text-gray-500 tracking-widest mb-6">管理分類與上傳作品圖片。</p>
+          {/* Order Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div 
+              className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors border border-[#53565b]"
+              onClick={() => { setModalOrdersType('all'); setActiveModal('orders'); }}
+            >
+              <p className="text-sm tracking-widest text-gray-500 mb-2">總書契數</p>
+              <p className="text-4xl font-black">{totalOrders}</p>
             </div>
-            <button onClick={() => setActiveModal('portfolio')} className="btn-secondary w-full py-2 text-sm">
-              編輯
-            </button>
-          </div>
-          
-          <div className="neo-box flex flex-col justify-between">
-            <div>
-              <h3 className="text-xl font-black tracking-widest mb-2 text-[#53565b]">系統設定</h3>
-              <p className="text-sm text-gray-500 tracking-widest mb-6">設定浮水印、全站背景與主題色。</p>
+            <div 
+              className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors border border-[#53565b]"
+              onClick={() => { setModalOrdersType('pending'); setActiveModal('orders'); }}
+            >
+              <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
+              <p className="text-4xl font-black text-[#53565b]">{pendingOrders}</p>
             </div>
-            <button onClick={() => setActiveModal('system')} className="btn-secondary w-full py-2 text-sm">
-              編輯
-            </button>
-          </div>
-
-          <div className="neo-box flex flex-col justify-between">
-            <div>
-              <h3 className="text-xl font-black tracking-widest mb-2 text-[#53565b]">價目表設定</h3>
-              <p className="text-sm text-gray-500 tracking-widest mb-6">管理委託項目與價格說明。</p>
+            <div 
+              className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors border border-[#53565b]"
+              onClick={() => { setModalOrdersType('completed'); setActiveModal('orders'); }}
+            >
+              <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
+              <p className="text-4xl font-black text-gray-800">{completedOrders}</p>
             </div>
-            <button onClick={() => setActiveModal('price')} className="btn-secondary w-full py-2 text-sm">
-              編輯
-            </button>
           </div>
-        </div>
 
-
-      </div>
-
-      {/* Modals */}
-      <Modal 
-        isOpen={activeModal === 'calendarDay'} 
-        onClose={() => {
-          setActiveModal(null);
-          setSelectedCalendarDate(null);
-        }} 
-        title={selectedCalendarDate ? format(selectedCalendarDate, 'yyyy 年 MM 月 dd 日 預定排程') : ''}
-        maxWidth="max-w-2xl"
-      >
-        <div className="space-y-4">
-          {selectedCalendarDate && allOrders.filter(o => 
-            o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), selectedCalendarDate))
-          ).length > 0 ? (
-            allOrders.filter(o => 
-              o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), selectedCalendarDate))
-            ).map(order => {
-              // Find which stages are expected on this date
-              const stagesOnDate = Object.entries(order.expectedDates || {})
-                .filter(([_, d]: [string, any]) => d && isSameDay(parseISO(d), selectedCalendarDate))
-                .map(([stage]) => stage);
-
-              return (
-                <div key={order.id} className="neo-box !p-4 flex flex-col gap-2">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h4 className="text-lg font-black tracking-widest">{order.title}</h4>
-                      <p className="text-sm text-gray-500 tracking-widest">{order.nickname} | {order.category}</p>
-                    </div>
-                    <span className="text-xs font-mono text-gray-400">#{order.orderId.substring(0, 4).toUpperCase()}</span>
+          {/* Latest Orders */}
+          <div className="neo-box border border-[#53565b]">
+            <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">最新進行中卷宗</h3>
+            <div className="space-y-4">
+              {orders.slice(0, 3).map(order => (
+                <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
+                  <div>
+                    <h4 className="text-lg font-bold tracking-widest">{order.title}</h4>
+                    <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {stagesOnDate.map(stage => (
-                      <span key={stage} className="px-2 py-1 bg-[#53565b] text-white text-xs font-bold tracking-widest">
-                        預計 {STATUS_NODES.find(n => n.id === stage)?.label || stage}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 flex justify-end">
+                  <div className="flex items-center gap-4">
+                    <span className="inline-block px-3 py-1 bg-[#53565b] text-[#fafafa] text-xs font-bold tracking-widest">
+                      {STATUS_NODES.find(n => n.id === order.status)?.label}
+                    </span>
                     <button 
                       onClick={() => {
-                        setActiveModal('orders');
                         setModalOrdersType('all');
-                        // Optional: scroll to order or highlight it
+                        setActiveModal('orders');
                         setTimeout(() => {
                           const el = document.getElementById(`order-${order.id}`);
                           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -843,385 +510,338 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       }}
                       className="text-sm text-[#53565b] hover:underline tracking-widest flex items-center gap-1"
                     >
-                      <ExternalLink size={14} /> 查看卷宗詳情
+                      <ExternalLink size={14} /> 詳情
                     </button>
                   </div>
                 </div>
-              );
-            })
-          ) : (
-            <div className="text-center py-10 text-gray-400 tracking-widest">
-              本日無預定排程。
-            </div>
-          )}
-        </div>
-      </Modal>
-
-      <Modal 
-        isOpen={activeModal === 'portfolio'} 
-        onClose={() => setActiveModal(null)} 
-        title="作品集管理"
-        maxWidth="max-w-4xl"
-      >
-        {/* Categories */}
-        <div className="neo-box mb-6">
-          <h4 className="text-lg font-bold tracking-widest mb-4">分類管理</h4>
-          <div className="flex gap-4 mb-6">
-            <input 
-              type="text" 
-              className="input-field flex-1" 
-              placeholder="新增分類名稱..."
-              value={newCategoryName}
-              onChange={e => setNewCategoryName(e.target.value)}
-            />
-            <button onClick={handleAddCategory} className="btn-primary whitespace-nowrap">
-              新增分類
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {portfolioCategories.map(cat => (
-              <div key={cat.id} className="flex items-center gap-2 bg-gray-100 px-3 py-1 border border-gray-300">
-                <span className="text-sm tracking-widest">{cat.name}</span>
-                <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[#53565b]">
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-            {portfolioCategories.length === 0 && <span className="text-sm text-gray-400">尚無分類</span>}
-          </div>
-        </div>
-
-        {/* Upload & Preview */}
-        <div className="neo-box">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 border-b-2 border-gray-200 pb-4">
-            <h4 className="text-lg font-bold tracking-widest">作品上傳與預覽</h4>
-            <div className="flex items-center gap-4 w-full md:w-auto">
-              <select 
-                className="input-field py-2 text-sm max-w-[200px]"
-                value={selectedCategoryId}
-                onChange={e => setSelectedCategoryId(e.target.value)}
-              >
-                {portfolioCategories.length === 0 && <option value="">請先新增分類</option>}
-                {portfolioCategories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-              <label className={cn("btn-primary whitespace-nowrap cursor-pointer", (!selectedCategoryId || artworkUploading) && "opacity-50 cursor-not-allowed")}>
-                {artworkUploading ? '上傳中...' : '上傳作品 (多圖)'}
-                <input 
-                  type="file" 
-                  className="hidden" 
-                  accept="image/*" 
-                  multiple 
-                  onChange={handleArtworkUpload} 
-                  disabled={!selectedCategoryId || artworkUploading} 
-                />
-              </label>
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            {portfolioCategories.map(cat => {
-              const catArtworks = artworks.filter(a => a.categoryId === cat.id);
-              if (catArtworks.length === 0) return null;
-              
-              return (
-                <div key={cat.id}>
-                  <h5 className="text-md font-bold tracking-widest mb-4 text-gray-600">{cat.name}</h5>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                    {catArtworks.map(art => (
-                      <div key={art.id} className="relative aspect-square border-2 border-gray-200 group overflow-hidden">
-                        <img src={art.imageUrl} alt={art.title} className="w-full h-full object-cover" />
-                        <button 
-                          onClick={() => handleDeleteArtwork(art.id)}
-                          className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
-                        >
-                          <X size={16} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
+              ))}
+              {orders.length === 0 && (
+                <div className="text-center py-8 text-gray-400 tracking-widest">
+                  目前無進行中的卷宗。
                 </div>
-              );
-            })}
-            {artworks.length === 0 && (
-              <div className="text-center py-10 text-gray-400 tracking-widest">
-                尚無作品。
-              </div>
-            )}
-          </div>
-        </div>
-      </Modal>
-
-      <Modal 
-        isOpen={activeModal === 'system'} 
-        onClose={() => setActiveModal(null)} 
-        title="系統設定"
-        maxWidth="max-w-4xl"
-      >
-        <div className="neo-box mb-8">
-          <h4 className="text-lg font-bold tracking-widest mb-4">視覺設定</h4>
-          <p className="text-sm text-gray-500 tracking-widest mb-6 leading-loose">
-            上傳全站的背景圖與標題裝飾圖。
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">首頁底圖</p>
-              <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {siteConfig.homeBgUrl ? (
-                  <img src={siteConfig.homeBgUrl} alt="Home Background" className="max-w-full max-h-full object-cover" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {siteConfigUploading === 'homeBg' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳首頁底圖</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'homeBg')} disabled={siteConfigUploading !== null} />
-                </label>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">分頁底圖</p>
-              <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {siteConfig.pageBgUrl ? (
-                  <img src={siteConfig.pageBgUrl} alt="Page Background" className="max-w-full max-h-full object-cover" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {siteConfigUploading === 'pageBg' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳分頁底圖</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'pageBg')} disabled={siteConfigUploading !== null} />
-                </label>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">標題裝飾圖</p>
-              <div className="aspect-square max-w-[200px] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {siteConfig.titleStyleUrl ? (
-                  <img src={siteConfig.titleStyleUrl} alt="Title Style" className="max-w-full max-h-full object-contain p-4" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {siteConfigUploading === 'titleStyle' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳標題裝飾圖</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'titleStyle')} disabled={siteConfigUploading !== null} />
-                </label>
-              </div>
-            </div>
-          </div>
-          
-          <div className="mt-8 border-t border-gray-200 pt-6">
-            <p className="text-sm font-bold tracking-widest mb-4">主題強調色</p>
-            <div className="flex items-center gap-4">
-              <input 
-                type="color" 
-                value={siteConfig.themeColor || '#d4af37'} 
-                onChange={(e) => handleThemeColorChange(e.target.value)}
-                className="w-12 h-12 rounded cursor-pointer border-0 p-0"
-              />
-              <span className="font-mono text-sm">{siteConfig.themeColor || '#d4af37'}</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="neo-box">
-          <h4 className="text-lg font-bold tracking-widest mb-4">浮水印設定</h4>
-          <p className="text-sm text-gray-500 tracking-widest mb-6 leading-loose">
-            請上傳含有透明背景的 PNG 檔案。<br/>
-            系統將於前端展示作品集時，自動依據圖片長寬比疊加對應的浮水印。
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">橫式浮水印 (寬圖使用)</p>
-              <div className="aspect-video bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {systemSettings.horizontalWatermarkUrl ? (
-                  <img src={systemSettings.horizontalWatermarkUrl} alt="Horizontal Watermark" className="max-w-full max-h-full object-contain p-4" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {watermarkUploading === 'horizontal' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳橫式浮水印</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'horizontal')} disabled={watermarkUploading !== null} />
-                </label>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">直式浮水印 (長圖使用)</p>
-              <div className="aspect-[3/4] max-w-[250px] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {systemSettings.verticalWatermarkUrl ? (
-                  <img src={systemSettings.verticalWatermarkUrl} alt="Vertical Watermark" className="max-w-full max-h-full object-contain p-4" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {watermarkUploading === 'vertical' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳直式浮水印</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'vertical')} disabled={watermarkUploading !== null} />
-                </label>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">方形浮水印 (正方圖使用)</p>
-              <div className="aspect-square max-w-[250px] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {systemSettings.squareWatermarkUrl ? (
-                  <img src={systemSettings.squareWatermarkUrl} alt="Square Watermark" className="max-w-full max-h-full object-contain p-4" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {watermarkUploading === 'square' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳方形浮水印</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'square')} disabled={watermarkUploading !== null} />
-                </label>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm font-bold tracking-widest mb-2">電腦螢幕浮水印 (極寬圖使用)</p>
-              <div className="aspect-[16/9] bg-gray-100 border-2 border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
-                {systemSettings.pcWatermarkUrl ? (
-                  <img src={systemSettings.pcWatermarkUrl} alt="PC Watermark" className="max-w-full max-h-full object-contain p-4" />
-                ) : (
-                  <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
-                )}
-                <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                  {watermarkUploading === 'pc' ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    <span className="text-xs tracking-widest">上傳電腦螢幕浮水印</span>
-                  )}
-                  <input type="file" className="hidden" accept="image/png" onChange={(e) => handleWatermarkUpload(e, 'pc')} disabled={watermarkUploading !== null} />
-                </label>
-              </div>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal 
-        isOpen={activeModal === 'price'} 
-        onClose={() => setActiveModal(null)} 
-        title="價目表管理"
-        maxWidth="max-w-4xl"
-      >
-        <div className="flex justify-between items-center mb-6">
-          <button onClick={handleAddPriceItem} className="btn-primary py-2 px-4 text-sm">
-            + 新增項目
-          </button>
-        </div>
-        <div className="space-y-4">
-          {priceList.map((item) => (
-            <div key={item.id} className="neo-box !p-4 flex flex-col md:flex-row gap-6 items-start">
-              {editingPriceId === item.id ? (
-                <>
-                  <div className="w-full md:w-1/3 space-y-4">
-                    <div className="aspect-[4/3] bg-gray-100 border-2 border-[#53565b] relative flex items-center justify-center overflow-hidden">
-                      {priceEditData.imageUrl ? (
-                        <img src={priceEditData.imageUrl} alt="Preview" className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-gray-400 text-sm">無圖片</span>
-                      )}
-                      <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 hover:opacity-100 cursor-pointer transition-opacity">
-                        {priceUploading ? (
-                          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                        ) : (
-                          <span className="text-xs tracking-widest">上傳圖片</span>
-                        )}
-                        <input type="file" className="hidden" accept="image/*" onChange={handlePriceImageUpload} disabled={priceUploading} />
-                      </label>
-                    </div>
-                    <input 
-                      type="number" 
-                      className="input-field py-1 text-sm" 
-                      placeholder="排序 (數字越小越前面)"
-                      value={priceEditData.order}
-                      onChange={e => setPriceEditData({...priceEditData, order: Number(e.target.value)})}
-                    />
-                  </div>
-                  <div className="w-full md:w-2/3 flex flex-col h-full gap-4">
-                    <input 
-                      type="text" 
-                      className="input-field font-bold text-lg" 
-                      placeholder="委託名稱"
-                      value={priceEditData.title}
-                      onChange={e => setPriceEditData({...priceEditData, title: e.target.value})}
-                    />
-                    <textarea 
-                      className="input-field flex-1 min-h-[120px] resize-none text-sm leading-loose" 
-                      placeholder="價格與說明..."
-                      value={priceEditData.description}
-                      onChange={e => setPriceEditData({...priceEditData, description: e.target.value})}
-                    />
-                    <div className="flex justify-end gap-4 mt-auto">
-                      <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border-2 border-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
-                        取消
-                      </button>
-                      <button onClick={handleSavePriceItem} className="px-4 py-2 bg-gray-800 text-white text-sm tracking-widest hover:bg-gray-900 transition-colors">
-                        儲存
-                      </button>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border-2 border-[#53565b] overflow-hidden">
-                    {item.imageUrl ? (
-                      <img src={item.imageUrl} alt={item.title} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">無圖片</div>
-                    )}
-                  </div>
-                  <div className="w-full md:w-3/4 flex flex-col justify-between h-full">
-                    <div>
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="text-xl font-black tracking-widest">{item.title}</h4>
-                        <span className="text-xs text-gray-400 font-mono">排序: {item.order}</span>
-                      </div>
-                      <p className="text-sm text-gray-600 tracking-widest leading-loose whitespace-pre-wrap line-clamp-3">
-                        {item.description}
-                      </p>
-                    </div>
-                    <div className="flex justify-end gap-4 mt-4">
-                      <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-sm tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
-                        <Edit2 size={14} /> 編輯
-                      </button>
-                      <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
-                        <Trash2 size={14} /> 刪除
-                      </button>
-                    </div>
-                  </div>
-                </>
               )}
             </div>
-          ))}
-          {priceList.length === 0 && (
-            <div className="text-center py-10 text-gray-400 border-2 border-dashed border-gray-200 tracking-widest">
-              目前尚無價目項目。
-            </div>
-          )}
-        </div>
-      </Modal>
+          </div>
 
+          {/* Portfolio Management */}
+          <div className="neo-box border border-[#53565b] flex flex-col h-[600px]">
+            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2 shrink-0">作品集管理</h3>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
+              <div className="flex flex-col gap-4">
+                <div className="flex gap-4">
+                  <input 
+                    type="text" 
+                    className="input-field flex-1" 
+                    placeholder="新增分類名稱..."
+                    value={newCategoryName}
+                    onChange={e => setNewCategoryName(e.target.value)}
+                  />
+                  <button onClick={handleAddCategory} className="btn-primary whitespace-nowrap">
+                    新增分類
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {portfolioCategories.map(cat => (
+                    <div key={cat.id} className="flex items-center gap-2 bg-gray-100 px-3 py-1 border border-gray-300">
+                      <span className="text-sm tracking-widest">{cat.name}</span>
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[#53565b]">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t border-gray-200 pt-4">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
+                  <select 
+                    className="input-field py-2 text-sm max-w-[200px]"
+                    value={selectedCategoryId}
+                    onChange={e => setSelectedCategoryId(e.target.value)}
+                  >
+                    {portfolioCategories.length === 0 && <option value="">請先新增分類</option>}
+                    {portfolioCategories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <label className={cn("btn-primary whitespace-nowrap cursor-pointer", (!selectedCategoryId || artworkUploading) && "opacity-50 cursor-not-allowed")}>
+                    {artworkUploading ? '上傳中...' : '上傳作品 (多圖)'}
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/*" 
+                      multiple 
+                      onChange={handleArtworkUpload} 
+                      disabled={!selectedCategoryId || artworkUploading} 
+                    />
+                  </label>
+                </div>
+
+                <div className="space-y-6">
+                  {portfolioCategories.map(cat => {
+                    const catArtworks = artworks.filter(a => a.categoryId === cat.id);
+                    if (catArtworks.length === 0) return null;
+                    
+                    return (
+                      <div key={cat.id}>
+                        <h5 className="text-md font-bold tracking-widest mb-4 text-gray-600">{cat.name}</h5>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                          {catArtworks.map(art => (
+                            <div key={art.id} className="relative aspect-square border border-gray-300 group overflow-hidden">
+                              <img src={art.imageUrl} alt={art.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                              <button 
+                                onClick={() => handleDeleteArtwork(art.id)}
+                                className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
+                              >
+                                <X size={16} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* System Settings */}
+          <div className="neo-box border border-[#53565b]">
+            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2">系統設定</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">首頁底圖</p>
+                <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.homeBgUrl ? (
+                    <img src={siteConfig.homeBgUrl} alt="Home Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                  ) : (
+                    <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'homeBg' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest">上傳首頁底圖</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'homeBg')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">分頁底圖</p>
+                <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.pageBgUrl ? (
+                    <img src={siteConfig.pageBgUrl} alt="Page Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                  ) : (
+                    <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'pageBg' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest">上傳分頁底圖</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'pageBg')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">標題裝飾圖</p>
+                <div className="aspect-square max-w-[200px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.titleStyleUrl ? (
+                    <img src={siteConfig.titleStyleUrl} alt="Title Style" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
+                  ) : (
+                    <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'titleStyle' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest">上傳標題裝飾圖</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'titleStyle')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 border-t border-gray-200 pt-4">
+              <p className="text-sm font-bold tracking-widest mb-2">主題強調色</p>
+              <div className="flex items-center gap-4">
+                <input 
+                  type="color" 
+                  value={siteConfig.themeColor || '#d4af37'} 
+                  onChange={(e) => handleThemeColorChange(e.target.value)}
+                  className="w-10 h-10 rounded cursor-pointer border-0 p-0"
+                />
+                <span className="font-mono text-sm">{siteConfig.themeColor || '#d4af37'}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Price List Settings */}
+          <div className="neo-box border border-[#53565b] flex flex-col h-[600px]">
+            <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2 shrink-0">
+              <h3 className="text-xl font-black tracking-widest text-[#53565b]">價目表設定</h3>
+              <button onClick={handleAddPriceItem} className="btn-primary py-1 px-3 text-sm">
+                + 新增項目
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+              {priceList.map((item) => (
+                <div key={item.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row gap-6 items-start">
+                  {editingPriceId === item.id ? (
+                    <>
+                      <div className="w-full md:w-1/3 space-y-4">
+                        <div className="aspect-[4/3] bg-gray-100 border border-[#53565b] relative flex items-center justify-center overflow-hidden">
+                          {priceEditData.imageUrl ? (
+                            <img src={priceEditData.imageUrl} alt="Preview" crossOrigin="anonymous" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="text-gray-400 text-sm">無圖片</span>
+                          )}
+                          <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 hover:opacity-100 cursor-pointer transition-opacity">
+                            {priceUploading ? (
+                              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                              <span className="text-xs tracking-widest">上傳圖片</span>
+                            )}
+                            <input type="file" className="hidden" accept="image/*" onChange={handlePriceImageUpload} disabled={priceUploading} />
+                          </label>
+                        </div>
+                        <input 
+                          type="number" 
+                          className="input-field py-1 text-sm" 
+                          placeholder="排序 (數字越小越前面)"
+                          value={priceEditData.order}
+                          onChange={e => setPriceEditData({...priceEditData, order: Number(e.target.value)})}
+                        />
+                      </div>
+                      <div className="w-full md:w-2/3 flex flex-col h-full gap-4">
+                        <input 
+                          type="text" 
+                          className="input-field font-bold text-lg" 
+                          placeholder="委託名稱"
+                          value={priceEditData.title}
+                          onChange={e => setPriceEditData({...priceEditData, title: e.target.value})}
+                        />
+                        <textarea 
+                          className="input-field flex-1 min-h-[120px] resize-none text-sm leading-loose" 
+                          placeholder="價格與說明..."
+                          value={priceEditData.description}
+                          onChange={e => setPriceEditData({...priceEditData, description: e.target.value})}
+                        />
+                        <div className="flex justify-end gap-4 mt-auto">
+                          <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border border-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                            取消
+                          </button>
+                          <button onClick={handleSavePriceItem} className="px-4 py-2 bg-gray-800 text-white text-sm tracking-widest hover:bg-gray-900 transition-colors">
+                            儲存
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border border-[#53565b] overflow-hidden">
+                        {item.imageUrl ? (
+                          <img src={item.imageUrl} alt={item.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">無圖片</div>
+                        )}
+                      </div>
+                      <div className="w-full md:w-3/4 flex flex-col justify-between h-full">
+                        <div>
+                          <div className="flex justify-between items-start mb-2">
+                            <h4 className="text-lg font-black tracking-widest">{item.title}</h4>
+                            <span className="text-xs text-gray-400 font-mono">排序: {item.order}</span>
+                          </div>
+                          <p className="text-sm text-gray-600 tracking-widest leading-loose whitespace-pre-wrap line-clamp-3">
+                            {item.description}
+                          </p>
+                        </div>
+                        <div className="flex justify-end gap-4 mt-4">
+                          <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-3 py-1 border border-[#53565b] text-sm tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
+                            <Edit2 size={14} /> 編輯
+                          </button>
+                          <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-3 py-1 border border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                            <Trash2 size={14} /> 刪除
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+              {priceList.length === 0 && (
+                <div className="text-center py-10 text-gray-400 border border-dashed border-gray-200 tracking-widest">
+                  目前尚無價目項目。
+                </div>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Right Column: Calendar */}
+        <div className="w-full xl:w-[450px] shrink-0">
+          <div className="sticky top-24 neo-box border border-[#53565b] bg-white/90 backdrop-blur-sm">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black tracking-widest text-[#53565b]">排程日曆</h3>
+              <div className="flex items-center gap-4">
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <ChevronLeft size={20} />
+                </button>
+                <span className="text-base font-bold tracking-widest">{format(currentMonth, 'yyyy 年 MM 月')}</span>
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200">
+              {['日', '一', '二', '三', '四', '五', '六'].map(day => (
+                <div key={day} className="bg-gray-50 py-3 text-center text-sm font-bold tracking-widest text-gray-500">
+                  {day}
+                </div>
+              ))}
+              {daysInMonth.map((date, i) => {
+                const dayOrders = allOrders.filter(o => 
+                  o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), date))
+                );
+                
+                return (
+                  <div 
+                    key={i} 
+                    className={cn(
+                      "bg-white min-h-[80px] p-2 transition-colors hover:bg-gray-50",
+                      !isSameMonth(date, currentMonth) && "bg-gray-50/50 text-gray-400",
+                      isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
+                    )}
+                  >
+                    <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
+                    <div className="space-y-1">
+                      {dayOrders.map((order, idx) => (
+                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={order.title} onClick={() => {
+                          setModalOrdersType('all');
+                          setActiveModal('orders');
+                          setTimeout(() => {
+                            const el = document.getElementById(`order-${order.id}`);
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }, 100);
+                        }}>
+                          {order.title}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Orders Modal */}
       <Modal 
         isOpen={activeModal === 'orders'} 
         onClose={() => setActiveModal(null)} 
@@ -1232,18 +852,18 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         maxWidth="max-w-5xl"
       >
         <div className="space-y-6">
-          {orders
+          {allOrders
             .filter(o => {
-              if (modalOrdersType === 'pending') return o.status === 'pending' || o.status !== 'completed' && o.status !== 'closed';
+              if (modalOrdersType === 'pending') return o.status === 'pending' || (o.status !== 'completed' && o.status !== 'closed' && o.status !== 'delivered');
               if (modalOrdersType === 'completed') return o.status === 'completed' || o.status === 'delivered';
               return true;
             })
             .map(order => (
-            <div key={order.id} id={`order-${order.id}`} className="neo-box transition-colors duration-1000">
+            <div key={order.id} id={`order-${order.id}`} className="neo-box transition-colors duration-1000 border border-[#53565b]">
               <div className="flex flex-col lg:flex-row gap-8">
                 {/* Left: Info */}
                 <div className="flex-1 space-y-4">
-                  <div className="flex justify-between items-start border-b-2 border-gray-200 pb-4">
+                  <div className="flex justify-between items-start border-b border-gray-200 pb-4">
                     <div>
                       <h4 className="text-xl font-black tracking-widest mb-1">{order.title}</h4>
                       <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
@@ -1279,7 +899,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <div className="flex gap-2 overflow-x-auto pb-2">
                         {order.referenceImages.map((img: string, i: number) => (
                           <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                            <img src={img} alt="Ref" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
+                            <img src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
                           </a>
                         ))}
                       </div>
@@ -1288,7 +908,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
 
                 {/* Right: Status & Actions */}
-                <div className="lg:w-72 flex flex-col justify-between border-t-2 lg:border-t-0 lg:border-l-2 border-gray-200 pt-4 lg:pt-0 lg:pl-8">
+                <div className="lg:w-72 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-8">
                   <div className="space-y-4">
                     <div>
                       <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
@@ -1311,7 +931,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
                     {editingId === order.id && (
                       <>
-                        <div className="space-y-4 border-t-2 border-gray-200 pt-4">
+                        <div className="space-y-4 border-t border-gray-200 pt-4">
                           <div className="space-y-2">
                             <p className="text-xs text-gray-500 tracking-widest">當前進度達成日 (可選)</p>
                           <input 
@@ -1397,7 +1017,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       
                       {/* Stage Image Upload */}
                       {['draft', 'lineart', 'coloring', 'completed'].includes(editData.status) && (
-                        <div className="mt-6 p-4 border-2 border-dashed border-gray-300 bg-gray-50">
+                        <div className="mt-6 p-4 border border-dashed border-gray-300 bg-gray-50">
                           <p className="text-sm font-bold tracking-widest mb-2">上傳預覽圖 ({STATUS_NODES.find(n => n.id === editData.status)?.label})</p>
                           <div className="flex items-center gap-4">
                             <label className="btn-secondary text-sm px-4 py-2 cursor-pointer">
@@ -1427,32 +1047,17 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
                           <Save size={16} /> 儲存
                         </button>
-                        <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                        <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
                           取消
                         </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
+                        <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
                           <Edit2 size={16} /> 編輯
                         </button>
-                        {order.status === 'pending' && (
-                          <>
-                            <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-2 px-4 py-2 bg-[#53565b] text-white tracking-widest hover:bg-gray-900 transition-colors">
-                              接受
-                            </button>
-                            <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
-                              婉拒
-                            </button>
-                          </>
-                        )}
-                        {(order.status === 'completed' || order.status === 'delivered') && (
-                          <button onClick={() => handleCloseOrder(order)} className="flex items-center gap-2 px-4 py-2 border-2 border-gray-800 text-gray-800 tracking-widest hover:bg-gray-100 transition-colors">
-                            <CheckCircle2 size={16} /> 確認交付並結案
-                          </button>
-                        )}
-                        <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border-2 border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
-                          <Trash2 size={16} /> 銷毀
+                        <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                          <Trash2 size={16} /> 刪除
                         </button>
                       </>
                     )}
@@ -1462,24 +1067,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             </div>
           ))}
 
-          {hasMore && (
-            <div className="mt-12 text-center">
-              <button 
-                onClick={() => fetchOrders(true)} 
-                disabled={loading}
-                className="btn-secondary"
-              >
-                {loading ? '翻閱中...' : '翻閱更多卷宗'}
-              </button>
-            </div>
-          )}
-
-          {orders.filter(o => {
-            if (modalOrdersType === 'pending') return o.status === 'pending' || o.status !== 'completed' && o.status !== 'closed';
+          {allOrders.filter(o => {
+            if (modalOrdersType === 'pending') return o.status === 'pending' || (o.status !== 'completed' && o.status !== 'closed' && o.status !== 'delivered');
             if (modalOrdersType === 'completed') return o.status === 'completed' || o.status === 'delivered';
             return true;
           }).length === 0 && !loading && (
-            <div className="py-20 text-center text-gray-400 border-2 border-dashed border-gray-200 mt-4 tracking-widest">
+            <div className="py-20 text-center text-gray-400 border border-dashed border-gray-200 mt-4 tracking-widest">
               目前尚無卷宗。
             </div>
           )}
@@ -1489,12 +1082,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       {/* Lightbox Modal */}
       {lightboxImage && (
         <div 
-          className="fixed inset-0 z-50 modal-scroll-bg flex items-center justify-center p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setLightboxImage(null)}
         >
           <img 
             src={lightboxImage} 
             alt="Full size reference" 
+            crossOrigin="anonymous"
             className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
           />
         </div>

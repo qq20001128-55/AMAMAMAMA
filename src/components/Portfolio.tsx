@@ -4,7 +4,6 @@ import { collection, query, orderBy, getDocs, doc, getDoc } from 'firebase/fires
 import { db } from '../firebase';
 import { cn } from '../lib/utils';
 import { X, ChevronLeft } from 'lucide-react';
-import WatermarkedImage from './WatermarkedImage';
 import { SectionTitle } from './SectionTitle';
 
 interface PortfolioProps {
@@ -14,7 +13,6 @@ interface PortfolioProps {
 export default function Portfolio({ onBack }: PortfolioProps) {
   const [categories, setCategories] = useState<any[]>([]);
   const [artworks, setArtworks] = useState<any[]>([]);
-  const [systemSettings, setSystemSettings] = useState<any>({});
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -33,11 +31,6 @@ export default function Portfolio({ onBack }: PortfolioProps) {
           artSnap = await getDocs(collection(db, 'artworks'));
         }
         setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
-
-        const settingsDoc = await getDoc(doc(db, 'settings', 'siteConfig'));
-        if (settingsDoc.exists()) {
-          setSystemSettings(settingsDoc.data());
-        }
       } catch (err) {
         console.error('Fetch portfolio error:', err);
       } finally {
@@ -115,14 +108,11 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             className="relative aspect-[3/4] cursor-pointer group overflow-hidden border-2 border-transparent hover:border-[#53565b] transition-colors"
             onClick={() => setLightboxImage(art.imageUrl)}
           >
-            <WatermarkedImage 
+            <img 
               src={art.imageUrl} 
               alt={art.title}
-              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
-              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
-              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
-              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
-              className="transition-transform duration-700 group-hover:scale-105"
+              crossOrigin="anonymous"
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
             />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors duration-300 pointer-events-none" />
           </motion.div>
@@ -148,13 +138,10 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             <X size={32} />
           </button>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
-            <WatermarkedImage 
+            <img 
               src={lightboxImage} 
               alt="Full size artwork"
-              horizontalWatermarkUrl={systemSettings.horizontalWatermarkUrl}
-              verticalWatermarkUrl={systemSettings.verticalWatermarkUrl}
-              squareWatermarkUrl={systemSettings.squareWatermarkUrl}
-              pcWatermarkUrl={systemSettings.pcWatermarkUrl}
+              crossOrigin="anonymous"
               className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
             />
           </div>
