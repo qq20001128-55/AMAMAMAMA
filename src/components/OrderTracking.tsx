@@ -275,7 +275,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {order.referenceImages.map((img: string, i: number) => (
                     <div key={i} className="aspect-square border-2 border-[#53565b] overflow-hidden">
-                      <img src={img} alt={`Reference ${i}`} className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
+                      <img src={img} alt={`Reference ${i}`} crossOrigin="anonymous" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
                     </div>
                   ))}
                 </div>
@@ -306,6 +306,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                             <img 
                               src={imgUrl} 
                               alt={`${stageLabel} preview`}
+                              crossOrigin="anonymous"
                               className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                               onError={(e) => {
                                 console.error(`Failed to load image for stage ${stageLabel}:`, imgUrl, e);

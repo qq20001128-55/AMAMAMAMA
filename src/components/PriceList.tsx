@@ -78,6 +78,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                         <img 
                           src={item.imageUrl} 
                           alt={item.title} 
+                          crossOrigin="anonymous"
                           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                         />
                       ) : (

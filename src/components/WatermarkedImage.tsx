@@ -107,6 +107,7 @@ export default function WatermarkedImage({ src, alt, horizontalWatermarkUrl, ver
       <img 
         src={src} 
         alt={alt} 
+        crossOrigin="anonymous"
         className={`w-full h-full object-cover ${className || ''}`}
         onClick={onClick}
         referrerPolicy="no-referrer"
