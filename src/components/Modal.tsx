@@ -39,12 +39,20 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
 
           {/* Modal Content */}
           <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 10 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+            initial={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
+            animate={{ opacity: 1, scale: 1, x: "-50%", y: "-50%" }}
+            exit={{ opacity: 0, scale: 0.95, x: "-50%", y: "-50%" }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col max-h-[90vh]`}
-            style={{ border: '1px solid var(--theme-color, #53565b)' }}
+            className={`fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
+            style={{ 
+              position: 'fixed',
+              top: '50%',
+              left: '50%',
+              zIndex: 1000,
+              border: '1px solid var(--theme-color, #53565b)',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
