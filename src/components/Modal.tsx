@@ -10,7 +10,7 @@ interface ModalProps {
   maxWidth?: string;
 }
 
-export default function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-2xl' }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, maxWidth = 'max-w-4xl' }: ModalProps) {
   // Prevent body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -26,44 +26,31 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-[999] flex items-center justify-center p-4 sm:p-6">
-          {/* Overlay */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            onClick={onClose}
-          />
-
-          {/* Modal Content */}
+        <div className="fixed inset-0 z-[999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative z-[1000] w-[95%] ${maxWidth} max-h-[90vh] bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
-            style={{ 
-              border: '1px solid var(--theme-color, #53565b)'
-            }}
+            className={`relative bg-[#fafafa] w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-lg shadow-2xl border-2 border-[#53565b] overflow-hidden`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex-shrink-0 flex items-center justify-between p-6 border-b border-[#53565b]/20">
+            <div className="p-4 border-b border-[#53565b]/20 flex justify-between items-center bg-gray-50 shrink-0">
               <h3 className="text-xl font-bold tracking-widest text-[#53565b]">
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="text-[#53565b] hover:text-gray-500 transition-colors p-1"
+                className="p-2 text-[#53565b] hover:bg-gray-200 hover:text-gray-900 rounded-full transition-colors"
+                title="關閉"
               >
                 <X size={24} />
               </button>
             </div>
 
             {/* Body */}
-            <div className="flex-1 p-6 overflow-y-auto custom-scrollbar">
+            <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
               {children}
             </div>
           </motion.div>

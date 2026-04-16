@@ -518,7 +518,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.officialOrderId || order.orderNo || '處理中'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.officialOrderId || order.orderNo || '處理中 (待編號)'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -645,13 +645,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <button 
                         onClick={() => handleDeleteSiteImage('homeBg')}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
-                        title="刪除並恢復預設"
+                        title="刪除"
                       >
                         <X size={16} />
                       </button>
                     </>
                   ) : (
-                    <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（使用預設雲紋）</span>
+                    </div>
                   )}
                   <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                     {siteConfigUploading === 'homeBg' ? (
@@ -672,13 +675,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <button 
                         onClick={() => handleDeleteSiteImage('pageBg')}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
-                        title="刪除並恢復預設"
+                        title="刪除"
                       >
                         <X size={16} />
                       </button>
                     </>
                   ) : (
-                    <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（使用預設雲紋）</span>
+                    </div>
                   )}
                   <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                     {siteConfigUploading === 'pageBg' ? (
@@ -699,13 +705,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <button 
                         onClick={() => handleDeleteSiteImage('titleStyle')}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
-                        title="刪除並恢復預設"
+                        title="刪除"
                       >
                         <X size={16} />
                       </button>
                     </>
                   ) : (
-                    <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（無裝飾圖）</span>
+                    </div>
                   )}
                   <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                     {siteConfigUploading === 'titleStyle' ? (
@@ -880,7 +889,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
                       {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.officialOrderId || order.orderNo || '處理中'} - ${order.title}`} onClick={() => {
+                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.officialOrderId || order.orderNo || '處理中 (待編號)'} - ${order.title}`} onClick={() => {
                           setModalOrdersType('all');
                           setActiveModal('orders');
                           setTimeout(() => {
@@ -888,7 +897,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }, 100);
                         }}>
-                          {order.officialOrderId || order.orderNo || '處理中'} - {order.title}
+                          {order.officialOrderId || order.orderNo || '處理中 (待編號)'} - {order.title}
                         </div>
                       ))}
                     </div>
@@ -913,7 +922,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           ).map(order => (
             <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.officialOrderId || order.orderNo || '處理中'}</span>{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.officialOrderId || order.orderNo || '處理中 (待編號)'}</span>{order.title}</h4>
                 <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -971,7 +980,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           onChange={(e) => setEditData({ ...editData, officialOrderId: e.target.value })}
                         />
                       ) : (
-                        <span className="font-mono font-bold text-sm">{order.officialOrderId || order.orderNo || '處理中'}</span>
+                        <span className="font-mono font-bold text-sm">{order.officialOrderId || order.orderNo || '處理中 (待編號)'}</span>
                       )}
                     </div>
                   </div>
