@@ -15,7 +15,7 @@ export default function CommissionQueue() {
         // Since we can't do multiple 'not-in' easily, we'll fetch all and filter, or fetch specific statuses
         const q = query(
           collection(db, 'orders'),
-          where('status', 'in', ['queued', 'draft', 'lineart', 'coloring', 'completed']),
+          where('status', 'in', ['queued', 'rough_sketch', 'draft', 'colored_sketch', 'completed']),
           orderBy('createdAt', 'asc')
         );
         const snap = await getDocs(q);

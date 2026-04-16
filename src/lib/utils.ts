@@ -55,12 +55,12 @@ export async function compressImage(file: File): Promise<Blob> {
 }
 
 export const STATUS_NODES = [
-  { id: 'pending', label: '已填單' },
+  { id: 'pending', label: '確認中' },
   { id: 'queued', label: '排單中' },
+  { id: 'rough_sketch', label: '粗草' },
   { id: 'draft', label: '草稿' },
-  { id: 'lineart', label: '線稿' },
-  { id: 'coloring', label: '色稿' },
-  { id: 'completed', label: '成圖' },
+  { id: 'colored_sketch', label: '色草' },
+  { id: 'completed', label: '完稿' },
   { id: 'delivered', label: '已交付' },
 ];
 

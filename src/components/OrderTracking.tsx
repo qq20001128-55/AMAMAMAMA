@@ -44,11 +44,12 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
     try {
       const q1 = query(collection(db, 'orders'), where('officialOrderId', '==', searchId.trim()));
-      const q2 = query(collection(db, 'orders'), where('orderId', '==', searchId.trim()));
+      const q2 = query(collection(db, 'orders'), where('orderNo', '==', searchId.trim()));
+      const q3 = query(collection(db, 'orders'), where('orderId', '==', searchId.trim()));
       
-      const [snap1, snap2] = await Promise.all([getDocs(q1), getDocs(q2)]);
+      const [snap1, snap2, snap3] = await Promise.all([getDocs(q1), getDocs(q2), getDocs(q3)]);
       
-      const foundDoc = snap1.docs[0] || snap2.docs[0];
+      const foundDoc = snap1.docs[0] || snap2.docs[0] || snap3.docs[0];
 
       if (foundDoc) {
         setOrder({ id: foundDoc.id, ...foundDoc.data() });

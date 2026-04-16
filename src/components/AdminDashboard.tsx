@@ -169,8 +169,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const fetchOrders = async (isNext = false) => {
     setLoading(true);
     try {
-      // Only fetch active orders (queued, draft, lineart, coloring)
-      const allowedStatuses = ['queued', 'draft', 'lineart', 'coloring'];
+      // Only fetch active orders 
+      const allowedStatuses = ['queued', 'rough_sketch', 'draft', 'colored_sketch'];
       let q = query(collection(db, 'orders'), where('status', 'in', allowedStatuses), orderBy('createdAt', 'desc'), limit(10));
       if (isNext && lastDoc) {
         q = query(collection(db, 'orders'), where('status', 'in', allowedStatuses), orderBy('createdAt', 'desc'), startAfter(lastDoc), limit(10));
@@ -233,7 +233,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       await updateDoc(doc(db, 'orders', editingId), updatedData);
       
       // If status is no longer active, remove from list
-      const allowedStatuses = ['queued', 'draft', 'lineart', 'coloring'];
+      const allowedStatuses = ['queued', 'rough_sketch', 'draft', 'colored_sketch'];
       if (!allowedStatuses.includes(updatedData.status)) {
         setOrders(prev => prev.filter(o => o.id !== editingId));
       } else {
@@ -503,12 +503,57 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             </div>
           </div>
 
+          {/* Pending / Confirm Orders */}
+          <div className="neo-box border border-[#53565b]">
+            <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">待確定委託</h3>
+            <div className="space-y-4">
+              {allOrders
+                .filter(o => o.status === 'pending')
+                .sort((a, b) => {
+                  const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+                  const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+                  return timeA - timeB;
+                })
+                .map(order => (
+                <div key={order.id} className="p-4 border border-[#53565b] bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
+                  <div>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'}</span>{order.title}</h4>
+                    <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <span className="inline-block px-3 py-1 bg-gray-300 text-gray-800 text-xs font-bold tracking-widest">
+                      {STATUS_NODES.find(n => n.id === order.status)?.label}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        setModalOrdersType('pending');
+                        setActiveModal('orders');
+                        setTimeout(() => {
+                          const el = document.getElementById(`order-${order.id}`);
+                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }, 100);
+                      }}
+                      className="text-sm text-[#53565b] hover:font-bold tracking-widest flex items-center gap-1"
+                    >
+                      <ExternalLink size={14} /> 審核
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {allOrders.filter(o => o.status === 'pending').length === 0 && (
+                <div className="text-center py-8 text-gray-400 tracking-widest">
+                  目前無待確定之委託。
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Latest Orders */}
           <div className="neo-box border border-[#53565b]">
             <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">最新進行中卷宗</h3>
             <div className="space-y-4">
               {allOrders
-                .filter(o => !['completed', 'delivered', 'closed', '已完成', '已交付', '已婉拒', 'rejected'].includes(o.status))
+                .filter(o => !['completed', 'delivered', 'closed'].includes(o.status) && o.status !== 'pending')
                 .sort((a, b) => {
                   const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
                   const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -518,7 +563,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.officialOrderId || order.orderNo || '處理中 (待編號)'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -541,7 +586,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
                 </div>
               ))}
-              {allOrders.filter(o => !['completed', 'delivered', 'closed', '已完成', '已交付', '已婉拒', 'rejected'].includes(o.status)).length === 0 && (
+              {allOrders.filter(o => !['completed', 'delivered', 'closed'].includes(o.status) && o.status !== 'pending').length === 0 && (
                 <div className="text-center py-8 text-gray-400 tracking-widest">
                   目前無進行中的卷宗。
                 </div>
@@ -889,7 +934,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
                       {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.officialOrderId || order.orderNo || '處理中 (待編號)'} - ${order.title}`} onClick={() => {
+                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'} - ${order.title}`} onClick={() => {
                           setModalOrdersType('all');
                           setActiveModal('orders');
                           setTimeout(() => {
@@ -897,7 +942,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }, 100);
                         }}>
-                          {order.officialOrderId || order.orderNo || '處理中 (待編號)'} - {order.title}
+                          {order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'} - {order.title}
                         </div>
                       ))}
                     </div>
@@ -922,7 +967,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           ).map(order => (
             <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.officialOrderId || order.orderNo || '處理中 (待編號)'}</span>{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'}</span>{order.title}</h4>
                 <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -971,17 +1016,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                     </div>
                     <div className="text-right">
-                      {editingId === order.id ? (
-                        <input 
-                          type="text" 
-                          placeholder="輸入正式編號"
-                          className="input-field py-1 text-sm w-32 text-right"
-                          value={editData.officialOrderId || ''}
-                          onChange={(e) => setEditData({ ...editData, officialOrderId: e.target.value })}
-                        />
-                      ) : (
-                        <span className="font-mono font-bold text-sm">{order.officialOrderId || order.orderNo || '處理中 (待編號)'}</span>
-                      )}
+                      <span className="font-mono font-bold text-sm tracking-widest bg-[#53565b] text-white px-2 py-1">
+                        {order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : (order.officialOrderId || order.orderNo || '處理中')}
+                      </span>
                     </div>
                   </div>
 
@@ -1056,6 +1093,21 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           />
                         </div>
                         <div className="space-y-2">
+                          <p className="text-xs text-gray-500 tracking-widest">預計粗草日 (可選)</p>
+                          <input 
+                            type="date"
+                            className="input-field py-2 text-sm"
+                            value={editData.expectedDates?.rough_sketch ? format(parseISO(editData.expectedDates.rough_sketch), 'yyyy-MM-dd') : ''}
+                            onChange={(e) => {
+                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              setEditData({
+                                ...editData,
+                                expectedDates: { ...editData.expectedDates, rough_sketch: dateStr }
+                              });
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-2">
                           <p className="text-xs text-gray-500 tracking-widest">預計草稿日 (可選)</p>
                           <input 
                             type="date"
@@ -1071,31 +1123,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           />
                         </div>
                         <div className="space-y-2">
-                          <p className="text-xs text-gray-500 tracking-widest">預計線稿日 (可選)</p>
+                          <p className="text-xs text-gray-500 tracking-widest">預計色草日 (可選)</p>
                           <input 
                             type="date"
                             className="input-field py-2 text-sm"
-                            value={editData.expectedDates?.lineart ? format(parseISO(editData.expectedDates.lineart), 'yyyy-MM-dd') : ''}
+                            value={editData.expectedDates?.colored_sketch ? format(parseISO(editData.expectedDates.colored_sketch), 'yyyy-MM-dd') : ''}
                             onChange={(e) => {
                               const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
                               setEditData({
                                 ...editData,
-                                expectedDates: { ...editData.expectedDates, lineart: dateStr }
-                              });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500 tracking-widest">預計色稿日 (可選)</p>
-                          <input 
-                            type="date"
-                            className="input-field py-2 text-sm"
-                            value={editData.expectedDates?.coloring ? format(parseISO(editData.expectedDates.coloring), 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
-                              setEditData({
-                                ...editData,
-                                expectedDates: { ...editData.expectedDates, coloring: dateStr }
+                                expectedDates: { ...editData.expectedDates, colored_sketch: dateStr }
                               });
                             }}
                           />
