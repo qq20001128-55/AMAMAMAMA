@@ -6,7 +6,7 @@ import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc,
 import { db, storage } from '../firebase';
 import { cn, STATUS_NODES } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addDoc } from 'firebase/firestore';
 import Modal from './Modal';
 
@@ -89,6 +89,23 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       alert('上傳失敗，請稍後再試。');
     } finally {
       setSiteConfigUploading(null);
+    }
+  };
+
+  const handleDeleteSiteImage = async (type: 'homeBg' | 'pageBg' | 'titleStyle') => {
+    if (!window.confirm('確定要刪除此圖片並恢復預設嗎？')) return;
+    try {
+      const storageRef = ref(storage, `system/custom_ui/${type}.png`);
+      await deleteObject(storageRef).catch(err => {
+        if (err.code !== 'storage/object-not-found') throw err;
+      });
+      
+      const newConfig = { ...siteConfig, [`${type}Url`]: '' };
+      await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
+      setSiteConfig(newConfig);
+    } catch (err) {
+      console.error('Delete site config image error:', err);
+      alert('刪除失敗，請稍後再試。');
     }
   };
 
@@ -457,7 +474,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* Left Column: Operations */}
         <div className="xl:col-span-7 w-full flex flex-col gap-8 bg-white/70 backdrop-blur-sm p-6 border border-[#53565b]">
           
@@ -491,7 +508,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">最新進行中卷宗</h3>
             <div className="space-y-4">
               {allOrders
-                .filter(o => !['completed', 'delivered', 'closed'].includes(o.status))
+                .filter(o => !['completed', 'delivered', 'closed', '已完成', '已交付', '已婉拒', 'rejected'].includes(o.status))
                 .sort((a, b) => {
                   const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
                   const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
@@ -501,7 +518,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest">{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.officialOrderId || order.orderNo || '處理中'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -524,7 +541,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
                 </div>
               ))}
-              {allOrders.filter(o => !['completed', 'delivered', 'closed'].includes(o.status)).length === 0 && (
+              {allOrders.filter(o => !['completed', 'delivered', 'closed', '已完成', '已交付', '已婉拒', 'rejected'].includes(o.status)).length === 0 && (
                 <div className="text-center py-8 text-gray-400 tracking-widest">
                   目前無進行中的卷宗。
                 </div>
@@ -623,7 +640,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <p className="text-sm font-bold tracking-widest mb-2">首頁底圖</p>
                 <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.homeBgUrl ? (
-                    <img src={siteConfig.homeBgUrl} alt="Home Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                    <>
+                      <img src={siteConfig.homeBgUrl} alt="Home Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('homeBg')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除並恢復預設"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
                   ) : (
                     <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
                   )}
@@ -641,7 +667,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <p className="text-sm font-bold tracking-widest mb-2">分頁底圖</p>
                 <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.pageBgUrl ? (
-                    <img src={siteConfig.pageBgUrl} alt="Page Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                    <>
+                      <img src={siteConfig.pageBgUrl} alt="Page Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('pageBg')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除並恢復預設"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
                   ) : (
                     <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
                   )}
@@ -659,7 +694,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <p className="text-sm font-bold tracking-widest mb-2">標題裝飾圖</p>
                 <div className="aspect-square max-w-[200px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.titleStyleUrl ? (
-                    <img src={siteConfig.titleStyleUrl} alt="Title Style" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
+                    <>
+                      <img src={siteConfig.titleStyleUrl} alt="Title Style" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('titleStyle')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除並恢復預設"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
                   ) : (
                     <span className="text-gray-400 text-sm tracking-widest">尚未上傳</span>
                   )}
@@ -836,7 +880,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
                       {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={order.title} onClick={() => {
+                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.officialOrderId || order.orderNo || '處理中'} - ${order.title}`} onClick={() => {
                           setModalOrdersType('all');
                           setActiveModal('orders');
                           setTimeout(() => {
@@ -844,7 +888,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }, 100);
                         }}>
-                          {order.title}
+                          {order.officialOrderId || order.orderNo || '處理中'} - {order.title}
                         </div>
                       ))}
                     </div>
@@ -869,7 +913,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           ).map(order => (
             <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest">{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.officialOrderId || order.orderNo || '處理中'}</span>{order.title}</h4>
                 <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -927,7 +971,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           onChange={(e) => setEditData({ ...editData, officialOrderId: e.target.value })}
                         />
                       ) : (
-                        <span className="font-mono font-bold text-sm">{order.officialOrderId || '未編號'}</span>
+                        <span className="font-mono font-bold text-sm">{order.officialOrderId || order.orderNo || '處理中'}</span>
                       )}
                     </div>
                   </div>

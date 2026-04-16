@@ -43,10 +43,9 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative z-[1000] w-full ${maxWidth} bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
+            className={`relative z-[1000] w-[95%] ${maxWidth} max-h-[90vh] bg-[#fafafa]/95 backdrop-blur-md shadow-2xl flex flex-col`}
             style={{ 
-              border: '1px solid var(--theme-color, #53565b)',
-              maxHeight: '90vh'
+              border: '1px solid var(--theme-color, #53565b)'
             }}
             onClick={(e) => e.stopPropagation()}
           >
