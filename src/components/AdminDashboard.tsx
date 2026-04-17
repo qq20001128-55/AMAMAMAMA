@@ -41,8 +41,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const isAdmin = user?.email === 'sara20001128@gmail.com';
 
-  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37' });
+  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
   const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | null>(null);
+
+  const [announcementInput, setAnnouncementInput] = useState('');
 
   const [activeModal, setActiveModal] = useState<'orders' | 'calendarDay' | null>(null);
   const [modalOrdersType, setModalOrdersType] = useState<'pending' | 'completed' | 'all'>('all');
@@ -61,12 +63,46 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     try {
       const docSnap = await getDoc(doc(db, 'settings', 'siteConfig'));
       if (docSnap.exists()) {
-        setSiteConfig(docSnap.data());
+        const data = docSnap.data();
+        setSiteConfig(data);
+        if (data.announcement) {
+          setAnnouncementInput(data.announcement.text || '');
+        }
       } else {
-        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37' });
+        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
       }
     } catch (err) {
       console.error('Fetch site config error:', err);
+    }
+  };
+
+  const handleSaveAnnouncement = async (isActive: boolean) => {
+    try {
+      const newConfig = { 
+        ...siteConfig, 
+        announcement: { text: announcementInput, isActive } 
+      };
+      await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
+      setSiteConfig(newConfig);
+      alert('公告更新成功！');
+    } catch (err) {
+      console.error('Save announcement error:', err);
+      alert('更新失敗');
+    }
+  };
+
+  const handleDeleteAnnouncement = async () => {
+    if (!window.confirm('確定要刪除公告內容嗎？')) return;
+    try {
+      setAnnouncementInput('');
+      const newConfig = { 
+        ...siteConfig, 
+        announcement: { text: '', isActive: false } 
+      };
+      await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
+      setSiteConfig(newConfig);
+    } catch (err) {
+      console.error('Delete announcement error:', err);
     }
   };
 
@@ -212,15 +248,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const handleSave = async () => {
     if (!editingId) return;
     try {
-      const oldOrder = orders.find(o => o.id === editingId);
-      let newProgressHistory = { ...(oldOrder.progressHistory || {}) };
+      const oldOrder = orders.find(o => o.id === editingId) || allOrders.find(o => o.id === editingId);
+      let newProgressHistory = { ...(editData.progressHistory || {}) };
       let statusChanged = false;
       
-      if (oldOrder.status !== editData.status) {
+      if (oldOrder && oldOrder.status !== editData.status) {
         newProgressHistory[editData.status] = {
           ...newProgressHistory[editData.status],
           updatedAt: serverTimestamp(),
-          dateString: new Date().toISOString()
+          dateString: newProgressHistory[editData.status]?.dateString || new Date().toISOString()
         };
         statusChanged = true;
       }
@@ -296,6 +332,59 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       setAllOrders(prev => prev.filter(o => o.id !== id));
     } catch (err) {
       console.error('Delete error:', err);
+    }
+  };
+
+  const handleAcceptOrder = async (order: any) => {
+    if (!window.confirm('確定要接收此委託嗎？')) return;
+    try {
+      const newHistory = { ...(order.progressHistory || {}) };
+      newHistory['queued'] = { updatedAt: serverTimestamp(), dateString: new Date().toISOString() };
+      const updatedData = { status: 'queued', progressHistory: newHistory };
+      
+      await updateDoc(doc(db, 'orders', order.id), updatedData);
+      
+      const fullUpdatedOrder = { ...order, ...updatedData };
+      setOrders(prev => [fullUpdatedOrder, ...prev]);
+      setAllOrders(prev => prev.map(o => o.id === order.id ? fullUpdatedOrder : o));
+      
+      if (order.email) {
+        await addDoc(collection(db, 'mail'), {
+          to: order.email,
+          message: {
+            subject: `【龍契局】委託已受理確認`,
+            html: `<p>承契者您好：</p><p>您的委託項目 <strong>${order.title}</strong> 已由瑪阿正式受理！</p><p>目前進度：<strong>排單中</strong></p><p>請前往龍契局網站查詢最新狀況。</p><p>——瑪阿</p>`
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Accept order error:', err);
+      alert('操作失敗，請稍後再試。');
+    }
+  };
+
+  const handleRejectOrder = async (order: any) => {
+    if (!window.confirm('確定要婉拒此委託嗎？')) return;
+    try {
+      const newHistory = { ...(order.progressHistory || {}) };
+      newHistory['closed'] = { updatedAt: serverTimestamp(), dateString: new Date().toISOString() };
+      const updatedData = { status: 'closed', progressHistory: newHistory };
+      
+      await updateDoc(doc(db, 'orders', order.id), updatedData);
+      setAllOrders(prev => prev.map(o => o.id === order.id ? { ...order, ...updatedData } : o));
+      
+      if (order.email) {
+        await addDoc(collection(db, 'mail'), {
+          to: order.email,
+          message: {
+            subject: `【龍契局】委託結果通知`,
+            html: `<p>承契者您好：</p><p>非常抱歉，關於您的委託項目 <strong>${order.title}</strong>，因目前排程或其他考量，瑪阿無法受理此委託。</p><p>感謝您的詢問與支持，期待未來有機會合作。</p><p>——瑪阿</p>`
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Reject order error:', err);
+      alert('操作失敗，請稍後再試。');
     }
   };
 
@@ -591,6 +680,36 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   目前無進行中的卷宗。
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* Announcement Management */}
+          <div className="neo-box border border-[#53565b]">
+            <div className="flex justify-between items-center mb-6 border-b border-[#53565b]/20 pb-2">
+              <h3 className="text-xl font-black tracking-widest text-[#53565b]">首頁公告管理</h3>
+              <div className="flex items-center gap-2">
+                <span className={cn("inline-block w-3 h-3 rounded-full", siteConfig?.announcement?.isActive ? "bg-green-500" : "bg-gray-300")} />
+                <span className="text-sm font-bold tracking-widest text-gray-500">{siteConfig?.announcement?.isActive ? '展示中' : '已封存/隱藏'}</span>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <textarea 
+                className="input-field min-h-[100px] resize-y tracking-widest leading-loose"
+                placeholder="輸入公告內容..."
+                value={announcementInput}
+                onChange={e => setAnnouncementInput(e.target.value)}
+              />
+              <div className="flex flex-wrap gap-4 justify-end">
+                <button onClick={() => handleDeleteAnnouncement()} className="px-4 py-2 text-sm text-[#53565b] border border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                  清除/刪除公告
+                </button>
+                <button onClick={() => handleSaveAnnouncement(false)} className="px-4 py-2 text-sm border border-[#53565b] bg-gray-100 text-[#53565b] tracking-widest hover:bg-gray-200 transition-colors">
+                  儲存並封存 (不顯示)
+                </button>
+                <button onClick={() => handleSaveAnnouncement(true)} className="px-4 py-2 text-sm bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
+                  發佈並展示於首頁
+                </button>
+              </div>
             </div>
           </div>
 
@@ -1063,7 +1182,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         </select>
                       ) : (
                         <span className="inline-block px-4 py-2 bg-[#53565b] text-[#fafafa] text-sm font-bold tracking-widest">
-                          {STATUS_NODES.find(n => n.id === order.status)?.label}
+                          {STATUS_NODES.find(n => n.id === order.status)?.label || '資料已歸檔'}
                         </span>
                       )}
                     </div>
@@ -1181,7 +1300,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
 
                   <div className="flex justify-end gap-4 mt-6">
-                    {editingId === order.id ? (
+                    {order.status === 'pending' ? (
+                      <>
+                        <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-2 px-4 py-2 bg-[#53565b] text-[#fafafa] tracking-widest hover:bg-gray-800 transition-colors">
+                          <CheckCircle2 size={16} /> 確認委託
+                        </button>
+                        <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                          <X size={16} /> 婉拒
+                        </button>
+                      </>
+                    ) : editingId === order.id ? (
                       <>
                         <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
                           <Save size={16} /> 儲存

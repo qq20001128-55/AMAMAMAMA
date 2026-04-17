@@ -167,7 +167,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
           <SectionTitle>注意事項</SectionTitle>
           <div className="prose prose-sm max-w-none text-gray-700 space-y-6 leading-loose tracking-widest text-center flex flex-col items-center">
             
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">一、 委託進度與支付流程</h3>
               <p className="mb-2">本局採取階梯式開發與兩段式付款，確保雙方權益：</p>
               <ul className="list-none space-y-2 p-0 m-0">
@@ -179,7 +179,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               </ul>
             </div>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">二、 關於修改 (Revision Policy)</h3>
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">草稿與色草階段：</span> 提供 [10] 次修改機會。請儘量將修改意見彙整後一次提出。</li>
@@ -188,7 +188,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               </ul>
             </div>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">三、 關於退費與終止 (Refund Policy)</h3>
               <p className="mb-2">立契後若需終止委託，依據進度執行退費標準：</p>
               <ul className="list-none space-y-2 p-0 m-0">
@@ -202,7 +202,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               </p>
             </div>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">四、 關於「驚喜包」特別條款</h3>
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">自由發揮：</span> 驚喜包為追求特定風格之委託，內容與呈現方式由本局主導。</li>
@@ -211,7 +211,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               </ul>
             </div>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">五、 其他條款</h3>
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">時程：</span> 依排單順序製作，請避免頻繁催稿。若有急件需求請事先告知。</li>
@@ -272,7 +272,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
             
             <p className="font-bold text-md text-[#53565b] mb-4">(Usage & Licensing Rights)<br/>本局依據用途性質，將卷宗分為以下三種授權等級。立契前請務必確認您的用途需求：</p>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">一、 非商業委託 (Non-Commercial / Personal Use)</h3>
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">定義：</span> 僅限委託人個人收藏、展示，不涉及任何金錢收益之行為。</li>
@@ -282,7 +282,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               </ul>
             </div>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">二、 商業委託 (Commercial Use)</h3>
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">定義：</span> 凡涉及營利性質、品牌推廣、或具備金錢收益之行為。</li>
@@ -299,7 +299,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               </div>
             </div>
 
-            <div className="w-full max-w-md text-left">
+            <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[#53565b] inline-block mb-3">三、 著作權買斷 (Buyout / Full Rights Transfer)</h3>
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">定義：</span> 將作品之「著作財產權」完全移交予委託人。</li>
