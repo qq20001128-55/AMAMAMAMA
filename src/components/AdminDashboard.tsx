@@ -617,7 +617,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-[#53565b] bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -663,7 +663,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -1085,7 +1085,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
                       {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'} - ${order.title}`} onClick={() => {
+                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')} - ${order.title}`} onClick={() => {
                           setModalOrdersType('all');
                           setActiveModal('orders');
                           setTimeout(() => {
@@ -1093,7 +1093,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }, 100);
                         }}>
-                          {order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'} - {order.title}
+                          {order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')} - {order.title}
                         </div>
                       ))}
                     </div>
@@ -1118,7 +1118,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           ).map(order => (
             <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中'}</span>{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}</span>{order.title}</h4>
                 <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -1168,7 +1168,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     </div>
                     <div className="text-right">
                       <span className="font-mono font-bold text-sm tracking-widest bg-[#53565b] text-white px-2 py-1">
-                        {order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : (order.officialOrderId || order.orderNo || '處理中')}
+                        {order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}
                       </span>
                     </div>
                   </div>
