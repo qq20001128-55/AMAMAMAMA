@@ -3,7 +3,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, Search, Clock, CheckCircle2, ExternalLink, X } from 'lucide-react';
 import { collection, query, where, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { cn, STATUS_NODES } from '../lib/utils';
+import { cn, STATUS_NODES, getWorkflowNodes } from '../lib/utils';
 import { format, parseISO } from 'date-fns';
 import { zhTW } from 'date-fns/locale';
 import { SectionTitle } from './SectionTitle';
@@ -43,16 +43,49 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     setOrder(null);
 
     try {
-      const q1 = query(collection(db, 'orders'), where('officialOrderId', '==', searchId.trim()));
-      const q2 = query(collection(db, 'orders'), where('orderNo', '==', searchId.trim()));
-      const q3 = query(collection(db, 'orders'), where('orderId', '==', searchId.trim()));
-      
-      const [snap1, snap2, snap3] = await Promise.all([getDocs(q1), getDocs(q2), getDocs(q3)]);
-      
-      const foundDoc = snap1.docs[0] || snap2.docs[0] || snap3.docs[0];
+      let foundData = null;
+      let foundId = null;
+      const term = searchId.trim();
 
-      if (foundDoc) {
-        setOrder({ id: foundDoc.id, ...foundDoc.data() });
+      // 1. Try fetching by document ID first
+      try {
+        const docRef = await getDoc(doc(db, 'orders', term));
+        if (docRef.exists()) {
+          foundData = docRef.data();
+          foundId = docRef.id;
+        }
+      } catch (err) {
+        // ignore
+      }
+
+      // 2. Try variations if not found by direct doc ID
+      if (!foundData) {
+        let variations = [term];
+        if (term.startsWith('#MAA-')) variations.push(term.substring(5)); // just the numbers
+        if (term.startsWith('MAA-')) variations.push(term.substring(4));
+        if (!term.startsWith('#MAA-') && !term.startsWith('MAA-')) {
+          variations.push(`#MAA-${term.toUpperCase()}`);
+          variations.push(`MAA-${term.toUpperCase()}`);
+        }
+
+        for (const variant of variations) {
+          const q1 = query(collection(db, 'orders'), where('officialOrderId', '==', variant));
+          const q2 = query(collection(db, 'orders'), where('orderNo', '==', variant));
+          const q3 = query(collection(db, 'orders'), where('orderId', '==', variant));
+          
+          const [snap1, snap2, snap3] = await Promise.all([getDocs(q1), getDocs(q2), getDocs(q3)]);
+          const foundDoc = snap1.docs[0] || snap2.docs[0] || snap3.docs[0];
+          
+          if (foundDoc) {
+            foundData = foundDoc.data();
+            foundId = foundDoc.id;
+            break;
+          }
+        }
+      }
+
+      if (foundData) {
+        setOrder({ id: foundId, ...foundData });
       } else {
         setError('尋無此契，請確認編號是否正確。');
       }
@@ -64,7 +97,8 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     }
   };
 
-  const currentStatusIndex = STATUS_NODES.findIndex(node => node.id === order?.status);
+  const orderNodes = order ? getWorkflowNodes(order.workflow) : STATUS_NODES;
+  const currentStatusIndex = orderNodes.findIndex(node => node.id === order?.status);
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return '';
@@ -102,7 +136,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       // Order ID
       ctx.font = '40px monospace';
       ctx.fillStyle = '#d4af37';
-      ctx.fillText(order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`, canvas.width / 2, 350);
+      ctx.fillText(order.officialOrderId || `#MAA-${order.orderId?.substring(0, 4).toUpperCase() || order.id?.substring(0,4).toUpperCase()}`, canvas.width / 2, 350);
 
       // Nickname
       ctx.font = 'bold 50px "Noto Serif TC", serif';
@@ -110,7 +144,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       ctx.fillText(`委託人：${order.nickname}`, canvas.width / 2, 500);
 
       // Status
-      const statusLabel = STATUS_NODES[currentStatusIndex]?.label || '未知';
+      const statusLabel = order.status === 'pending' ? '確認中' : (orderNodes[currentStatusIndex]?.label || '未知');
       ctx.font = 'bold 80px "Noto Serif TC", serif';
       ctx.fillText(`當前進度：${statusLabel}`, canvas.width / 2, 700);
 
@@ -122,12 +156,12 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       // Download
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `龍契局進度卡_${order.officialOrderId || order.orderId.substring(0, 4)}.png`;
+      link.download = `龍契局進度卡_${order.officialOrderId || order.orderId?.substring(0, 4) || order.id?.substring(0,4)}.png`;
       link.href = dataUrl;
       link.click();
     };
 
-    const currentStatusId = STATUS_NODES[currentStatusIndex]?.id;
+    const currentStatusId = orderNodes[currentStatusIndex]?.id || 'queued';
     const bgUrl = order.progressImages?.[currentStatusId] || order.progressHistory?.[currentStatusId]?.imageUrl;
 
     if (bgUrl) {
@@ -208,7 +242,9 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             <div className="text-left md:text-right flex flex-col items-start md:items-end gap-4">
               <div>
                 <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
-                <p className="text-xl font-bold tracking-widest text-[#53565b]">{STATUS_NODES[currentStatusIndex]?.label}</p>
+                <p className="text-xl font-bold tracking-widest text-[#53565b]">
+                  {order.status === 'pending' ? '確認中' : (orderNodes[currentStatusIndex]?.label || '未知')}
+                </p>
               </div>
               <button 
                 onClick={generateProgressCard}
@@ -225,11 +261,11 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               <div className="absolute top-14 left-10 right-10 h-0.5 bg-gray-200 -z-10" />
               <div 
                 className="absolute top-14 left-10 h-0.5 bg-[#53565b] transition-all duration-1000 -z-10" 
-                style={{ width: `calc(${(currentStatusIndex / (STATUS_NODES.length - 1)) * 100}% - 20px)` }}
+                style={{ width: `calc(${((Math.max(0, currentStatusIndex)) / (orderNodes.length - 1)) * 100}% - 20px)` }}
               />
 
               <div className="flex justify-between relative">
-                {STATUS_NODES.map((node, index) => {
+                {orderNodes.map((node, index) => {
                   const isCompleted = index <= currentStatusIndex;
                   const isCurrent = index === currentStatusIndex;
                   const historyData = order.progressHistory?.[node.id];
@@ -310,14 +346,17 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               )}
 
               {/* Stage Previews */}
-              {['rough_sketch', 'draft', 'colored_sketch', 'completed'].some(stage => {
-                return order.progressImages?.[stage] || order.progressHistory?.[stage]?.imageUrl;
+              {orderNodes.some((node) => {
+                if (['pending', 'queued', 'delivered'].includes(node.id)) return false;
+                return order.progressImages?.[node.id] || order.progressHistory?.[node.id]?.imageUrl;
               }) && (
                 <div className="mt-12">
                   <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block mb-6">進度預覽</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {['rough_sketch', 'draft', 'colored_sketch', 'completed'].map(stage => {
-                      const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
+                    {orderNodes.map(node => {
+                      const stage = node.id;
+                      if (['pending', 'queued', 'delivered'].includes(stage)) return null;
+                      const stageLabel = node.label;
                       const imgUrl = order.progressImages?.[stage] || order.progressHistory?.[stage]?.imageUrl;
                       if (!imgUrl) return null;
                       

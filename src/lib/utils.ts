@@ -64,6 +64,34 @@ export const STATUS_NODES = [
   { id: 'delivered', label: '已交付' },
 ];
 
+export const WORKFLOW_OPTIONS = {
+  full: {
+    id: 'full',
+    label: '排單/粗草/草稿/色草/完稿/已交付',
+    nodes: ['queued', 'rough_sketch', 'draft', 'colored_sketch', 'completed', 'delivered']
+  },
+  simple: {
+    id: 'simple',
+    label: '排單/完稿/已交付',
+    nodes: ['queued', 'completed', 'delivered']
+  },
+  mid: {
+    id: 'mid',
+    label: '排單/草稿/完稿/已交付',
+    nodes: ['queued', 'draft', 'completed', 'delivered']
+  }
+};
+
+export const getWorkflowNodes = (workflowId?: string) => {
+  const nodes = workflowId && WORKFLOW_OPTIONS[workflowId as keyof typeof WORKFLOW_OPTIONS] 
+    ? WORKFLOW_OPTIONS[workflowId as keyof typeof WORKFLOW_OPTIONS].nodes 
+    : ['queued', 'rough_sketch', 'draft', 'colored_sketch', 'completed', 'delivered'];
+  
+  // ensure pending is always included for matching but visually pending isn't in tracker, just 'queued', etc.
+  // Wait, the progress tracker expects full nodes data. Let's return the STATUS_NODES objects.
+  return nodes.map(id => STATUS_NODES.find(n => n.id === id)!);
+};
+
 export const CATEGORIES = [
   '頭像 (Avatar)',
   '半身 (Half Body)',

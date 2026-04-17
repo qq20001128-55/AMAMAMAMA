@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, ExternalLink, X, CheckCircle2 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp, where } from 'firebase/firestore';
 import { db, storage } from '../firebase';
-import { cn, STATUS_NODES } from '../lib/utils';
+import { cn, STATUS_NODES, WORKFLOW_OPTIONS, getWorkflowNodes } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addDoc } from 'firebase/firestore';
@@ -279,7 +279,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       setEditingId(null);
 
       if (statusChanged && oldOrder.email) {
-        const stageLabel = STATUS_NODES.find(n => n.id === editData.status)?.label || editData.status;
+        const orderNodes = getWorkflowNodes(editData.workflow || oldOrder.workflow);
+        const stageLabel = orderNodes.find(n => n.id === editData.status)?.label || editData.status;
         const emailHtml = `
           <p>承契者您好：</p>
           <p>您的委託項目 <strong>${oldOrder.title}</strong> 已有新的進度更新！</p>
@@ -468,7 +469,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     try {
       const newItem = {
         title: '新項目',
-        description: '描述...',
+        price: '請輸入價格',
+        workflow: 'full',
+        description: '委託內容限制與說明...',
         order: priceList.length,
         imageUrl: ''
       };
@@ -619,7 +622,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="inline-block px-3 py-1 bg-gray-300 text-gray-800 text-xs font-bold tracking-widest">
-                      {STATUS_NODES.find(n => n.id === order.status)?.label}
+                      {order.status === 'pending' ? '確認中' : (getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '資料已歸檔')}
                     </span>
                     <button 
                       onClick={() => {
@@ -665,7 +668,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </div>
                   <div className="flex items-center gap-4">
                     <span className="inline-block px-3 py-1 bg-[#53565b] text-[#fafafa] text-xs font-bold tracking-widest">
-                      {STATUS_NODES.find(n => n.id === order.status)?.label}
+                      {getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '未知階段'}
                     </span>
                     <button 
                       onClick={() => {
@@ -954,13 +957,31 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <input 
                           type="text" 
                           className="input-field font-bold text-lg" 
-                          placeholder="委託名稱"
+                          placeholder="委託名稱 (項目)"
                           value={priceEditData.title}
                           onChange={e => setPriceEditData({...priceEditData, title: e.target.value})}
                         />
+                        <div className="flex flex-col sm:flex-row gap-4">
+                          <input 
+                            type="text" 
+                            className="input-field" 
+                            placeholder="價格 (e.g. 1000起)"
+                            value={priceEditData.price || ''}
+                            onChange={e => setPriceEditData({...priceEditData, price: e.target.value})}
+                          />
+                          <select
+                            className="input-field"
+                            value={priceEditData.workflow || 'full'}
+                            onChange={e => setPriceEditData({...priceEditData, workflow: e.target.value})}
+                          >
+                            <option value="full">排單/粗草/草稿/色草/完稿/已交付</option>
+                            <option value="simple">排單/完稿/已交付</option>
+                            <option value="mid">排單/草稿/完稿/已交付</option>
+                          </select>
+                        </div>
                         <textarea 
                           className="input-field flex-1 min-h-[120px] resize-none text-sm leading-loose" 
-                          placeholder="價格與說明..."
+                          placeholder="內容說明與限制..."
                           value={priceEditData.description}
                           onChange={e => setPriceEditData({...priceEditData, description: e.target.value})}
                         />
@@ -986,9 +1007,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <div className="w-full md:w-3/4 flex flex-col justify-between h-full">
                         <div>
                           <div className="flex justify-between items-start mb-2">
-                            <h4 className="text-lg font-black tracking-widest">{item.title}</h4>
+                            <h4 className="text-lg font-black tracking-widest">{item.title} <span className="text-sm font-normal text-[#d4af37] ml-2">{item.price}</span></h4>
                             <span className="text-xs text-gray-400 font-mono">排序: {item.order}</span>
                           </div>
+                          <p className="text-xs text-[#53565b] font-bold tracking-widest mb-2 border-b border-gray-100 pb-1 inline-block">
+                            流程：{WORKFLOW_OPTIONS[item.workflow as keyof typeof WORKFLOW_OPTIONS]?.label || '標準'}
+                          </p>
                           <p className="text-sm text-gray-600 tracking-widest leading-loose whitespace-pre-wrap line-clamp-3">
                             {item.description}
                           </p>
@@ -1184,13 +1208,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           value={editData.status}
                           onChange={(e) => setEditData({ ...editData, status: e.target.value })}
                         >
-                          {(order.status === 'pending' ? STATUS_NODES : STATUS_NODES.filter(n => n.id !== 'pending')).map(node => (
+                          {(order.status === 'pending' ? getWorkflowNodes(editData.workflow || order.workflow) : getWorkflowNodes(editData.workflow || order.workflow).filter(n => n.id !== 'pending')).map(node => (
                             <option key={node.id} value={node.id}>{node.label}</option>
                           ))}
                         </select>
                       ) : (
                         <span className="inline-block px-4 py-2 bg-[#53565b] text-[#fafafa] text-sm font-bold tracking-widest">
-                          {STATUS_NODES.find(n => n.id === order.status)?.label || '資料已歸檔'}
+                          {getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || STATUS_NODES.find(n => n.id === order.status)?.label || '資料已歸檔'}
                         </span>
                       )}
                     </div>
@@ -1219,73 +1243,31 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             }}
                           />
                         </div>
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500 tracking-widest">預計粗草日 (可選)</p>
-                          <input 
-                            type="date"
-                            className="input-field py-2 text-sm"
-                            value={editData.expectedDates?.rough_sketch ? format(parseISO(editData.expectedDates.rough_sketch), 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
-                              setEditData({
-                                ...editData,
-                                expectedDates: { ...editData.expectedDates, rough_sketch: dateStr }
-                              });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500 tracking-widest">預計草稿日 (可選)</p>
-                          <input 
-                            type="date"
-                            className="input-field py-2 text-sm"
-                            value={editData.expectedDates?.draft ? format(parseISO(editData.expectedDates.draft), 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
-                              setEditData({
-                                ...editData,
-                                expectedDates: { ...editData.expectedDates, draft: dateStr }
-                              });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500 tracking-widest">預計色草日 (可選)</p>
-                          <input 
-                            type="date"
-                            className="input-field py-2 text-sm"
-                            value={editData.expectedDates?.colored_sketch ? format(parseISO(editData.expectedDates.colored_sketch), 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
-                              setEditData({
-                                ...editData,
-                                expectedDates: { ...editData.expectedDates, colored_sketch: dateStr }
-                              });
-                            }}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <p className="text-xs text-gray-500 tracking-widest">預計完稿日 (可選)</p>
-                          <input 
-                            type="date"
-                            className="input-field py-2 text-sm"
-                            value={editData.expectedDates?.completed ? format(parseISO(editData.expectedDates.completed), 'yyyy-MM-dd') : ''}
-                            onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
-                              setEditData({
-                                ...editData,
-                                expectedDates: { ...editData.expectedDates, completed: dateStr }
-                              });
-                            }}
-                          />
-                        </div>
+                        {getWorkflowNodes(editData.workflow || order.workflow).filter(n => !['pending', 'queued', 'delivered'].includes(n.id)).map(node => (
+                          <div key={node.id} className="space-y-2">
+                            <p className="text-xs text-gray-500 tracking-widest">預計{node.label}日 (可選)</p>
+                            <input 
+                              type="date"
+                              className="input-field py-2 text-sm"
+                              value={editData.expectedDates?.[node.id] ? format(parseISO(editData.expectedDates[node.id]), 'yyyy-MM-dd') : ''}
+                              onChange={(e) => {
+                                const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
+                                setEditData({
+                                  ...editData,
+                                  expectedDates: { ...editData.expectedDates, [node.id]: dateStr }
+                                });
+                              }}
+                            />
+                          </div>
+                        ))}
                       </div>
                       
                       {/* Stage Image Uploads */}
                       <div className="mt-6 space-y-3">
                         <p className="text-sm font-bold tracking-widest border-b border-gray-200 pb-2 text-[#53565b]">各階段視覺進度預覽圖</p>
-                        {['rough_sketch', 'draft', 'colored_sketch', 'completed'].map(stage => {
-                          const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
+                        {getWorkflowNodes(editData.workflow || order.workflow).filter(n => !['pending', 'queued', 'delivered'].includes(n.id)).map(node => {
+                          const stage = node.id;
+                          const stageLabel = node.label;
                           const uploadedUrl = editData.progressImages?.[stage];
                           
                           return (

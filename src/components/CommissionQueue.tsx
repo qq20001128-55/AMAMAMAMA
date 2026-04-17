@@ -43,11 +43,7 @@ export default function CommissionQueue() {
   return (
     <div className="max-w-2xl mx-auto mt-20 mb-10 space-y-6">
       {announcement && (
-        <div className="window-box-octagon border-2 border-gray-800 bg-gray-50/90">
-          <div className="flex items-center gap-2 mb-3 pb-2 border-b-2 border-gray-800">
-            <Megaphone size={20} className="text-gray-800" />
-            <h3 className="font-black tracking-widest text-lg text-gray-800">局內公告</h3>
-          </div>
+        <div className="text-center mb-6">
           <p className="text-gray-700 tracking-widest leading-loose whitespace-pre-wrap">
             {announcement.text}
           </p>

@@ -98,12 +98,18 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         imageUrls = await Promise.all(uploadPromises);
       }
 
+      // Find price from priceList
+      const matchedItem = priceList.find(p => p.title === formData.category);
+      const priceText = matchedItem ? (matchedItem.price || matchedItem.description) : '請確認價目表';
+      const selectedWorkflow = matchedItem?.workflow || 'full';
+
       await addDoc(collection(db, 'orders'), {
         nickname: formData.nickname,
         email: formData.email,
         contact: formData.contact,
         title: formData.title,
         category: formData.category,
+        workflow: selectedWorkflow,
         description: formData.description,
         referenceType: refType,
         referenceImages: imageUrls,
@@ -119,10 +125,6 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         orderId: tempId,
         orderNo: generatedOrderNo,
       });
-
-      // Find price from priceList
-      const matchedItem = priceList.find(p => p.title === formData.category);
-      const priceText = matchedItem ? matchedItem.description : '請確認價目表';
 
       // Send webhook
       try {
