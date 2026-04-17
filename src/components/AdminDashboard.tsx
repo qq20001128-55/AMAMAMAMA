@@ -305,22 +305,30 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     if (!file || !editingId) return;
 
     try {
-      const storageRef = ref(storage, `orders/${editingId}/${stage}.webp`);
+      const ext = file.name.split('.').pop() || 'png';
+      const storageRef = ref(storage, `orders/${editingId}_${stage}.${ext}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       
-      const newProgressHistory = { ...(editData.progressHistory || {}) };
-      newProgressHistory[stage] = {
-        ...newProgressHistory[stage],
-        imageUrl: url,
-        updatedAt: serverTimestamp()
-      };
+      const newProgressImages = { ...(editData.progressImages || {}) };
+      newProgressImages[stage] = url;
 
-      setEditData({ ...editData, progressHistory: newProgressHistory });
-      alert('預覽圖上傳成功！請記得點擊「儲存修改」。');
+      setEditData({ ...editData, progressImages: newProgressImages });
+      alert('預覽圖上傳成功！請記得點擊「儲存修改」才會生效。');
     } catch (err) {
       console.error('Upload stage image error:', err);
       alert('上傳失敗，請稍後再試。');
+    }
+  };
+
+  const handleDeleteStageImage = async (stage: string) => {
+    if (!window.confirm('確定要刪除此階段的預覽圖嗎？請記得點擊「儲存修改」。')) return;
+    try {
+      const newProgressImages = { ...(editData.progressImages || {}) };
+      delete newProgressImages[stage];
+      setEditData({ ...editData, progressImages: newProgressImages });
+    } catch (err) {
+      console.error('Delete stage image error:', err);
     }
   };
 
@@ -1197,13 +1205,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             className="input-field py-2 text-sm"
                             value={editData.progressHistory?.[editData.status]?.dateString ? format(parseISO(editData.progressHistory[editData.status].dateString), 'yyyy-MM-dd') : ''}
                             onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
                               setEditData({
                                 ...editData,
                                 progressHistory: {
-                                  ...editData.progressHistory,
+                                  ...(editData.progressHistory || {}),
                                   [editData.status]: {
-                                    ...editData.progressHistory?.[editData.status],
+                                    ...(editData.progressHistory?.[editData.status] || {}),
                                     dateString: dateStr
                                   }
                                 }
@@ -1218,7 +1226,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             className="input-field py-2 text-sm"
                             value={editData.expectedDates?.rough_sketch ? format(parseISO(editData.expectedDates.rough_sketch), 'yyyy-MM-dd') : ''}
                             onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
                               setEditData({
                                 ...editData,
                                 expectedDates: { ...editData.expectedDates, rough_sketch: dateStr }
@@ -1233,7 +1241,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             className="input-field py-2 text-sm"
                             value={editData.expectedDates?.draft ? format(parseISO(editData.expectedDates.draft), 'yyyy-MM-dd') : ''}
                             onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
                               setEditData({
                                 ...editData,
                                 expectedDates: { ...editData.expectedDates, draft: dateStr }
@@ -1248,7 +1256,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             className="input-field py-2 text-sm"
                             value={editData.expectedDates?.colored_sketch ? format(parseISO(editData.expectedDates.colored_sketch), 'yyyy-MM-dd') : ''}
                             onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
                               setEditData({
                                 ...editData,
                                 expectedDates: { ...editData.expectedDates, colored_sketch: dateStr }
@@ -1263,7 +1271,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             className="input-field py-2 text-sm"
                             value={editData.expectedDates?.completed ? format(parseISO(editData.expectedDates.completed), 'yyyy-MM-dd') : ''}
                             onChange={(e) => {
-                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : '';
+                              const dateStr = e.target.value ? new Date(e.target.value).toISOString() : null;
                               setEditData({
                                 ...editData,
                                 expectedDates: { ...editData.expectedDates, completed: dateStr }
@@ -1273,28 +1281,48 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         </div>
                       </div>
                       
-                      {/* Stage Image Upload */}
-                      {['draft', 'lineart', 'coloring', 'completed'].includes(editData.status) && (
-                        <div className="mt-6 p-4 border border-dashed border-gray-300 bg-gray-50">
-                          <p className="text-sm font-bold tracking-widest mb-2">上傳預覽圖 ({STATUS_NODES.find(n => n.id === editData.status)?.label})</p>
-                          <div className="flex items-center gap-4">
-                            <label className="btn-secondary text-sm px-4 py-2 cursor-pointer">
-                              選擇圖片
-                              <input 
-                                type="file" 
-                                className="hidden" 
-                                accept="image/*"
-                                onChange={(e) => handleStageImageUpload(e, editData.status)}
-                              />
-                            </label>
-                            {editData.progressHistory?.[editData.status]?.imageUrl && (
-                              <span className="text-xs text-gray-800 tracking-widest flex items-center gap-1">
-                                <CheckCircle2 size={14} /> 已上傳
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      )}
+                      {/* Stage Image Uploads */}
+                      <div className="mt-6 space-y-3">
+                        <p className="text-sm font-bold tracking-widest border-b border-gray-200 pb-2 text-[#53565b]">各階段視覺進度預覽圖</p>
+                        {['rough_sketch', 'draft', 'colored_sketch', 'completed'].map(stage => {
+                          const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
+                          const uploadedUrl = editData.progressImages?.[stage];
+                          
+                          return (
+                            <div key={stage} className="p-3 border border-dashed border-gray-300 bg-gray-50 flex items-center justify-between">
+                              <div className="flex items-center gap-4">
+                                <span className="text-xs font-bold tracking-widest w-10 text-[#53565b]">{stageLabel}</span>
+                                {uploadedUrl ? (
+                                  <a href={uploadedUrl} target="_blank" rel="noopener noreferrer">
+                                    <img src={uploadedUrl} className="w-10 h-10 object-cover border border-gray-300 hover:opacity-80 transition-opacity" alt={`${stageLabel}預覽`} crossOrigin="anonymous" />
+                                  </a>
+                                ) : (
+                                  <span className="text-xs text-gray-400 tracking-widest">未上傳</span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <label className="cursor-pointer text-xs border border-[#53565b] text-[#53565b] px-3 py-1 hover:bg-[#53565b] hover:text-white transition-colors">
+                                  {uploadedUrl ? '重新上傳' : '上傳圖片'}
+                                  <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept="image/*"
+                                    onChange={(e) => handleStageImageUpload(e, stage)}
+                                  />
+                                </label>
+                                {uploadedUrl && (
+                                  <button 
+                                    onClick={() => handleDeleteStageImage(stage)}
+                                    className="text-xs text-red-500 border border-red-500 px-3 py-1 hover:bg-red-50 transition-colors"
+                                  >
+                                    刪除 X
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                       </>
                     )}
                   </div>

@@ -85,52 +85,78 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Background
-    ctx.fillStyle = '#53565b';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const drawContent = () => {
+      // Decorative elements
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
+      
+      // Text settings
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fafafa';
 
-    // Decorative elements
-    ctx.strokeStyle = '#333333';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(40, 40, canvas.width - 80, canvas.height - 80);
-    
-    ctx.fillStyle = '#53565b';
-    ctx.fillRect(canvas.width / 2 - 20, 80, 40, 40);
+      // Title
+      ctx.font = 'bold 60px "Noto Serif TC", serif';
+      ctx.fillText('龍契局・進度卡', canvas.width / 2, 250);
 
-    // Text settings
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#fafafa';
+      // Order ID
+      ctx.font = '40px monospace';
+      ctx.fillStyle = '#d4af37';
+      ctx.fillText(order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`, canvas.width / 2, 350);
 
-    // Title
-    ctx.font = 'bold 60px "Noto Serif TC", serif';
-    ctx.fillText('龍契局・進度卡', canvas.width / 2, 250);
+      // Nickname
+      ctx.font = 'bold 50px "Noto Serif TC", serif';
+      ctx.fillStyle = '#fafafa';
+      ctx.fillText(`委託人：${order.nickname}`, canvas.width / 2, 500);
 
-    // Order ID
-    ctx.font = '40px monospace';
-    ctx.fillStyle = '#53565b';
-    ctx.fillText(order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`, canvas.width / 2, 350);
+      // Status
+      const statusLabel = STATUS_NODES[currentStatusIndex]?.label || '未知';
+      ctx.font = 'bold 80px "Noto Serif TC", serif';
+      ctx.fillText(`當前進度：${statusLabel}`, canvas.width / 2, 700);
 
-    // Nickname
-    ctx.font = 'bold 50px "Noto Serif TC", serif';
-    ctx.fillStyle = '#fafafa';
-    ctx.fillText(`委託人：${order.nickname}`, canvas.width / 2, 500);
+      // Date
+      ctx.font = '30px monospace';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fillText(`生成日期：${format(new Date(), 'yyyy-MM-dd HH:mm')}`, canvas.width / 2, canvas.height - 150);
 
-    // Status
-    const statusLabel = STATUS_NODES[currentStatusIndex]?.label || '未知';
-    ctx.font = 'bold 80px "Noto Serif TC", serif';
-    ctx.fillText(`當前進度：${statusLabel}`, canvas.width / 2, 700);
+      // Download
+      const dataUrl = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `龍契局進度卡_${order.officialOrderId || order.orderId.substring(0, 4)}.png`;
+      link.href = dataUrl;
+      link.click();
+    };
 
-    // Date
-    ctx.font = '30px monospace';
-    ctx.fillStyle = '#888888';
-    ctx.fillText(`生成日期：${format(new Date(), 'yyyy-MM-dd HH:mm')}`, canvas.width / 2, canvas.height - 150);
+    const currentStatusId = STATUS_NODES[currentStatusIndex]?.id;
+    const bgUrl = order.progressImages?.[currentStatusId] || order.progressHistory?.[currentStatusId]?.imageUrl;
 
-    // Download
-    const dataUrl = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = `龍契局進度卡_${order.officialOrderId || order.orderId.substring(0, 4)}.png`;
-    link.href = dataUrl;
-    link.click();
+    if (bgUrl) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        // Draw background image to cover canvas
+        const scale = Math.max(canvas.width / img.width, canvas.height / img.height);
+        const x = (canvas.width / 2) - (img.width / 2) * scale;
+        const y = (canvas.height / 2) - (img.height / 2) * scale;
+        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+        // Overlay transparent black mask
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        drawContent();
+      };
+      img.onerror = () => {
+        ctx.fillStyle = '#53565b';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        drawContent();
+      };
+      img.src = bgUrl;
+    } else {
+      ctx.fillStyle = '#53565b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      drawContent();
+    }
   };
 
   return (
@@ -284,30 +310,29 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               )}
 
               {/* Stage Previews */}
-              {['draft', 'lineart', 'coloring', 'completed'].some(stage => {
-                const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
-                return order.progressHistory?.[stage]?.imageUrl || order.deadlines?.[stageLabel]?.imageUrl;
+              {['rough_sketch', 'draft', 'colored_sketch', 'completed'].some(stage => {
+                return order.progressImages?.[stage] || order.progressHistory?.[stage]?.imageUrl;
               }) && (
                 <div className="mt-12">
                   <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block mb-6">進度預覽</h4>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    {['draft', 'lineart', 'coloring', 'completed'].map(stage => {
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    {['rough_sketch', 'draft', 'colored_sketch', 'completed'].map(stage => {
                       const stageLabel = STATUS_NODES.find(n => n.id === stage)?.label || stage;
-                      const imgUrl = order.progressHistory?.[stage]?.imageUrl || order.deadlines?.[stageLabel]?.imageUrl;
+                      const imgUrl = order.progressImages?.[stage] || order.progressHistory?.[stage]?.imageUrl;
                       if (!imgUrl) return null;
                       
                       return (
                         <div key={stage} className="space-y-2">
-                          <p className="text-sm font-bold tracking-widest text-center">{stageLabel}</p>
+                          <p className="text-sm font-bold tracking-widest text-[#53565b] text-center">{stageLabel}</p>
                           <div 
-                            className="aspect-square border-2 border-gray-200 overflow-hidden cursor-pointer group"
+                            className="aspect-square border border-[#53565b] overflow-hidden cursor-pointer group bg-gray-50 flex items-center justify-center p-1"
                             onClick={() => setLightboxImage(imgUrl)}
                           >
                             <img 
                               src={imgUrl} 
                               alt={`${stageLabel} preview`}
                               crossOrigin="anonymous"
-                              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                              className="max-w-full max-h-full object-contain transition-transform duration-700 group-hover:scale-105"
                               onError={(e) => {
                                 console.error(`Failed to load image for stage ${stageLabel}:`, imgUrl, e);
                               }}
