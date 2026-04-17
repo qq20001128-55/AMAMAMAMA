@@ -126,7 +126,8 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         orderNo: generatedOrderNo,
       });
 
-      // Send webhook
+      // Send webhook (暫時停用以避免 404 報錯)
+      /*
       try {
         await fetch('/api/webhook/discord', {
           method: 'POST',
@@ -143,6 +144,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         console.error('Failed to trigger webhook:', webhookErr);
         // Do not block the user if webhook fails
       }
+      */
 
       setOrderId(generatedOrderNo);
       setStep('success');

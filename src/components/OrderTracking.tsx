@@ -45,35 +45,36 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     try {
       let foundData = null;
       let foundId = null;
-      // 容錯處理：去空格並轉大寫
+      
+      // 自動修正規格：去空格並轉大寫
       const term = searchId.trim().toUpperCase();
 
-      // 精準搜尋加上容錯變體
+      // 精準搜尋加上容錯變體 (補齊或去除前綴)
       let variations = [term];
-      
       if (term.startsWith('#MAA-')) {
-        variations.push(term.substring(5)); // 純後綴
+        variations.push(term.substring(5)); // 純後綴字串
       } else if (term.startsWith('MAA-')) {
-        variations.push(`#${term}`);
-        variations.push(term.substring(4)); // 純後綴
+        variations.push(`#${term}`); // 補上 #
+        variations.push(term.substring(4)); // 純後綴字串
       } else if (term.startsWith('#')) {
         variations.push(`#MAA-${term.substring(1)}`);
-        variations.push(`MAA-${term.substring(1)}`);
       } else {
-        variations.push(`#MAA-${term}`);
-        variations.push(`MAA-${term}`);
+        variations.push(`#MAA-${term}`); // 完全沒加前綴的人
       }
 
-      // 移除重複項目
       variations = Array.from(new Set(variations));
 
+      // 確保針對 Firestore 裡的 orderNo, officialOrderId, orderId 欄位進行 where 查詢
       for (const variant of variations) {
-        const q1 = query(collection(db, 'orders'), where('officialOrderId', '==', variant));
-        const q2 = query(collection(db, 'orders'), where('orderNo', '==', variant));
-        const q3 = query(collection(db, 'orders'), where('orderId', '==', variant));
+        // 特別優先對 orderNo 進行精準查詢
+        const qOrderNo = query(collection(db, 'orders'), where('orderNo', '==', variant));
+        const qOfficial = query(collection(db, 'orders'), where('officialOrderId', '==', variant));
+        const qId = query(collection(db, 'orders'), where('orderId', '==', variant));
         
         try {
-          const [snap1, snap2, snap3] = await Promise.all([getDocs(q1), getDocs(q2), getDocs(q3)]);
+          // 並行搜尋
+          const [snap1, snap2, snap3] = await Promise.all([getDocs(qOrderNo), getDocs(qOfficial), getDocs(qId)]);
+          
           const foundDoc = snap1.docs[0] || snap2.docs[0] || snap3.docs[0];
           
           if (foundDoc) {
@@ -82,21 +83,20 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             break;
           }
         } catch (queryErr: any) {
-          console.error(`Query error for variant ${variant}:`, queryErr);
-          // 若遇權限等報錯，直接拋出交由外層顯示
-          throw new Error(`查詢中斷：${queryErr.message || '資料庫讀取異常'}`);
+          console.error(`Firebase query error for variant ${variant}:`, queryErr);
+          throw new Error(`資料庫讀取異常：${queryErr.message}`);
         }
       }
 
       if (foundData) {
         setOrder({ id: foundId, ...foundData });
       } else {
-        setError('查無此委託，請確認編號是否正確 (例如包含 MAA-)。');
+        setError(`查無資料。請確認查問編號是否輸入正確 (您輸入的是：${searchId.trim()})。`);
       }
     } catch (err: any) {
       console.error('Search error:', err);
-      // 具體錯誤反饋
-      setError(`探問因果時發生錯誤：${err.message || '未知錯誤。'}`);
+      // 顯示具體的錯誤反饋
+      setError(`探問因果時發生錯誤：${err.message || '連線或權限未知錯誤。'}`);
     } finally {
       setLoading(false);
     }
