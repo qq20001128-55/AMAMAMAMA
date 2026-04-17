@@ -45,34 +45,34 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
     try {
       let foundData = null;
       let foundId = null;
-      const term = searchId.trim();
+      // 容錯處理：去空格並轉大寫
+      const term = searchId.trim().toUpperCase();
 
-      // 1. Try fetching by document ID first
-      try {
-        const docRef = await getDoc(doc(db, 'orders', term));
-        if (docRef.exists()) {
-          foundData = docRef.data();
-          foundId = docRef.id;
-        }
-      } catch (err) {
-        // ignore
+      // 精準搜尋加上容錯變體
+      let variations = [term];
+      
+      if (term.startsWith('#MAA-')) {
+        variations.push(term.substring(5)); // 純後綴
+      } else if (term.startsWith('MAA-')) {
+        variations.push(`#${term}`);
+        variations.push(term.substring(4)); // 純後綴
+      } else if (term.startsWith('#')) {
+        variations.push(`#MAA-${term.substring(1)}`);
+        variations.push(`MAA-${term.substring(1)}`);
+      } else {
+        variations.push(`#MAA-${term}`);
+        variations.push(`MAA-${term}`);
       }
 
-      // 2. Try variations if not found by direct doc ID
-      if (!foundData) {
-        let variations = [term];
-        if (term.startsWith('#MAA-')) variations.push(term.substring(5)); // just the numbers
-        if (term.startsWith('MAA-')) variations.push(term.substring(4));
-        if (!term.startsWith('#MAA-') && !term.startsWith('MAA-')) {
-          variations.push(`#MAA-${term.toUpperCase()}`);
-          variations.push(`MAA-${term.toUpperCase()}`);
-        }
+      // 移除重複項目
+      variations = Array.from(new Set(variations));
 
-        for (const variant of variations) {
-          const q1 = query(collection(db, 'orders'), where('officialOrderId', '==', variant));
-          const q2 = query(collection(db, 'orders'), where('orderNo', '==', variant));
-          const q3 = query(collection(db, 'orders'), where('orderId', '==', variant));
-          
+      for (const variant of variations) {
+        const q1 = query(collection(db, 'orders'), where('officialOrderId', '==', variant));
+        const q2 = query(collection(db, 'orders'), where('orderNo', '==', variant));
+        const q3 = query(collection(db, 'orders'), where('orderId', '==', variant));
+        
+        try {
           const [snap1, snap2, snap3] = await Promise.all([getDocs(q1), getDocs(q2), getDocs(q3)]);
           const foundDoc = snap1.docs[0] || snap2.docs[0] || snap3.docs[0];
           
@@ -81,17 +81,22 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             foundId = foundDoc.id;
             break;
           }
+        } catch (queryErr: any) {
+          console.error(`Query error for variant ${variant}:`, queryErr);
+          // 若遇權限等報錯，直接拋出交由外層顯示
+          throw new Error(`查詢中斷：${queryErr.message || '資料庫讀取異常'}`);
         }
       }
 
       if (foundData) {
         setOrder({ id: foundId, ...foundData });
       } else {
-        setError('尋無此契，請確認編號是否正確。');
+        setError('查無此委託，請確認編號是否正確 (例如包含 MAA-)。');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Search error:', err);
-      setError('探問因果時發生錯誤。');
+      // 具體錯誤反饋
+      setError(`探問因果時發生錯誤：${err.message || '未知錯誤。'}`);
     } finally {
       setLoading(false);
     }
