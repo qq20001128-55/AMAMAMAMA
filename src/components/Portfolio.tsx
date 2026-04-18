@@ -108,7 +108,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             className="relative aspect-[3/4] cursor-pointer group overflow-hidden border-2 border-transparent hover:border-[#53565b] transition-colors"
             onClick={() => setLightboxImage(art.imageUrl)}
           >
-            <img 
+            <img loading="lazy" 
               src={art.imageUrl} 
               alt={art.title}
               crossOrigin="anonymous"
@@ -138,7 +138,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             <X size={32} />
           </button>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
-            <img 
+            <img loading="lazy" 
               src={lightboxImage} 
               alt="Full size artwork"
               crossOrigin="anonymous"

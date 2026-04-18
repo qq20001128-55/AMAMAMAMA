@@ -94,7 +94,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
               {loading ? (
                 <div className="w-8 h-8 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
               ) : avatarUrl ? (
-                <img src={avatarUrl} alt="瑪阿" className="w-full h-full object-cover" />
+                <img loading="lazy" src={avatarUrl} alt="瑪阿" className="w-full h-full object-cover" />
               ) : (
                 <span className="text-4xl font-black text-gray-300">瑪阿</span>
               )}

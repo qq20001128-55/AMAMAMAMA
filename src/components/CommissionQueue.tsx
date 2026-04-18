@@ -59,7 +59,7 @@ export default function CommissionQueue() {
               return (
                 <div key={order.id} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
                   <span className="font-mono text-sm font-bold tracking-widest text-[#53565b]">
-                    {order.officialOrderId || `#MAA-${order.orderId.substring(0, 4).toUpperCase()}`}
+                    {order.orderNo || '處理中...'}
                   </span>
                   <span className="text-sm tracking-widest bg-[#53565b] text-white px-3 py-1">
                     {statusLabel}中

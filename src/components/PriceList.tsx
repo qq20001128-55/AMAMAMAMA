@@ -104,7 +104,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                     <div className="flex-1">
                       <div className="w-full aspect-[4/3] bg-gray-50 border border-gray-200 p-2 overflow-hidden group flex items-center justify-center">
                         {activeItem.imageUrl ? (
-                          <img 
+                          <img loading="lazy" 
                             src={activeItem.imageUrl} 
                             alt={activeItem.title} 
                             crossOrigin="anonymous"

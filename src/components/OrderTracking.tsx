@@ -64,18 +64,13 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
       variations = Array.from(new Set(variations));
 
-      // 確保針對 Firestore 裡的 orderNo, officialOrderId, orderId 欄位進行 where 查詢
+      // 確保針對 Firestore 裡的 orderNo 欄位進行 where 查詢
       for (const variant of variations) {
-        // 特別優先對 orderNo 進行精準查詢
         const qOrderNo = query(collection(db, 'orders'), where('orderNo', '==', variant));
-        const qOfficial = query(collection(db, 'orders'), where('officialOrderId', '==', variant));
-        const qId = query(collection(db, 'orders'), where('orderId', '==', variant));
         
         try {
-          // 並行搜尋
-          const [snap1, snap2, snap3] = await Promise.all([getDocs(qOrderNo), getDocs(qOfficial), getDocs(qId)]);
-          
-          const foundDoc = snap1.docs[0] || snap2.docs[0] || snap3.docs[0];
+          const snap = await getDocs(qOrderNo);
+          const foundDoc = snap.docs[0];
           
           if (foundDoc) {
             foundData = foundDoc.data();
@@ -141,7 +136,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       // Order ID
       ctx.font = '40px monospace';
       ctx.fillStyle = '#d4af37';
-      ctx.fillText(order.officialOrderId || `#MAA-${order.orderId?.substring(0, 4).toUpperCase() || order.id?.substring(0,4).toUpperCase()}`, canvas.width / 2, 350);
+      ctx.fillText(order.orderNo || '處理中...', canvas.width / 2, 350);
 
       // Nickname
       ctx.font = 'bold 50px "Noto Serif TC", serif';
@@ -161,7 +156,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       // Download
       const dataUrl = canvas.toDataURL('image/png');
       const link = document.createElement('a');
-      link.download = `龍契局進度卡_${order.officialOrderId || order.orderId?.substring(0, 4) || order.id?.substring(0,4)}.png`;
+      link.download = `龍契局進度卡_${order.orderNo || '處理中'}.png`;
       link.href = dataUrl;
       link.click();
     };
@@ -216,7 +211,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input 
             type="text" 
-            placeholder="輸入契約編號 (臨時或正式編號)"
+            placeholder="輸入專屬契約編號"
             className="input-field pl-12 bg-white"
             value={searchId}
             onChange={(e) => setSearchId(e.target.value)}
@@ -342,7 +337,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {order.referenceImages.map((img: string, i: number) => (
                     <div key={i} className="aspect-square border-2 border-[#53565b] overflow-hidden">
-                      <img src={img} alt={`Reference ${i}`} crossOrigin="anonymous" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
+                      <img loading="lazy" src={img} alt={`Reference ${i}`} crossOrigin="anonymous" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
                     </div>
                   ))}
                 </div>
@@ -372,7 +367,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                             className="aspect-square border border-[#53565b] overflow-hidden cursor-pointer group bg-gray-50 flex items-center justify-center p-1"
                             onClick={() => setLightboxImage(imgUrl)}
                           >
-                            <img 
+                            <img loading="lazy" 
                               src={imgUrl} 
                               alt={`${stageLabel} preview`}
                               crossOrigin="anonymous"
@@ -407,7 +402,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             <X size={32} />
           </button>
           <div className="relative max-w-full max-h-full" onClick={(e) => e.stopPropagation()}>
-            <img 
+            <img loading="lazy" 
               src={lightboxImage} 
               alt="Full size preview"
               crossOrigin="anonymous"

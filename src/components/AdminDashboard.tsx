@@ -4,7 +4,7 @@ import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, ExternalLink, X, CheckCircle2 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp, where } from 'firebase/firestore';
 import { db, storage } from '../firebase';
-import { cn, STATUS_NODES, WORKFLOW_OPTIONS, getWorkflowNodes } from '../lib/utils';
+import { cn, STATUS_NODES, WORKFLOW_OPTIONS, getWorkflowNodes, compressImage } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addDoc } from 'firebase/firestore';
@@ -113,7 +113,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     setSiteConfigUploading(type);
     try {
       const storageRef = ref(storage, `system/custom_ui/${type}.png`);
-      await uploadBytes(storageRef, file);
+      const compressedBlob = await compressImage(file);
+      await uploadBytes(storageRef, compressedBlob, { cacheControl: 'public,max-age=31536000' });
       const url = await getDownloadURL(storageRef);
       
       const newConfig = { ...siteConfig, [`${type}Url`]: url };
@@ -261,10 +262,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         statusChanged = true;
       }
 
-      const updatedData = {
+      const updatedData: any = {
         ...editData,
         progressHistory: newProgressHistory
       };
+
+      // 確保 orderNo 只在委託正式成立（脫離 pending）時產生一次並永久儲存
+      if (oldOrder && !oldOrder.orderNo && editData.status !== 'pending' && editData.status !== 'closed') {
+        const generatedOrderNo = `#MAA-${Math.random().toString(36).substring(2, 6).toUpperCase()}${Math.floor(Math.random() * 100)}`;
+        updatedData.orderNo = generatedOrderNo;
+      }
 
       await updateDoc(doc(db, 'orders', editingId), updatedData);
       
@@ -281,9 +288,11 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       if (statusChanged && oldOrder.email) {
         const orderNodes = getWorkflowNodes(editData.workflow || oldOrder.workflow);
         const stageLabel = orderNodes.find(n => n.id === editData.status)?.label || editData.status;
+        const newlyGeneratedOrderNoStr = (!oldOrder.orderNo && updatedData.orderNo) ? `<p>專屬訂單編號：<strong>${updatedData.orderNo}</strong></p>` : '';
         const emailHtml = `
           <p>承契者您好：</p>
           <p>您的委託項目 <strong>${oldOrder.title}</strong> 已有新的進度更新！</p>
+          ${newlyGeneratedOrderNoStr}
           <p>目前階段：<strong>${stageLabel}</strong></p>
           <p>請前往龍契局網站查詢詳細進度與預覽圖。</p>
           <p>——瑪阿</p>
@@ -306,9 +315,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     if (!file || !editingId) return;
 
     try {
-      const ext = file.name.split('.').pop() || 'png';
+      const ext = 'webp'; // Force webp extension due to compression
       const storageRef = ref(storage, `orders/${editingId}_${stage}.${ext}`);
-      await uploadBytes(storageRef, file);
+      const compressedBlob = await compressImage(file);
+      await uploadBytes(storageRef, compressedBlob, { cacheControl: 'public,max-age=31536000' });
       const url = await getDownloadURL(storageRef);
       
       const newProgressImages = { ...(editData.progressImages || {}) };
@@ -349,7 +359,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     try {
       const newHistory = { ...(order.progressHistory || {}) };
       newHistory['queued'] = { updatedAt: serverTimestamp(), dateString: new Date().toISOString() };
-      const updatedData = { status: 'queued', progressHistory: newHistory };
+      const generatedOrderNo = `#MAA-${Math.random().toString(36).substring(2, 6).toUpperCase()}${Math.floor(Math.random() * 100)}`;
+      const updatedData: any = { 
+        status: 'queued', 
+        progressHistory: newHistory,
+        orderNo: generatedOrderNo
+      };
       
       await updateDoc(doc(db, 'orders', order.id), updatedData);
       
@@ -362,7 +377,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           to: order.email,
           message: {
             subject: `【龍契局】委託已受理確認`,
-            html: `<p>承契者您好：</p><p>您的委託項目 <strong>${order.title}</strong> 已由瑪阿正式受理！</p><p>目前進度：<strong>排單中</strong></p><p>請前往龍契局網站查詢最新狀況。</p><p>——瑪阿</p>`
+            html: `<p>承契者您好：</p><p>您的委託項目 <strong>${order.title}</strong> 已由瑪阿正式受理！</p><p>專屬訂單編號：<strong>${generatedOrderNo}</strong></p><p>目前進度：<strong>排單中</strong></p><p>請前往龍契局網站使用此編號查詢最新狀況。</p><p>——瑪阿</p>`
           }
         });
       }
@@ -433,8 +448,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       const newArtworks = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const storageRef = ref(storage, `portfolio/${Date.now()}_${file.name}`);
-        await uploadBytes(storageRef, file);
+        const compressedBlob = await compressImage(file);
+        const storageRef = ref(storage, `portfolio/${Date.now()}_${i}.webp`);
+        await uploadBytes(storageRef, compressedBlob, { cacheControl: 'public,max-age=31536000' });
         const url = await getDownloadURL(storageRef);
         
         const artData = {
@@ -617,7 +633,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-[#53565b] bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -663,7 +679,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
@@ -789,7 +805,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                           {catArtworks.map(art => (
                             <div key={art.id} className="relative aspect-square border border-gray-300 group overflow-hidden">
-                              <img src={art.imageUrl} alt={art.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                              <img loading="lazy" src={art.imageUrl} alt={art.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
                               <button 
                                 onClick={() => handleDeleteArtwork(art.id)}
                                 className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
@@ -816,7 +832,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.homeBgUrl ? (
                     <>
-                      <img src={siteConfig.homeBgUrl} alt="Home Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                      <img loading="lazy" src={siteConfig.homeBgUrl} alt="Home Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
                       <button 
                         onClick={() => handleDeleteSiteImage('homeBg')}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
@@ -846,7 +862,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.pageBgUrl ? (
                     <>
-                      <img src={siteConfig.pageBgUrl} alt="Page Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                      <img loading="lazy" src={siteConfig.pageBgUrl} alt="Page Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
                       <button 
                         onClick={() => handleDeleteSiteImage('pageBg')}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
@@ -876,7 +892,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 <div className="aspect-square max-w-[200px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.titleStyleUrl ? (
                     <>
-                      <img src={siteConfig.titleStyleUrl} alt="Title Style" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
+                      <img loading="lazy" src={siteConfig.titleStyleUrl} alt="Title Style" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
                       <button 
                         onClick={() => handleDeleteSiteImage('titleStyle')}
                         className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
@@ -932,7 +948,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <div className="w-full md:w-1/3 space-y-4">
                         <div className="aspect-[4/3] bg-gray-100 border border-[#53565b] relative flex items-center justify-center overflow-hidden">
                           {priceEditData.imageUrl ? (
-                            <img src={priceEditData.imageUrl} alt="Preview" crossOrigin="anonymous" className="w-full h-full object-cover" />
+                            <img loading="lazy" src={priceEditData.imageUrl} alt="Preview" crossOrigin="anonymous" className="w-full h-full object-cover" />
                           ) : (
                             <span className="text-gray-400 text-sm">無圖片</span>
                           )}
@@ -999,7 +1015,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <>
                       <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border border-[#53565b] overflow-hidden">
                         {item.imageUrl ? (
-                          <img src={item.imageUrl} alt={item.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                          <img loading="lazy" src={item.imageUrl} alt={item.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">無圖片</div>
                         )}
@@ -1085,7 +1101,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
                       {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')} - ${order.title}`} onClick={() => {
+                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderNo || '處理中...'} - ${order.title}`} onClick={() => {
                           setModalOrdersType('all');
                           setActiveModal('orders');
                           setTimeout(() => {
@@ -1093,7 +1109,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }, 100);
                         }}>
-                          {order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')} - {order.title}
+                          {order.orderNo || '處理中...'} - {order.title}
                         </div>
                       ))}
                     </div>
@@ -1118,7 +1134,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           ).map(order => (
             <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}</span>{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                 <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -1168,7 +1184,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     </div>
                     <div className="text-right">
                       <span className="font-mono font-bold text-sm tracking-widest bg-[#53565b] text-white px-2 py-1">
-                        {order.orderNo || order.officialOrderId || (order.orderId ? `#MAA-${order.orderId.substring(0, 4).toUpperCase()}` : '處理中')}
+                        {order.orderNo || '處理中...'}
                       </span>
                     </div>
                   </div>
@@ -1189,7 +1205,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <div className="flex gap-2 overflow-x-auto pb-2">
                         {order.referenceImages.map((img: string, i: number) => (
                           <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                            <img src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
+                            <img loading="lazy" src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
                           </a>
                         ))}
                       </div>
@@ -1276,7 +1292,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                                 <span className="text-xs font-bold tracking-widest w-10 text-[#53565b]">{stageLabel}</span>
                                 {uploadedUrl ? (
                                   <a href={uploadedUrl} target="_blank" rel="noopener noreferrer">
-                                    <img src={uploadedUrl} className="w-10 h-10 object-cover border border-gray-300 hover:opacity-80 transition-opacity" alt={`${stageLabel}預覽`} crossOrigin="anonymous" />
+                                    <img loading="lazy" src={uploadedUrl} className="w-10 h-10 object-cover border border-gray-300 hover:opacity-80 transition-opacity" alt={`${stageLabel}預覽`} crossOrigin="anonymous" />
                                   </a>
                                 ) : (
                                   <span className="text-xs text-gray-400 tracking-widest">未上傳</span>
@@ -1362,7 +1378,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
           onClick={() => setLightboxImage(null)}
         >
-          <img 
+          <img loading="lazy" 
             src={lightboxImage} 
             alt="Full size reference" 
             crossOrigin="anonymous"
