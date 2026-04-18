@@ -28,70 +28,9 @@ export default function PaymentInfo({ onBack }: PaymentInfoProps) {
       </div>
 
       <div className="space-y-12">
-        {/* 1. 信用卡與行動支付 */}
+        {/* ATM 與 虛擬帳號 */}
         <section className="window-box">
-          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">1. 信用卡與行動支付</h3>
-          <p className="text-gray-600 mb-6 tracking-widest text-sm">最快速的付款方式，支援多種行動裝置。</p>
-          
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse min-w-[600px]">
-              <thead>
-                <tr className="border-b-2 border-[#53565b]">
-                  <th className="py-3 px-4 font-bold tracking-widest w-1/4">支付類型</th>
-                  <th className="py-3 px-4 font-bold tracking-widest w-1/2">合作銀行 / 管道</th>
-                  <th className="py-3 px-4 font-bold tracking-widest w-1/4">手續費率</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                <tr className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-4 tracking-widest">一次付清</td>
-                  <td className="py-4 px-4 tracking-widest text-gray-600">國內各大銀行信用卡</td>
-                  <td className="py-4 px-4 tracking-widest font-mono">2.8%</td>
-                </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-4 tracking-widest">行動支付</td>
-                  <td className="py-4 px-4 tracking-widest text-gray-600">Apple / Google / Samsung Pay、玉山 Wallet</td>
-                  <td className="py-4 px-4 tracking-widest font-mono">2.8%</td>
-                </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-4 tracking-widest">國外信用卡</td>
-                  <td className="py-4 px-4 tracking-widest text-gray-600">非台灣地區發行之信用卡</td>
-                  <td className="py-4 px-4 tracking-widest font-mono">3.5%</td>
-                </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
-                  <td className="py-4 px-4 tracking-widest">銀聯卡 / DCC</td>
-                  <td className="py-4 px-4 tracking-widest text-gray-600">動態貨幣轉換支付</td>
-                  <td className="py-4 px-4 tracking-widest font-mono">2.8%</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* 2. 信用卡分期付款 */}
-        <section className="window-box">
-          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">2. 信用卡分期付款</h3>
-          <p className="text-gray-600 mb-6 tracking-widest text-sm">若金額較大，可選擇分期減輕負擔。</p>
-          
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-            {[
-              { term: '3 期', rate: '3.0%' },
-              { term: '6 期', rate: '3.5%' },
-              { term: '12 期', rate: '7.0%' },
-              { term: '24 期', rate: '12.0%' },
-              { term: '30 期', rate: '15.0%' },
-            ].map((item, idx) => (
-              <div key={idx} className="border border-[#53565b] p-4 text-center bg-white/50">
-                <div className="font-bold tracking-widest mb-2">{item.term}</div>
-                <div className="font-mono text-lg text-gray-600">{item.rate}</div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* 3. ATM 與 虛擬帳號 */}
-        <section className="window-box">
-          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">3. ATM 與 虛擬帳號</h3>
+          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">ATM 與 虛擬帳號</h3>
           <p className="text-gray-600 mb-6 tracking-widest text-sm">適合習慣轉帳或無信用卡的委託人。</p>
           
           <div className="overflow-x-auto">
