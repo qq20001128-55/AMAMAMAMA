@@ -51,6 +51,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [modalOrdersType, setModalOrdersType] = useState<'pending' | 'completed' | 'all'>('all');
   const [selectedCalendarDate, setSelectedCalendarDate] = useState<Date | null>(null);
 
+  const [acceptPrices, setAcceptPrices] = useState<Record<string, string>>({});
+
   useEffect(() => {
     fetchOrders();
     fetchAllOrders();
@@ -356,6 +358,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   };
 
   const handleAcceptOrder = async (order: any) => {
+    const price = acceptPrices[order.id];
+    if (!price || !price.trim()) {
+      alert('局長，請先填寫酬金金額');
+      return;
+    }
+    
     if (!window.confirm('確定要接收此委託嗎？')) return;
     try {
       const newHistory = { ...(order.progressHistory || {}) };
@@ -364,7 +372,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       const updatedData: any = { 
         status: 'queued', 
         progressHistory: newHistory,
-        orderNo: generatedOrderNo
+        orderNo: generatedOrderNo,
+        price: price
       };
       
       await updateDoc(doc(db, 'orders', order.id), updatedData);
@@ -381,7 +390,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             {
               name: order.nickname || '委託人',
               email: order.email,
-              order_no: generatedOrderNo
+              order_no: generatedOrderNo,
+              price: price
             }
           );
           alert('契成，通知已傳達');
@@ -390,6 +400,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           alert('法陣失靈，請檢查網路或憑證');
         }
       }
+      
+      // Clean up the price input state
+      setAcceptPrices(prev => {
+        const next = { ...prev };
+        delete next[order.id];
+        return next;
+      });
     } catch (err) {
       console.error('Accept order error:', err);
       alert('操作失敗，請稍後再試。');
@@ -658,7 +675,17 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <span className="inline-block px-3 py-1 bg-gray-300 text-gray-800 text-xs font-bold tracking-widest">
                       {order.status === 'pending' ? '確認中' : (getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '資料已歸檔')}
                     </span>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs text-gray-500 font-bold hidden sm:inline-block">報價金額</label>
+                        <input
+                          type="text"
+                          placeholder="請輸入報價"
+                          className="px-2 py-1 border border-[#53565b] text-sm w-24 focus:outline-none focus:ring-1 focus:ring-[#53565b]"
+                          value={acceptPrices[order.id] || ''}
+                          onChange={(e) => setAcceptPrices(prev => ({ ...prev, [order.id]: e.target.value }))}
+                        />
+                      </div>
                       <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-1 px-3 py-1 bg-[#53565b] text-[#fafafa] text-sm tracking-widest hover:bg-gray-800 transition-colors">
                         <CheckCircle2 size={14} /> 接收
                       </button>
@@ -1413,14 +1440,24 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
                   <div className="flex justify-end gap-4 mt-6">
                     {order.status === 'pending' ? (
-                      <>
+                      <div className="flex flex-wrap items-center gap-4">
+                        <div className="flex items-center gap-2">
+                          <label className="text-sm text-gray-500 font-bold">報價金額</label>
+                          <input
+                            type="text"
+                            placeholder="請輸入報價"
+                            className="px-3 py-2 border border-[#53565b] text-sm w-32 focus:outline-none focus:ring-1 focus:ring-[#53565b]"
+                            value={acceptPrices[order.id] || ''}
+                            onChange={(e) => setAcceptPrices(prev => ({ ...prev, [order.id]: e.target.value }))}
+                          />
+                        </div>
                         <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-2 px-4 py-2 bg-[#53565b] text-[#fafafa] tracking-widest hover:bg-gray-800 transition-colors">
                           <CheckCircle2 size={16} /> 確認委託
                         </button>
                         <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
                           <X size={16} /> 婉拒
                         </button>
-                      </>
+                      </div>
                     ) : editingId === order.id ? (
                       <>
                         <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
