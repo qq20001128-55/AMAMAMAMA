@@ -1310,19 +1310,27 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   {/* References */}
                   <div>
                     <p className="text-sm text-gray-500 tracking-widest mb-2">參考資料：</p>
-                    {order.referenceType === 'link' ? (
-                      <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#53565b] hover:underline text-sm tracking-widest">
-                        <ExternalLink size={16} /> 開啟連結
-                      </a>
-                    ) : order.referenceImages?.length > 0 ? (
-                      <div className="flex gap-2 overflow-x-auto pb-2">
-                        {order.referenceImages.map((img: string, i: number) => (
-                          <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                            <img loading="lazy" src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
+                    <div className="space-y-3">
+                      {order.referenceLink && (
+                        <div>
+                          <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#53565b] hover:underline text-sm tracking-widest">
+                            <ExternalLink size={16} /> 開啟連結
                           </a>
-                        ))}
-                      </div>
-                    ) : <span className="text-sm text-gray-400">無</span>}
+                        </div>
+                      )}
+                      {order.referenceImages?.length > 0 && (
+                        <div className="flex gap-2 overflow-x-auto pb-2">
+                          {order.referenceImages.map((img: string, i: number) => (
+                            <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                              <img loading="lazy" src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {(!order.referenceLink && (!order.referenceImages || order.referenceImages.length === 0)) && (
+                        <span className="text-sm text-gray-400">無</span>
+                      )}
+                    </div>
                   </div>
                 </div>
 

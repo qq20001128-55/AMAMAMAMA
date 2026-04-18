@@ -87,7 +87,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
       const tempId = uuidv4();
       let imageUrls: string[] = [];
 
-      if (refType === 'image' && files.length > 0) {
+      if (files.length > 0) {
         const uploadPromises = files.map(async (file, index) => {
           const compressedBlob = await compressImage(file);
           const storageRef = ref(storage, `references/${tempId}_${index}.webp`);
@@ -102,6 +102,11 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
       const priceText = matchedItem ? (matchedItem.price || matchedItem.description) : '請確認價目表';
       const selectedWorkflow = matchedItem?.workflow || 'full';
 
+      let finalRefType = 'none';
+      if (files.length > 0 && formData.referenceLink) finalRefType = 'both';
+      else if (files.length > 0) finalRefType = 'image';
+      else if (formData.referenceLink) finalRefType = 'link';
+
       await addDoc(collection(db, 'orders'), {
         nickname: formData.nickname,
         email: formData.email,
@@ -110,9 +115,9 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         category: formData.category,
         workflow: selectedWorkflow,
         description: formData.description,
-        referenceType: refType,
+        referenceType: finalRefType,
         referenceImages: imageUrls,
-        referenceLink: refType === 'link' ? formData.referenceLink : '',
+        referenceLink: formData.referenceLink || '',
         status: 'pending',
         progressHistory: {
           pending: {
@@ -463,16 +468,17 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               onClick={() => setRefType('image')}
               className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[#53565b] text-[#fafafa]" : "hover:bg-gray-100")}
             >
-              <ImageIcon size={18} /> 上傳圖片
+              <ImageIcon size={18} /> 上傳圖片 {files.length > 0 && <span className={cn("text-xs px-2 py-0.5 font-bold", refType === 'image' ? "bg-[#fafafa] text-[#53565b]" : "bg-[#53565b] text-white")}>{files.length}</span>}
             </button>
             <button
               type="button"
               onClick={() => setRefType('link')}
               className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[#53565b] text-[#fafafa]" : "hover:bg-gray-100")}
             >
-              <LinkIcon size={18} /> 附上連結
+              <LinkIcon size={18} /> 附上連結 {formData.referenceLink && <CheckCircle2 size={16} className={refType === 'link' ? "text-[#fafafa]" : "text-[#53565b]"} />}
             </button>
           </div>
+          <p className="text-xs text-gray-500 font-bold tracking-widest mb-4">* 可同時提供圖片與連結</p>
 
           {refType === 'image' ? (
             <div className="space-y-4">
