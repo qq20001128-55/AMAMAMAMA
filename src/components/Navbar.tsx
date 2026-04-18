@@ -7,9 +7,10 @@ interface NavbarProps {
   setPage: (page: any) => void;
   currentPage: string;
   user: User | null;
+  siteConfig?: any;
 }
 
-export default function Navbar({ setPage, currentPage, user }: NavbarProps) {
+export default function Navbar({ setPage, currentPage, user, siteConfig }: NavbarProps) {
   // Check if user is admin
   const isAdmin = user?.email === 'sara20001128@gmail.com';
 
@@ -20,7 +21,11 @@ export default function Navbar({ setPage, currentPage, user }: NavbarProps) {
           onClick={() => setPage('home')}
           className="text-2xl font-black tracking-widest hover:text-[#53565b] transition-colors flex items-center gap-2"
         >
-          <span className="w-8 h-8 border-2 border-[#53565b] flex items-center justify-center text-sm font-bold bg-[#53565b] text-[#fafafa]">龍</span>
+          {siteConfig?.logoUrl ? (
+            <img src={siteConfig.logoUrl} alt="Logo" crossOrigin="anonymous" className="h-8 w-auto object-contain" />
+          ) : (
+            <span className="w-8 h-8 border-2 border-[#53565b] flex items-center justify-center text-sm font-bold bg-[#53565b] text-[#fafafa]">龍</span>
+          )}
           龍契局
         </button>
 

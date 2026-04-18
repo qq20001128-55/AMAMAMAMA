@@ -41,8 +41,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const isAdmin = user?.email === 'sara20001128@gmail.com';
 
-  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
-  const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | null>(null);
+  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
+  const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | null>(null);
 
   const [announcementInput, setAnnouncementInput] = useState('');
 
@@ -69,7 +69,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           setAnnouncementInput(data.announcement.text || '');
         }
       } else {
-        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
+        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
       }
     } catch (err) {
       console.error('Fetch site config error:', err);
@@ -106,7 +106,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  const handleSiteConfigUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'homeBg' | 'pageBg' | 'titleStyle') => {
+  const handleSiteConfigUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -129,7 +129,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  const handleDeleteSiteImage = async (type: 'homeBg' | 'pageBg' | 'titleStyle') => {
+  const handleDeleteSiteImage = async (type: 'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo') => {
     if (!window.confirm('確定要刪除此圖片並恢復預設嗎？')) return;
     try {
       const storageRef = ref(storage, `system/custom_ui/${type}.png`);
@@ -904,7 +904,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   ) : (
                     <div className="flex flex-col items-center justify-center text-gray-400">
                       <span className="text-sm tracking-widest mb-1">未上傳</span>
-                      <span className="text-xs">（無裝飾圖）</span>
+                      <span className="text-xs">（使用預設文字）</span>
                     </div>
                   )}
                   <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
@@ -914,6 +914,66 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       <span className="text-xs tracking-widest">上傳標題裝飾圖</span>
                     )}
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'titleStyle')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">左上角 ICON</p>
+                <div className="aspect-square max-w-[200px] min-w-[150px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.logoUrl ? (
+                    <>
+                      <img loading="lazy" src={siteConfig.logoUrl} alt="Logo" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('logo')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（使用預設文字）</span>
+                    </div>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'logo' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest text-center">上傳左上角<br/>導覽列 ICON</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'logo')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">網頁 ICON</p>
+                <div className="aspect-square max-w-[200px] min-w-[150px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.faviconUrl ? (
+                    <>
+                      <img loading="lazy" src={siteConfig.faviconUrl} alt="Favicon" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('favicon')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（使用預設圖示）</span>
+                    </div>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'favicon' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest text-center">上傳瀏覽器<br/>分頁 ICON</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'favicon')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
               </div>

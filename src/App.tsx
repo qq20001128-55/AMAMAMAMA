@@ -52,8 +52,15 @@ export default function App() {
         setSiteConfig(data);
         if (data.homeBgUrl) document.documentElement.style.setProperty('--home-bg-url', `url("${data.homeBgUrl}")`);
         if (data.pageBgUrl) document.documentElement.style.setProperty('--page-bg-url', `url("${data.pageBgUrl}")`);
-        if (data.titleStyleUrl) document.documentElement.style.setProperty('--title-style-url', `url("${data.titleStyleUrl}")`);
         if (data.themeColor) document.documentElement.style.setProperty('--theme-color', data.themeColor);
+        
+        let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+        if (!link) {
+          link = document.createElement('link');
+          link.rel = 'icon';
+          document.head.appendChild(link);
+        }
+        link.href = data.faviconUrl || '/favicon.png';
       }
     });
     return () => unsub();
@@ -86,9 +93,13 @@ export default function App() {
             className="max-w-4xl mx-auto px-6 py-20 text-center relative"
           >
             <div className="mb-12 relative inline-block">
-              <h1 className="text-6xl md:text-8xl font-black tracking-widest text-[#53565b] mb-8" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', height: '400px' }}>
-                龍契局
-              </h1>
+              {siteConfig.titleStyleUrl ? (
+                <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[400px] object-contain mb-8 relative z-10 mx-auto" crossOrigin="anonymous" />
+              ) : (
+                <h1 className="text-6xl md:text-8xl font-black tracking-widest text-[#53565b] mb-8" style={{ writingMode: 'vertical-rl', textOrientation: 'upright', height: '400px' }}>
+                  龍契局
+                </h1>
+              )}
               <div className="absolute top-0 -right-16 md:-right-24 h-full flex flex-col items-center justify-center">
                 <div className="w-[2px] h-full bg-[#53565b] opacity-20"></div>
                 <div className="absolute w-8 h-8 border-2 border-[#53565b] rotate-45 bg-[#fafafa]"></div>
@@ -159,7 +170,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen text-[#53565b] font-serif relative overflow-hidden">
-      <Navbar setPage={setPage} currentPage={page} user={user} />
+      <Navbar setPage={setPage} currentPage={page} user={user} siteConfig={siteConfig} />
       <main className="pt-20 relative z-10 min-h-[calc(100vh-100px)] bg-white/70 backdrop-blur-[5px]">
         <AnimatePresence mode="wait">
           {renderPage()}
