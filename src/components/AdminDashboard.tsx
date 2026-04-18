@@ -9,6 +9,7 @@ import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseIS
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addDoc } from 'firebase/firestore';
 import Modal from './Modal';
+import emailjs from '@emailjs/browser';
 
 interface AdminDashboardProps {
   onBack: () => void;
@@ -373,13 +374,21 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       setAllOrders(prev => prev.map(o => o.id === order.id ? fullUpdatedOrder : o));
       
       if (order.email) {
-        await addDoc(collection(db, 'mail'), {
-          to: order.email,
-          message: {
-            subject: `【龍契局】委託已受理確認`,
-            html: `<p>承契者您好：</p><p>您的委託項目 <strong>${order.title}</strong> 已由瑪阿正式受理！</p><p>專屬訂單編號：<strong>${generatedOrderNo}</strong></p><p>目前進度：<strong>排單中</strong></p><p>請前往龍契局網站使用此編號查詢最新狀況。</p><p>——瑪阿</p>`
-          }
-        });
+        try {
+          await emailjs.send(
+            'service_tf2ftrl',
+            'template_z79vc6n',
+            {
+              name: order.nickname || '委託人',
+              email: order.email,
+              order_no: generatedOrderNo
+            }
+          );
+          alert('契成，通知已傳達');
+        } catch (emailErr) {
+          console.error('EmailJS error:', emailErr);
+          alert('法陣失靈，請檢查網路或憑證');
+        }
       }
     } catch (err) {
       console.error('Accept order error:', err);
@@ -395,16 +404,25 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       const updatedData = { status: 'closed', progressHistory: newHistory };
       
       await updateDoc(doc(db, 'orders', order.id), updatedData);
+      setOrders(prev => prev.filter(o => o.id !== order.id));
       setAllOrders(prev => prev.map(o => o.id === order.id ? { ...order, ...updatedData } : o));
       
       if (order.email) {
-        await addDoc(collection(db, 'mail'), {
-          to: order.email,
-          message: {
-            subject: `【龍契局】委託結果通知`,
-            html: `<p>承契者您好：</p><p>非常抱歉，關於您的委託項目 <strong>${order.title}</strong>，因目前排程或其他考量，瑪阿無法受理此委託。</p><p>感謝您的詢問與支持，期待未來有機會合作。</p><p>——瑪阿</p>`
-          }
-        });
+        try {
+          await emailjs.send(
+            'service_tf2ftrl',
+            'template_ulbq1cf',
+            {
+              name: order.nickname || '委託人',
+              email: order.email,
+              order_no: order.orderNo || '處理中'
+            }
+          );
+          alert('已婉拒，通知已傳達');
+        } catch (emailErr) {
+          console.error('EmailJS error:', emailErr);
+          alert('法陣失靈，請檢查網路或憑證');
+        }
       }
     } catch (err) {
       console.error('Reject order error:', err);
@@ -636,23 +654,31 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <span className="inline-block px-3 py-1 bg-gray-300 text-gray-800 text-xs font-bold tracking-widest">
                       {order.status === 'pending' ? '確認中' : (getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '資料已歸檔')}
                     </span>
-                    <button 
-                      onClick={() => {
-                        setModalOrdersType('pending');
-                        setActiveModal('orders');
-                        setTimeout(() => {
-                          const el = document.getElementById(`order-${order.id}`);
-                          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }, 100);
-                      }}
-                      className="text-sm text-[#53565b] hover:font-bold tracking-widest flex items-center gap-1"
-                    >
-                      <ExternalLink size={14} /> 審核
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-1 px-3 py-1 bg-[#53565b] text-[#fafafa] text-sm tracking-widest hover:bg-gray-800 transition-colors">
+                        <CheckCircle2 size={14} /> 接收
+                      </button>
+                      <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-1 px-3 py-1 border border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                        <X size={14} /> 婉拒
+                      </button>
+                      <button 
+                        onClick={() => {
+                          setModalOrdersType('pending');
+                          setActiveModal('orders');
+                          setTimeout(() => {
+                            const el = document.getElementById(`order-${order.id}`);
+                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                          }, 100);
+                        }}
+                        className="text-sm text-[#53565b] hover:font-bold tracking-widest flex items-center gap-1 ml-2"
+                      >
+                        <ExternalLink size={14} /> 詳情
+                      </button>
+                    </div>
                   </div>
                 </div>
               ))}

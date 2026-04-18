@@ -354,11 +354,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
           </div>
         </div>
         <SectionTitle>契約已立</SectionTitle>
-        <div className="window-box-octagon mb-8">
-          <p className="text-xs text-gray-500 tracking-widest mb-2">訂單編號</p>
-          <p className="font-mono text-lg break-all font-bold text-[#53565b]">處理中...</p>
-        </div>
-        <div className="text-gray-700 mb-8 tracking-widest leading-loose text-sm text-left space-y-4">
+        <div className="text-gray-700 mb-8 tracking-widest leading-loose text-sm text-center md:text-left space-y-4">
           <p>專屬訂單編號將於委託正式確認後（進入排單中）隨信件發送給您，<br/>屆時即可使用編號於本站查詢進度。<br/>感謝你的委託與信任。</p>
           
           <p>龍契局會依據內容、時間與創作狀態進行承接判斷，<br/>並非所有委託皆能成立。</p>
