@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { cn } from '../lib/utils';
 import { X, ChevronLeft } from 'lucide-react';
 import { SectionTitle } from './SectionTitle';
+import ColorWheelStack from './ColorWheelStack';
 
 interface PortfolioProps {
   onBack: () => void;
@@ -13,6 +14,7 @@ interface PortfolioProps {
 export default function Portfolio({ onBack }: PortfolioProps) {
   const [categories, setCategories] = useState<any[]>([]);
   const [artworks, setArtworks] = useState<any[]>([]);
+  const [colorWheels, setColorWheels] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [loading, setLoading] = useState(true);
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
@@ -31,6 +33,14 @@ export default function Portfolio({ onBack }: PortfolioProps) {
           artSnap = await getDocs(collection(db, 'artworks'));
         }
         setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+        
+        let cwSnap;
+        try {
+          cwSnap = await getDocs(query(collection(db, 'colorWheels'), orderBy('createdAt', 'desc')));
+        } catch (err) {
+          cwSnap = await getDocs(collection(db, 'colorWheels'));
+        }
+        setColorWheels(cwSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
         console.error('Fetch portfolio error:', err);
       } finally {
@@ -68,6 +78,9 @@ export default function Portfolio({ onBack }: PortfolioProps) {
         <SectionTitle className="!mb-0">作品集</SectionTitle>
         <p className="text-gray-400 text-sm uppercase tracking-widest">Selected Works</p>
       </div>
+      
+      {/* 堆疊色環視圖 */}
+      {colorWheels.length > 0 && <ColorWheelStack colorWheels={colorWheels} />}
 
       {/* Category Filter */}
       <div className="flex flex-wrap gap-4 mb-12">

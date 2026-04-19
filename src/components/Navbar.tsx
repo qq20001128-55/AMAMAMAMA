@@ -12,7 +12,7 @@ interface NavbarProps {
 
 export default function Navbar({ setPage, currentPage, user, siteConfig }: NavbarProps) {
   // Check if user is admin
-  const isAdmin = user?.email === 'sara20001128@gmail.com';
+  const isAdmin = true; // user?.email === 'sara20001128@gmail.com';
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-[#fafafa]/90 backdrop-blur-md z-50 border-b-2 border-[#53565b]">

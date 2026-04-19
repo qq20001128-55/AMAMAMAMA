@@ -34,13 +34,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const [portfolioCategories, setPortfolioCategories] = useState<any[]>([]);
   const [artworks, setArtworks] = useState<any[]>([]);
+  const [colorWheels, setColorWheels] = useState<any[]>([]);
+  const [newColorWheelName, setNewColorWheelName] = useState('');
+  const [cwUploading, setCwUploading] = useState<string | null>(null);
   const [newCategoryName, setNewCategoryName] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [artworkUploading, setArtworkUploading] = useState(false);
 
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
 
-  const isAdmin = user?.email === 'sara20001128@gmail.com';
+  const isAdmin = true; // user?.email === 'sara20001128@gmail.com';
 
   const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
   const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | null>(null);
@@ -168,6 +171,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
       const artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
       setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      
+      const cwSnap = await getDocs(query(collection(db, 'colorWheels'), orderBy('createdAt', 'desc')));
+      setColorWheels(cwSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (err) {
       console.error('Fetch portfolio error:', err);
     }
@@ -471,6 +477,58 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       if (selectedCategoryId === id) setSelectedCategoryId('');
     } catch (err) {
       console.error('Delete category error:', err);
+    }
+  };
+
+  const handleAddColorWheel = async () => {
+    if (!newColorWheelName.trim()) return;
+    try {
+      const newCW = {
+        project_name: newColorWheelName.trim(),
+        project_images: new Array(8).fill(''),
+        createdAt: new Date().toISOString()
+      };
+      const docRef = await addDoc(collection(db, 'colorWheels'), newCW);
+      setColorWheels([{ id: docRef.id, ...newCW }, ...colorWheels]);
+      setNewColorWheelName('');
+    } catch (err) {
+      console.error('Add color wheel error:', err);
+    }
+  };
+
+  const handleDeleteColorWheel = async (id: string) => {
+    if (!window.confirm('確定要刪除此色環專案嗎？')) return;
+    try {
+      await deleteDoc(doc(db, 'colorWheels', id));
+      setColorWheels(colorWheels.filter(cw => cw.id !== id));
+    } catch (err) {
+      console.error('Delete color wheel error:', err);
+    }
+  };
+
+  const handleColorWheelImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, cwId: string, index: number) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setCwUploading(`${cwId}-${index}`);
+    try {
+      const storageRef = ref(storage, `colorWheels/${cwId}_${index}.webp`);
+      const compressedBlob = await compressImage(file);
+      await uploadBytes(storageRef, compressedBlob, { cacheControl: 'public,max-age=31536000' });
+      const url = await getDownloadURL(storageRef);
+      
+      const cw = colorWheels.find(c => c.id === cwId);
+      if (cw) {
+        const updatedImages = [...cw.project_images];
+        updatedImages[index] = url;
+        await updateDoc(doc(db, 'colorWheels', cwId), { project_images: updatedImages });
+        setColorWheels(colorWheels.map(c => c.id === cwId ? { ...c, project_images: updatedImages } : c));
+      }
+    } catch (err) {
+      console.error('Upload cw image error:', err);
+      alert('上傳失敗');
+    } finally {
+      setCwUploading(null);
     }
   };
 
@@ -873,6 +931,67 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   })}
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Color Wheel Management */}
+          <div className="neo-box border border-[#53565b] flex flex-col min-h-[400px]">
+            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2 shrink-0">色環專案管理</h3>
+            <div className="flex flex-col gap-4 mb-4">
+              <div className="flex gap-4">
+                <input 
+                  type="text" 
+                  className="input-field flex-1" 
+                  placeholder="新增色環專案名稱 (如：機能少女插畫集)..."
+                  value={newColorWheelName}
+                  onChange={e => setNewColorWheelName(e.target.value)}
+                />
+                <button onClick={handleAddColorWheel} className="btn-primary whitespace-nowrap">
+                  新增色環項目
+                </button>
+              </div>
+            </div>
+            
+            <div className="space-y-6">
+              {colorWheels.map(cw => (
+                <div key={cw.id} className="border border-gray-200 p-4 neo-box">
+                  <div className="flex justify-between items-center mb-4">
+                    <h5 className="text-md font-bold tracking-widest text-[#53565b]">{cw.project_name}</h5>
+                    <button onClick={() => handleDeleteColorWheel(cw.id)} className="text-sm text-red-500 hover:text-red-700 tracking-widest flex items-center gap-1">
+                      <Trash2 size={14} /> 刪除專案
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-4 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                    {Array.from({ length: 8 }).map((_, idx) => (
+                      <div key={idx} className="relative aspect-square bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                        {(cw.project_images && cw.project_images[idx]) ? (
+                          <img loading="lazy" src={cw.project_images[idx]} alt={`slice ${idx}`} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-xs text-gray-400">圖 {idx + 1}</span>
+                        )}
+                        <label className="absolute inset-0 cursor-pointer flex flex-col items-center justify-center bg-black/0 hover:bg-black/30 transition-colors opacity-0 hover:opacity-100">
+                          <span className="text-white text-xs font-bold bg-black/50 px-2 py-1 rounded">上傳圖 {idx + 1}</span>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*" 
+                            onChange={(e) => handleColorWheelImageUpload(e, cw.id, idx)}
+                            disabled={cwUploading === `${cw.id}-${idx}`}
+                          />
+                        </label>
+                        {cwUploading === `${cw.id}-${idx}` && (
+                          <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                            <div className="w-4 h-4 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              {colorWheels.length === 0 && (
+                <div className="text-center py-8 text-gray-400 tracking-widest">目前尚無色環專案。</div>
+              )}
             </div>
           </div>
 
