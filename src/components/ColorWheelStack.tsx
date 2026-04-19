@@ -15,10 +15,15 @@ const polarToCartesian = (cx: number, cy: number, r: number, angleDef: number) =
   };
 };
 
-const getWedgePath = (cx: number, cy: number, r: number, startAngle: number, endAngle: number) => {
-  const start = polarToCartesian(cx, cy, r, startAngle);
-  const end = polarToCartesian(cx, cy, r, endAngle);
-  return `M ${cx} ${cy} L ${start.x} ${start.y} A ${r} ${r} 0 0 1 ${end.x} ${end.y} Z`;
+const getAnnularWedgePath = (cx: number, cy: number, inR: number, outR: number, startAngle: number, endAngle: number) => {
+  const outStart = polarToCartesian(cx, cy, outR, startAngle);
+  const outEnd = polarToCartesian(cx, cy, outR, endAngle);
+  const inStart = polarToCartesian(cx, cy, inR, startAngle);
+  const inEnd = polarToCartesian(cx, cy, inR, endAngle);
+  const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+  // Clockwise outer arc (1), counter-clockwise inner arc (0)
+  return `M ${outStart.x} ${outStart.y} A ${outR} ${outR} 0 ${largeArcFlag} 1 ${outEnd.x} ${outEnd.y} L ${inEnd.x} ${inEnd.y} A ${inR} ${inR} 0 ${largeArcFlag} 0 ${inStart.x} ${inStart.y} Z`;
 };
 
 export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
@@ -29,6 +34,7 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
   const cx = 150;
   const cy = 150;
   const r = 150;
+  const innerR = 85; // Controls the size of the transparent text hole in the middle
 
   const handleWheelClick = (id: string) => {
     setActiveWheelId(id);
@@ -38,7 +44,7 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
   const handleWedgeClick = (e: React.MouseEvent, wheelId: string, index: number) => {
     if (activeWheelId === wheelId) {
       e.stopPropagation();
-      setActiveWedgeIndex(index);
+      setActiveWedgeIndex(activeWedgeIndex === index ? null : index);
     }
   };
 
@@ -49,21 +55,6 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
 
   const closeWedge = () => {
     setActiveWedgeIndex(null);
-  };
-
-  // 0, 7 or 1, 6 are left/right etc.
-  // indices: 
-  // 0: 12 to 1:30 (top right) -> align right
-  // 1: 1:30 to 3:00 (right) -> align right
-  // 2: 3:00 to 4:30 (bottom right) -> align right
-  // 3: 4:30 to 6:00 (bottom right) -> align right
-  // 4: 6:00 to 7:30 (bottom left) -> align left
-  // 5: 7:30 to 9:00 (left) -> align left
-  // 6: 9:00 to 10:30 (top left) -> align left
-  // 7: 10:30 to 12:00 (top left) -> align left
-  const getAlignment = (index: number) => {
-    if (index >= 0 && index <= 3) return 'right';
-    return 'left';
   };
 
   return (
@@ -84,7 +75,7 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
                   key={wheel.id}
                   className="relative cursor-pointer transition-all duration-[400ms] ease-out"
                   style={{
-                    marginLeft: index === 0 ? '0' : '-160px',
+                    marginLeft: index === 0 ? '0' : '-120px', // slightly tighter stack
                     zIndex: isHovered ? 50 : index,
                   }}
                   onMouseEnter={() => setHoveredId(wheel.id)}
@@ -95,11 +86,12 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
                     className={cn(
                       "w-[300px] h-[300px] sm:w-[320px] sm:h-[320px] rounded-full transition-all duration-[400ms] ease-out relative",
                       isHovered 
-                        ? "scale-110 -translate-y-8 shadow-[0_20px_40px_rgba(0,0,0,0.4)]" 
-                        : "scale-100 shadow-[-10px_0_20px_rgba(0,0,0,0.3)]"
+                        ? "scale-110 -translate-y-8 shadow-[0_10px_25px_rgba(0,0,0,0.4)]" 
+                        : "scale-100 shadow-[-5px_0_15px_rgba(0,0,0,0.3)]"
                     )}
+                    style={{ backgroundColor: 'transparent' }}
                   >
-                    <svg viewBox="0 0 300 300" className="w-full h-full drop-shadow-xl" style={{ filter: "drop-shadow(0px 0px 10px rgba(0,0,0,0.5))" }}>
+                    <svg viewBox="0 0 300 300" className="w-full h-full overflow-visible">
                       <defs>
                         {wheel.project_images?.map((img: string, i: number) => (
                           <pattern key={i} id={`pat-${wheel.id}-${i}`} patternUnits="userSpaceOnUse" width="300" height="300">
@@ -107,25 +99,25 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
                           </pattern>
                         ))}
                       </defs>
-                      <circle cx={cx} cy={cy} r={r} fill="#1a1a1a" />
-                      {wheel.project_images?.map((img: string, i: number) => {
-                        const startAngle = i * 45 + 1;
-                        const endAngle = (i + 1) * 45 - 2;
-                        return (
-                          <path 
-                            key={i} 
-                            d={getWedgePath(cx, cy, r, startAngle, endAngle)} 
-                            fill={img ? `url(#pat-${wheel.id}-${i})` : '#333'} 
-                            className="transition-all duration-300"
-                          />
-                        );
-                      })}
-                      <circle cx={cx} cy={cy} r={50} fill="white" />
+                      <g style={{ filter: "drop-shadow(0px 0px 2px rgba(0,0,0,0.3))" }}>
+                        {wheel.project_images?.map((img: string, i: number) => {
+                          const startAngle = i * 45 + 1; // 1 degree gap
+                          const endAngle = (i + 1) * 45 - 2; // Extra gap
+                          return (
+                            <path 
+                              key={i} 
+                              d={getAnnularWedgePath(cx, cy, innerR, r, startAngle, endAngle)} 
+                              fill={img ? `url(#pat-${wheel.id}-${i})` : 'rgba(255,255,255,0.05)'} 
+                              className="transition-all duration-300"
+                            />
+                          );
+                        })}
+                      </g>
                     </svg>
                     
-                    {/* Center Circle Text */}
-                    <div className="absolute inset-0 m-auto w-[100px] h-[100px] rounded-full flex justify-center items-center z-10 pointer-events-none p-2">
-                      <span className="font-black text-center text-[10px] text-[#53565b] leading-tight tracking-widest break-words">
+                    {/* Floating Center Text */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center z-10 w-[140px] pointer-events-none">
+                      <span className="font-black text-center text-xs md:text-sm text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] leading-tight tracking-widest break-words pointer-events-none">
                         {wheel.project_name}
                       </span>
                     </div>
@@ -144,118 +136,125 @@ export default function ColorWheelStack({ colorWheels }: ColorWheelProps) {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md"
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }} // smooth apple-like ease
+            className="fixed inset-0 z-[100] flex bg-black/95 backdrop-blur-xl"
             onClick={closeDeconstruction}
           >
+            {/* Go Back Header */}
             <button 
-              className="absolute top-6 left-6 text-white/50 hover:text-white transition-colors z-[60] flex items-center gap-2 tracking-widest"
+              className="absolute top-6 left-6 text-white/50 hover:text-white transition-colors z-[120] flex items-center gap-2 tracking-widest uppercase text-sm"
               onClick={closeDeconstruction}
             >
-              <ChevronLeft size={24} /> 返回色環堆疊
+              <ChevronLeft size={20} /> 返回作品輪盤
             </button>
 
+            {/* Right Side Expended Image Board */}
+            <AnimatePresence>
+              {activeWedgeIndex !== null && (
+                <motion.div 
+                  initial={{ opacity: 0, x: 50 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 50 }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className="absolute right-0 top-0 bottom-0 w-full md:w-[60%] flex items-center justify-center p-6 md:p-12 z-[90] bg-gradient-to-l from-black/90 via-black/50 to-transparent pointer-events-auto"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <button 
+                    className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors z-[100] bg-black/40 hover:bg-black/60 backdrop-blur rounded-full p-2"
+                    onClick={closeWedge}
+                  >
+                    <X size={24} />
+                  </button>
+                  {(() => {
+                    const wheel = colorWheels.find(w => w.id === activeWheelId);
+                    if (!wheel) return null;
+                    const imgUrl = wheel.project_images?.[activeWedgeIndex];
+                    if (!imgUrl) return null;
+                    return (
+                      <div className="relative w-full h-full flex items-center justify-center lg:items-center max-h-[90vh]">
+                        <img 
+                          src={imgUrl} 
+                          alt={`expanded-${activeWedgeIndex}`} 
+                          className="max-w-full max-h-full object-contain rounded-lg drop-shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-white/5"
+                          crossOrigin="anonymous"
+                        />
+                      </div>
+                    );
+                  })()}
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Centered / Left-Shifted Expanded Wheel */}
             {(() => {
               const wheel = colorWheels.find(w => w.id === activeWheelId);
               if (!wheel) return null;
 
               return (
                 <div 
-                  className={cn("relative transition-all duration-700 ease-out", activeWedgeIndex !== null ? "w-0 h-0 opacity-0" : "w-[400px] h-[400px] md:w-[600px] md:h-[600px]")}
-                  onClick={(e) => e.stopPropagation()}
+                  className="absolute top-1/2 left-1/2 transition-all duration-[800ms] ease-in-out pointer-events-none"
+                  style={{
+                    transform: activeWedgeIndex !== null 
+                      ? 'translate(-50%, -50%) scale(0.85)' 
+                      : 'translate(-50%, -50%) scale(1)',
+                    width: 'clamp(280px, 80vmin, 550px)',
+                    height: 'clamp(280px, 80vmin, 550px)',
+                    zIndex: 110 // Above the background container but below the right image close button
+                  }}
                 >
-                  <svg viewBox="0 0 300 300" className="w-full h-full overflow-visible">
-                    <defs>
-                      {wheel.project_images?.map((img: string, i: number) => (
-                        <pattern key={i} id={`pat-active-${wheel.id}-${i}`} patternUnits="userSpaceOnUse" width="300" height="300">
-                          <image href={img} width="300" height="300" preserveAspectRatio="xMidYMid slice" crossOrigin="anonymous" />
-                        </pattern>
-                      ))}
-                    </defs>
-                    <circle cx={cx} cy={cy} r={r} fill="transparent" />
-                    {wheel.project_images?.map((img: string, i: number) => {
-                      const startAngle = i * 45 + 1;
-                      const endAngle = (i + 1) * 45 - 2;
-                      const isHoveredWedge = hoveredId === `wedge-${i}`;
-                      const displacement = isHoveredWedge ? 10 : 0;
-                      // Move wedge outward slightly on hover
-                      const midAngle = (startAngle + endAngle) / 2;
-                      const dx = displacement * Math.cos((midAngle - 90) * Math.PI / 180);
-                      const dy = displacement * Math.sin((midAngle - 90) * Math.PI / 180);
+                  <div className="w-full h-full relative pointer-events-auto" onClick={e => e.stopPropagation()}>
+                    <svg viewBox="-20 -20 340 340" className="w-full h-full overflow-visible drop-shadow-[0_0_10px_rgba(0,0,0,0.4)]">
+                      <defs>
+                        {wheel.project_images?.map((img: string, i: number) => (
+                          <pattern key={i} id={`pat-active-${wheel.id}-${i}`} patternUnits="userSpaceOnUse" width="300" height="300">
+                            <image href={img} width="300" height="300" preserveAspectRatio="xMidYMid slice" crossOrigin="anonymous" />
+                          </pattern>
+                        ))}
+                      </defs>
+                      {wheel.project_images?.map((img: string, i: number) => {
+                        const startAngle = i * 45 + 1;
+                        const endAngle = (i + 1) * 45 - 2;
+                        const isHoveredWedge = hoveredId === `wedge-${i}`;
+                        const isActiveWedge = activeWedgeIndex === i;
+                        const displacement = isHoveredWedge || isActiveWedge ? 10 : 0;
+                        
+                        const midAngle = (startAngle + endAngle) / 2;
+                        const dx = displacement * Math.cos((midAngle - 90) * Math.PI / 180);
+                        const dy = displacement * Math.sin((midAngle - 90) * Math.PI / 180);
 
-                      return (
-                        <path 
-                          key={i} 
-                          d={getWedgePath(cx, cy, r, startAngle, endAngle)} 
-                          fill={img ? `url(#pat-active-${wheel.id}-${i})` : '#333'} 
-                          className="cursor-pointer transition-all duration-300 transform-gpu hover:brightness-110 hover:shadow-2xl"
-                          style={{
-                            transform: `translate(${dx}px, ${dy}px)`
-                          }}
-                          onMouseEnter={() => setHoveredId(`wedge-${i}`)}
-                          onMouseLeave={() => setHoveredId(null)}
-                          onClick={(e) => handleWedgeClick(e, wheel.id, i)}
-                        />
-                      );
-                    })}
-                    <circle cx={cx} cy={cy} r={45} fill="#fafafa" className="pointer-events-none shadow-2xl" />
-                  </svg>
-                  
-                  <div className="absolute inset-0 m-auto w-[90px] h-[90px] rounded-full flex justify-center items-center z-10 pointer-events-none p-1">
-                    <span className="font-black text-center text-[10px] md:text-sm text-[#53565b] leading-tight tracking-widest break-words pointer-events-none">
-                      {wheel.project_name}
-                    </span>
+                        return (
+                          <path 
+                            key={i} 
+                            d={getAnnularWedgePath(cx, cy, innerR, r, startAngle, endAngle)} 
+                            fill={img ? `url(#pat-active-${wheel.id}-${i})` : 'rgba(255,255,255,0.05)'} 
+                            className="cursor-pointer transition-all duration-500 transform-gpu"
+                            style={{
+                              transform: `translate(${dx}px, ${dy}px)`,
+                              filter: isActiveWedge 
+                                ? "drop-shadow(0px 0px 8px rgba(255,255,255,0.3)) brightness(1.15)" 
+                                : (isHoveredWedge ? "brightness(1.1)" : "brightness(0.9)"),
+                              opacity: isActiveWedge ? 1 : (activeWedgeIndex !== null ? 0.4 : 1) // Dim non-active wedges heavily when one is picked
+                            }}
+                            onMouseEnter={() => setHoveredId(`wedge-${i}`)}
+                            onMouseLeave={() => setHoveredId(null)}
+                            onClick={(e) => handleWedgeClick(e, wheel.id, i)}
+                          />
+                        );
+                      })}
+                    </svg>
+
+                    {/* Highly stylized floating center title */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center pointer-events-none w-[180px]">
+                      <span className="font-black text-center text-base md:text-xl text-white drop-shadow-[0_4px_10px_rgba(0,0,0,1)] leading-tight tracking-widest break-words pointer-events-none transition-opacity duration-500"
+                            style={{ opacity: activeWedgeIndex !== null ? 0.3 : 1 }}
+                      >
+                        {wheel.project_name}
+                      </span>
+                    </div>
                   </div>
                 </div>
               );
             })()}
-
-            {/* Expended Image */}
-            <AnimatePresence>
-              {activeWedgeIndex !== null && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-[70] flex items-center p-4 md:p-12 bg-black/90"
-                  onClick={closeWedge}
-                  style={{
-                    justifyContent: getAlignment(activeWedgeIndex) === 'left' ? 'flex-start' : 'flex-end'
-                  }}
-                >
-                  <button 
-                    className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-[80]"
-                    onClick={closeWedge}
-                  >
-                    <X size={40} />
-                  </button>
-                  
-                  {(() => {
-                    const wheel = colorWheels.find(w => w.id === activeWheelId);
-                    if (!wheel) return null;
-                    const imgUrl = wheel.project_images?.[activeWedgeIndex];
-                    if (!imgUrl) return null;
-
-                    return (
-                      <motion.div 
-                        initial={{ opacity: 0, x: getAlignment(activeWedgeIndex) === 'left' ? -50 : 50 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: getAlignment(activeWedgeIndex) === 'left' ? -50 : 50 }}
-                        transition={{ duration: 0.5, ease: "easeOut" }}
-                        className="relative max-w-[80vw] max-h-[90vh] overflow-hidden rounded-lg shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <img 
-                          src={imgUrl} 
-                          alt={`expanded-${activeWedgeIndex}`} 
-                          className="w-full h-full object-contain"
-                          crossOrigin="anonymous"
-                        />
-                      </motion.div>
-                    );
-                  })()}
-                </motion.div>
-              )}
-            </AnimatePresence>
           </motion.div>
         )}
       </AnimatePresence>
