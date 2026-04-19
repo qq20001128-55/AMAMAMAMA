@@ -34,7 +34,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
   const [uploading, setUploading] = useState(false);
 
   // Check if user is admin
-  const isAdmin = true; // user?.email === 'sara20001128@gmail.com';
+  const isAdmin = user?.email === 'sara20001128@gmail.com';
 
   useEffect(() => {
     fetchProfile();
