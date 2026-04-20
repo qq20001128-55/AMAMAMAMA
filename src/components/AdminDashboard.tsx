@@ -472,13 +472,34 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!window.confirm('確定刪除此分類？相關作品將會失去分類。')) return;
+    if (!window.confirm('確定刪除此分類？這將會【永久刪除】該分類下的「所有作品」及雲端圖檔，以免佔用您的容量。')) return;
     try {
+      // Find all artworks in this category
+      const targetArtworks = artworks.filter(a => a.categoryId === id);
+      
+      // Delete images from Firebase Storage and docs from Firestore
+      for (const art of targetArtworks) {
+        if (art.imageUrl) {
+          try {
+            const fileRef = ref(storage, art.imageUrl);
+            await deleteObject(fileRef);
+          } catch (e) {
+            console.warn('Artwork image not found in storage:', e);
+          }
+        }
+        await deleteDoc(doc(db, 'artworks', art.id));
+      }
+
       await deleteDoc(doc(db, 'portfolioCategories', id));
+      
+      // Update local state
+      setArtworks(artworks.filter(a => a.categoryId !== id));
       setPortfolioCategories(portfolioCategories.filter(c => c.id !== id));
       if (selectedCategoryId === id) setSelectedCategoryId('');
+      
     } catch (err) {
       console.error('Delete category error:', err);
+      alert('刪除分類與作品時發生錯誤');
     }
   };
 
@@ -517,6 +538,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const handleDeleteArtwork = async (id: string) => {
     if (!window.confirm('確定刪除此作品？')) return;
     try {
+      const art = artworks.find(a => a.id === id);
+      if (art && art.imageUrl) {
+        try {
+          // Firebase Storage allows creating a reference directly from an https download URL
+          const fileRef = ref(storage, art.imageUrl);
+          await deleteObject(fileRef);
+        } catch (storageErr) {
+          console.warn('Artwork image not found in storage or already deleted:', storageErr);
+        }
+      }
       await deleteDoc(doc(db, 'artworks', id));
       setArtworks(artworks.filter(a => a.id !== id));
     } catch (err) {
@@ -700,6 +731,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const handleDeletePriceItem = async (id: string) => {
     if (!window.confirm('確定刪除此價目項目？')) return;
     try {
+      const item = priceList.find(i => i.id === id);
+      if (item && item.imageUrl) {
+        try {
+          const fileRef = ref(storage, item.imageUrl);
+          await deleteObject(fileRef);
+        } catch (storageErr) {
+          console.warn('Price image not found in storage or already deleted:', storageErr);
+        }
+      }
       await deleteDoc(doc(db, 'priceList', id));
       setPriceList(priceList.filter(item => item.id !== id));
     } catch (err) {
