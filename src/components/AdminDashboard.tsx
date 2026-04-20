@@ -53,6 +53,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const [acceptPrices, setAcceptPrices] = useState<Record<string, string>>({});
 
+  // 情報部自動化同步系統
+  const [intelTitle, setIntelTitle] = useState('');
+  const [intelText, setIntelText] = useState('');
+  const [intelTags, setIntelTags] = useState('');
+  const [intelFile, setIntelFile] = useState<File | null>(null);
+  const [intelSyncing, setIntelSyncing] = useState(false);
+
   useEffect(() => {
     fetchOrders();
     fetchAllOrders();
@@ -516,6 +523,83 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
+  const handleIntelSync = async () => {
+    if (!intelTitle.trim() || !intelText.trim() || !intelFile) {
+      alert('請填寫標題、內文並選擇圖片。');
+      return;
+    }
+
+    setIntelSyncing(true);
+    let uploadedImageUrl = '';
+    let storageRefObj: any = null;
+
+    try {
+      // 1. 上傳圖片到 Firebase Storage
+      const fileName = `intelligence/${Date.now()}_${intelFile.name}`;
+      storageRefObj = ref(storage, fileName);
+      const compressedBlob = await compressImage(intelFile);
+      await uploadBytes(storageRefObj, compressedBlob, { cacheControl: 'public,max-age=31536000' });
+      uploadedImageUrl = await getDownloadURL(storageRefObj);
+
+      // 2. 存入 Firestore 紀錄
+      const intelDocRef = await addDoc(collection(db, 'intelligence_logs'), {
+        title: intelTitle,
+        text: intelText,
+        tags: intelTags.split(',').map(t => t.trim()).filter(Boolean),
+        image_url: uploadedImageUrl,
+        status: 'Pending Sync',
+        createdAt: serverTimestamp()
+      });
+
+      // 3. 發送 Webhook 請求
+      const webhookResponse = await fetch('https://hook.eu1.make.com/y6sjn7hy57a7oeit8rcgyuobfajpff0u', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: intelTitle,
+          text: intelText,
+          image_url: uploadedImageUrl,
+          tags: intelTags.split(',').map(t => t.trim()).filter(Boolean)
+        })
+      });
+
+      if (!webhookResponse.ok) {
+        throw new Error(`Webhook failed with status: ${webhookResponse.status}`);
+      }
+
+      // 4. Webhook 成功且回傳 200 後，執行確認後銷毀邏輯
+      try {
+        await deleteObject(storageRefObj); // 從 Storage 中徹底刪除原始圖檔
+      } catch (delErr) {
+        console.error('Failed to delete storage file:', delErr);
+        // 如果刪除失敗，不阻擋後續狀態更新
+      }
+
+      await updateDoc(intelDocRef, {
+        image_url: '',
+        status: 'Synced & Purged'
+      });
+
+      alert('同步成功，卷宗已銷毀原檔！');
+      
+      // 清空表單
+      setIntelTitle('');
+      setIntelText('');
+      setIntelTags('');
+      setIntelFile(null);
+      const fileInput = document.getElementById('intelFileInput') as HTMLInputElement;
+      if (fileInput) fileInput.value = '';
+
+    } catch (err: any) {
+      console.error('Intel Sync Error:', err);
+      alert('同步失敗，卷宗已保留在本地。');
+      // 如果發生錯誤，將文檔狀態標記為失敗 (若已建立，這邊也可依需求決定要不要在 catch 內執行額外操作)
+      // 注意：發生錯誤時，不會執行 deleteObject 行為，原始圖片安全地保留在 storage
+    } finally {
+      setIntelSyncing(false);
+    }
+  };
+
   const handleAddPriceItem = async () => {
     try {
       const newItem = {
@@ -872,6 +956,90 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Intelligence Dept */}
+          <div className="neo-box border border-[#53565b]">
+            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2">情報部發布中心</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">情報標題</label>
+                  <input 
+                    type="text" 
+                    className="input-field w-full"
+                    placeholder="請輸入發布標題..."
+                    value={intelTitle}
+                    onChange={(e) => setIntelTitle(e.target.value)}
+                    disabled={intelSyncing}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">情報內文</label>
+                  <textarea 
+                    className="input-field w-full min-h-[120px]"
+                    placeholder="請輸入發布細節與內容..."
+                    value={intelText}
+                    onChange={(e) => setIntelText(e.target.value)}
+                    disabled={intelSyncing}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">標籤 (用逗號分隔)</label>
+                  <input 
+                    type="text" 
+                    className="input-field w-full"
+                    placeholder="例如: 系統公告, 更新, 2026"
+                    value={intelTags}
+                    onChange={(e) => setIntelTags(e.target.value)}
+                    disabled={intelSyncing}
+                  />
+                </div>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">上傳加密圖檔</label>
+                  <div className="relative aspect-video bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
+                    {intelFile ? (
+                      <img loading="lazy" src={URL.createObjectURL(intelFile)} alt="Preview" className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="text-gray-400 tracking-widest text-sm">點擊上傳圖片</span>
+                    )}
+                    <label className="absolute inset-0 cursor-pointer flex flex-col items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
+                      <input 
+                        id="intelFileInput"
+                        type="file" 
+                        className="hidden" 
+                        accept="image/*" 
+                        onChange={(e) => {
+                          if (e.target.files && e.target.files.length > 0) {
+                            setIntelFile(e.target.files[0]);
+                          }
+                        }}
+                        disabled={intelSyncing}
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={handleIntelSync}
+                  disabled={intelSyncing}
+                  className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {intelSyncing ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      同步中...
+                    </>
+                  ) : '啟動同步發送'}
+                </button>
+                <p className="text-xs text-gray-500 tracking-widest mt-2">
+                  * 發送成功後將自動觸發「確認後銷毀」邏輯，從本地儲存庫消除原始圖檔。
+                </p>
               </div>
             </div>
           </div>

@@ -4,7 +4,7 @@ import { ChevronLeft } from 'lucide-react';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SectionTitle } from './SectionTitle';
-import { WORKFLOW_OPTIONS } from '../lib/utils';
+import { WORKFLOW_OPTIONS, getWorkflowNodes } from '../lib/utils';
 
 export interface PriceListItem {
   id: string;
@@ -120,15 +120,35 @@ export default function PriceList({ onBack }: PriceListProps) {
                     <div className="flex-1 space-y-8">
                       <div>
                         <h3 className="text-3xl font-black tracking-widest text-[#53565b] mb-2">{activeItem.title}</h3>
-                        <p className="text-xl font-bold tracking-widest text-[#d4af37]">標準價格：{activeItem.price || '未定'}</p>
+                        <p className="text-xl font-bold tracking-widest text-gray-800">標準價格：{activeItem.price || '未定'}</p>
                       </div>
 
                       <div className="space-y-4">
-                        <div>
-                          <p className="text-xs text-gray-400 tracking-widest mb-1">對應流程</p>
-                          <p className="text-sm font-bold tracking-widest text-gray-800">
-                            {WORKFLOW_OPTIONS[activeItem.workflow as keyof typeof WORKFLOW_OPTIONS]?.label || '標準 (排單/粗草...' }
-                          </p>
+                        <div className="w-full bg-gray-50 border border-gray-100 p-4 neo-box shadow-sm">
+                          <p className="text-xs text-gray-400 tracking-widest mb-4 font-bold border-b border-gray-200 pb-2 inline-block">委託對應流程</p>
+                          <div className="relative pt-2 pb-2 overflow-x-auto">
+                            {(() => {
+                              const nodes = getWorkflowNodes(activeItem.workflow);
+                              return (
+                                <div className="min-w-[400px] relative px-4">
+                                  {/* Progress Line */}
+                                  <div className="absolute top-[15px] left-10 right-10 h-0.5 bg-gray-300 -z-10" />
+                                  <div className="flex justify-between relative z-0">
+                                    {nodes.map((node, i) => (
+                                      <div key={node.id} className="flex flex-col items-center group w-16">
+                                        <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center mb-2 shadow-sm transition-all duration-300 group-hover:border-[#53565b]">
+                                          <div className="w-2.5 h-2.5 rounded-full bg-gray-200 group-hover:bg-[#53565b] transition-all duration-300" />
+                                        </div>
+                                        <span className="text-[11px] tracking-widest text-[#53565b] text-center font-bold">
+                                          {node.label}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                          </div>
                         </div>
                         
                         <div>
