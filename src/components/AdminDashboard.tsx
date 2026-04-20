@@ -536,17 +536,18 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
     try {
       // 1. 上傳所有圖片到 Firebase Storage
-      for (let i = 0; i < intelFiles.length; i++) {
-        const file = intelFiles[i];
+      const uploadPromises = intelFiles.map(async (file, i) => {
         const fileName = `intelligence/${Date.now()}_${i}_${file.name}`;
         const storageRefObj = ref(storage, fileName);
         const compressedBlob = await compressImage(file);
         await uploadBytes(storageRefObj, compressedBlob, { cacheControl: 'public,max-age=31536000' });
         const url = await getDownloadURL(storageRefObj);
-        
-        uploadedImageUrls.push(url);
-        uploadedStoragePaths.push(fileName);
-      }
+        return { url, fileName };
+      });
+      
+      const uploadResults = await Promise.all(uploadPromises);
+      uploadedImageUrls = uploadResults.map(r => r.url);
+      uploadedStoragePaths = uploadResults.map(r => r.fileName);
 
       // 2. 存入 Firestore 紀錄
       const cleanupAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours later
