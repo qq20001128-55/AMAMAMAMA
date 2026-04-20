@@ -57,7 +57,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [intelTitle, setIntelTitle] = useState('');
   const [intelText, setIntelText] = useState('');
   const [intelTags, setIntelTags] = useState('');
-  const [intelFile, setIntelFile] = useState<File | null>(null);
+  const [intelFiles, setIntelFiles] = useState<File[]>([]);
   const [intelSyncing, setIntelSyncing] = useState(false);
   const [intelCleaning, setIntelCleaning] = useState(false);
 
@@ -525,22 +525,28 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   };
 
   const handleIntelSync = async () => {
-    if (!intelTitle.trim() || !intelText.trim() || !intelFile) {
-      alert('請填寫標題、內文並選擇圖片。');
+    if (!intelTitle.trim() || !intelText.trim() || intelFiles.length === 0) {
+      alert('請填寫標題、內文並選擇至少一張圖片。');
       return;
     }
 
     setIntelSyncing(true);
-    let uploadedImageUrl = '';
-    let storageRefObj: any = null;
+    let uploadedImageUrls: string[] = [];
+    let uploadedStoragePaths: string[] = [];
 
     try {
-      // 1. 上傳圖片到 Firebase Storage
-      const fileName = `intelligence/${Date.now()}_${intelFile.name}`;
-      storageRefObj = ref(storage, fileName);
-      const compressedBlob = await compressImage(intelFile);
-      await uploadBytes(storageRefObj, compressedBlob, { cacheControl: 'public,max-age=31536000' });
-      uploadedImageUrl = await getDownloadURL(storageRefObj);
+      // 1. 上傳所有圖片到 Firebase Storage
+      for (let i = 0; i < intelFiles.length; i++) {
+        const file = intelFiles[i];
+        const fileName = `intelligence/${Date.now()}_${i}_${file.name}`;
+        const storageRefObj = ref(storage, fileName);
+        const compressedBlob = await compressImage(file);
+        await uploadBytes(storageRefObj, compressedBlob, { cacheControl: 'public,max-age=31536000' });
+        const url = await getDownloadURL(storageRefObj);
+        
+        uploadedImageUrls.push(url);
+        uploadedStoragePaths.push(fileName);
+      }
 
       // 2. 存入 Firestore 紀錄
       const cleanupAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours later
@@ -548,8 +554,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         title: intelTitle,
         text: intelText,
         tags: intelTags.split(',').map(t => t.trim()).filter(Boolean),
-        image_url: uploadedImageUrl,
-        storage_path: fileName,
+        image_urls: uploadedImageUrls,
+        storage_paths: uploadedStoragePaths,
         status: 'Pending Sync',
         cleanup_at: cleanupAt.getTime(),
         createdAt: serverTimestamp()
@@ -562,7 +568,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         body: JSON.stringify({
           title: intelTitle,
           text: intelText,
-          image_url: uploadedImageUrl,
+          image_urls: uploadedImageUrls,
           tags: intelTags.split(',').map(t => t.trim()).filter(Boolean)
         })
       });
@@ -572,12 +578,6 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       }
 
       // 4. Webhook 成功且回傳 200 後，改為隔天銷毀，不再立刻刪除
-      // try {
-      //   await deleteObject(storageRefObj); // 從 Storage 中徹底刪除原始圖檔
-      // } catch (delErr) {
-      //   console.error('Failed to delete storage file:', delErr);
-      // }
-
       await updateDoc(intelDocRef, {
         status: 'Synced (Pending Purge)'
       });
@@ -588,15 +588,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       setIntelTitle('');
       setIntelText('');
       setIntelTags('');
-      setIntelFile(null);
+      setIntelFiles([]);
       const fileInput = document.getElementById('intelFileInput') as HTMLInputElement;
       if (fileInput) fileInput.value = '';
 
     } catch (err: any) {
       console.error('Intel Sync Error:', err);
       alert('同步失敗，卷宗已保留在本地。');
-      // 如果發生錯誤，將文檔狀態標記為失敗 (若已建立，這邊也可依需求決定要不要在 catch 內執行額外操作)
-      // 注意：發生錯誤時，不會執行 deleteObject 行為，原始圖片安全地保留在 storage
     } finally {
       setIntelSyncing(false);
     }
@@ -617,12 +615,26 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         const data = docSnap.data();
         if (data.cleanup_at && data.cleanup_at <= now) {
           try {
-            if (data.storage_path) {
-              const fileRef = ref(storage, data.storage_path);
-              await deleteObject(fileRef);
+            // Support legacy storage_path (single string) AND new storage_paths (array)
+            if (data.storage_paths && Array.isArray(data.storage_paths)) {
+              for (const path of data.storage_paths) {
+                try {
+                  const fileRef = ref(storage, path);
+                  await deleteObject(fileRef);
+                } catch (e) {
+                  console.error('Failed to delete specific storage file:', path, e);
+                }
+              }
+            } else if (data.storage_path) {
+              try {
+                const fileRef = ref(storage, data.storage_path);
+                await deleteObject(fileRef);
+              } catch (e) {}
             }
+            
             await updateDoc(doc(db, 'intelligence_logs', docSnap.id), {
-              image_url: '',
+              image_urls: [],
+              image_url: '', // Clean up legacy field
               status: 'Synced & Purged'
             });
             cleanedCount++;
@@ -1052,22 +1064,27 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">上傳加密圖檔</label>
-                  <div className="relative aspect-video bg-gray-100 border border-dashed border-gray-300 flex items-center justify-center overflow-hidden">
-                    {intelFile ? (
-                      <img loading="lazy" src={URL.createObjectURL(intelFile)} alt="Preview" className="w-full h-full object-cover" />
+                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">上傳加密圖檔 (可多選)</label>
+                  <div className="relative min-h-[200px] bg-gray-100 border border-dashed border-gray-300 flex flex-wrap gap-4 items-center justify-center p-4">
+                    {intelFiles.length > 0 ? (
+                      intelFiles.map((f, i) => (
+                        <div key={i} className="relative w-24 h-24 shadow-sm border border-gray-300">
+                          <img loading="lazy" src={URL.createObjectURL(f)} alt={`Preview ${i}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))
                     ) : (
-                      <span className="text-gray-400 tracking-widest text-sm">點擊上傳圖片</span>
+                      <span className="text-gray-400 tracking-widest text-sm absolute">點擊或拖入上傳多張圖片</span>
                     )}
-                    <label className="absolute inset-0 cursor-pointer flex flex-col items-center justify-center bg-black/0 hover:bg-black/10 transition-colors">
+                    <label className="absolute inset-0 cursor-pointer flex flex-col items-center justify-center bg-black/0 hover:bg-black/5 transition-colors z-10">
                       <input 
                         id="intelFileInput"
                         type="file" 
+                        multiple
                         className="hidden" 
                         accept="image/*" 
                         onChange={(e) => {
-                          if (e.target.files && e.target.files.length > 0) {
-                            setIntelFile(e.target.files[0]);
+                          if (e.target.files) {
+                            setIntelFiles(Array.from(e.target.files));
                           }
                         }}
                         disabled={intelSyncing}
