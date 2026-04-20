@@ -59,6 +59,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [intelTags, setIntelTags] = useState('');
   const [intelFile, setIntelFile] = useState<File | null>(null);
   const [intelSyncing, setIntelSyncing] = useState(false);
+  const [intelCleaning, setIntelCleaning] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -542,12 +543,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       uploadedImageUrl = await getDownloadURL(storageRefObj);
 
       // 2. 存入 Firestore 紀錄
+      const cleanupAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours later
       const intelDocRef = await addDoc(collection(db, 'intelligence_logs'), {
         title: intelTitle,
         text: intelText,
         tags: intelTags.split(',').map(t => t.trim()).filter(Boolean),
         image_url: uploadedImageUrl,
+        storage_path: fileName,
         status: 'Pending Sync',
+        cleanup_at: cleanupAt.getTime(),
         createdAt: serverTimestamp()
       });
 
@@ -567,20 +571,18 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         throw new Error(`Webhook failed with status: ${webhookResponse.status}`);
       }
 
-      // 4. Webhook 成功且回傳 200 後，執行確認後銷毀邏輯
-      try {
-        await deleteObject(storageRefObj); // 從 Storage 中徹底刪除原始圖檔
-      } catch (delErr) {
-        console.error('Failed to delete storage file:', delErr);
-        // 如果刪除失敗，不阻擋後續狀態更新
-      }
+      // 4. Webhook 成功且回傳 200 後，改為隔天銷毀，不再立刻刪除
+      // try {
+      //   await deleteObject(storageRefObj); // 從 Storage 中徹底刪除原始圖檔
+      // } catch (delErr) {
+      //   console.error('Failed to delete storage file:', delErr);
+      // }
 
       await updateDoc(intelDocRef, {
-        image_url: '',
-        status: 'Synced & Purged'
+        status: 'Synced (Pending Purge)'
       });
 
-      alert('同步成功，卷宗已銷毀原檔！');
+      alert('同步成功，圖檔將於24小時後銷毀。');
       
       // 清空表單
       setIntelTitle('');
@@ -597,6 +599,45 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       // 注意：發生錯誤時，不會執行 deleteObject 行為，原始圖片安全地保留在 storage
     } finally {
       setIntelSyncing(false);
+    }
+  };
+
+  const handleCleanupExpiredIntel = async () => {
+    if (!window.confirm('確定要清理所有已過期（滿24小時）的情報部圖檔嗎？')) return;
+    
+    setIntelCleaning(true);
+    let cleanedCount = 0;
+
+    try {
+      const q = query(collection(db, 'intelligence_logs'), where('status', '==', 'Synced (Pending Purge)'));
+      const snap = await getDocs(q);
+      const now = Date.now();
+
+      for (const docSnap of snap.docs) {
+        const data = docSnap.data();
+        if (data.cleanup_at && data.cleanup_at <= now) {
+          try {
+            if (data.storage_path) {
+              const fileRef = ref(storage, data.storage_path);
+              await deleteObject(fileRef);
+            }
+            await updateDoc(doc(db, 'intelligence_logs', docSnap.id), {
+              image_url: '',
+              status: 'Synced & Purged'
+            });
+            cleanedCount++;
+          } catch (err) {
+            console.error(`Failed to clean up doc ${docSnap.id}:`, err);
+          }
+        }
+      }
+      
+      alert(`清理完成！共銷毀了 ${cleanedCount} 筆過期圖檔。`);
+    } catch (err) {
+      console.error('Cleanup error:', err);
+      alert('清理過程發生錯誤，請查看控制台。');
+    } finally {
+      setIntelCleaning(false);
     }
   };
 
@@ -962,7 +1003,17 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
           {/* Intelligence Dept */}
           <div className="neo-box border border-[#53565b]">
-            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2">情報部發布中心</h3>
+            <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2">
+              <h3 className="text-xl font-black tracking-widest text-[#53565b]">情報部發布中心</h3>
+              <button 
+                onClick={handleCleanupExpiredIntel}
+                disabled={intelCleaning}
+                className="px-3 py-1 bg-red-50 text-red-500 border border-red-200 hover:bg-red-500 hover:text-white transition-colors text-xs font-bold tracking-widest flex items-center gap-1 disabled:opacity-50"
+              >
+                {intelCleaning ? <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" /> : <Trash2 size={14} />}
+                清理逾期圖檔
+              </button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div>
@@ -1038,7 +1089,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   ) : '啟動同步發送'}
                 </button>
                 <p className="text-xs text-gray-500 tracking-widest mt-2">
-                  * 發送成功後將自動觸發「確認後銷毀」邏輯，從本地儲存庫消除原始圖檔。
+                  * 發送成功後將自動設定24小時後銷毀，請定時點擊上方【清理逾期圖檔】執行清除。
                 </p>
               </div>
             </div>
