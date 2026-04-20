@@ -570,7 +570,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         tags: intelTags.split(',').map(t => t.trim()).filter(Boolean),
         // 為了相容性同時保留陣列跟獨立物件
         image_urls_array: uploadedImageUrls,
-        image_urls: uploadedImageUrls.map(url => ({ type: 'url', url }))
+        image_urls: uploadedImageUrls.map(url => ({ 
+          url: url, 
+          type: 'url', 
+          image_url: url, 
+          media_type: 'IMAGE' 
+        }))
       };
       
       // 動態寫入 image_1, image_2, image_3 ... 到 payload
