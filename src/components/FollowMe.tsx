@@ -15,8 +15,8 @@ interface FollowMeProps {
 
 const SOCIAL_LINKS = [
   { id: 'fb', label: 'Facebook', url: 'https://www.facebook.com/profile.php?id=61555414072184' },
-  { id: 'ig', label: 'Instagram', url: 'https://www.instagram.com/a627ma/' },
-  { id: 'threads', label: 'Threads', url: 'https://www.threads.com/@a627ma' },
+  { id: 'ig', label: 'Instagram', url: 'https://www.instagram.com/ama_maaaaaa/' },
+  { id: 'threads', label: 'Threads', url: 'https://www.threads.net/@ama_maaaaaa' },
   { id: 'x', label: 'X (Twitter)', url: 'https://x.com/ama_muma' },
   { id: 'twitch', label: 'Twitch', url: 'https://www.twitch.tv/ama1128' },
   { id: 'yt', label: 'YouTube', url: 'https://www.youtube.com/channel/UC466eWIWnNkeKREoyEy-gZg' },
