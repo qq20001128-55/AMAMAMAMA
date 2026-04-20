@@ -569,7 +569,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         body: JSON.stringify({
           title: intelTitle,
           text: intelText,
-          image_urls: uploadedImageUrls,
+          image_urls: uploadedImageUrls.map(url => ({ url })),
           tags: intelTags.split(',').map(t => t.trim()).filter(Boolean)
         })
       });
