@@ -563,15 +563,25 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       });
 
       // 3. 發送 Webhook 請求
+      // 為了讓 Make.com 能直接將網址對應到 FB 發文的 Photo 1, Photo 2..., 我們將生成的網址攤平為 image_1, image_2...
+      const webhookPayload: any = {
+        title: intelTitle,
+        text: intelText,
+        tags: intelTags.split(',').map(t => t.trim()).filter(Boolean),
+        // 為了相容性同時保留陣列跟獨立物件
+        image_urls_array: uploadedImageUrls,
+        image_urls: uploadedImageUrls.map(url => ({ url }))
+      };
+      
+      // 動態寫入 image_1, image_2, image_3 ... 到 payload
+      uploadedImageUrls.forEach((url, index) => {
+        webhookPayload[`image_${index + 1}`] = url;
+      });
+
       const webhookResponse = await fetch('https://hook.eu1.make.com/y6sjn7hy57a7oeit8rcgyuobfajpff0u', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: intelTitle,
-          text: intelText,
-          image_urls: uploadedImageUrls.map(url => ({ url })),
-          tags: intelTags.split(',').map(t => t.trim()).filter(Boolean)
-        })
+        body: JSON.stringify(webhookPayload)
       });
 
       if (!webhookResponse.ok) {
@@ -1066,17 +1076,29 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               <div className="space-y-6">
                 <div>
                   <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">上傳加密圖檔 (可多選)</label>
-                  <div className="relative min-h-[200px] bg-gray-100 border border-dashed border-gray-300 flex flex-wrap gap-4 items-center justify-center p-4">
+                  <div className="relative min-h-[200px] bg-gray-100 border border-dashed border-gray-300 flex flex-wrap gap-4 items-center p-4">
                     {intelFiles.length > 0 ? (
                       intelFiles.map((f, i) => (
-                        <div key={i} className="relative w-24 h-24 shadow-sm border border-gray-300">
+                        <div key={i} className="relative w-24 h-24 shadow-sm border border-gray-300 group z-20">
                           <img loading="lazy" src={URL.createObjectURL(f)} alt={`Preview ${i}`} className="w-full h-full object-cover" />
+                          <button 
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setIntelFiles(intelFiles.filter((_, index) => index !== i));
+                            }}
+                            className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all cursor-pointer z-30"
+                          >
+                            <X size={16} />
+                          </button>
                         </div>
                       ))
                     ) : (
-                      <span className="text-gray-400 tracking-widest text-sm absolute">點擊或拖入上傳多張圖片</span>
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <span className="text-gray-400 tracking-widest text-sm">點擊或拖入上傳多張圖片</span>
+                      </div>
                     )}
-                    <label className="absolute inset-0 cursor-pointer flex flex-col items-center justify-center bg-black/0 hover:bg-black/5 transition-colors z-10">
+                    <label className={cn("absolute inset-0 cursor-pointer flex flex-col items-center justify-center bg-black/0 transition-colors z-10", intelFiles.length === 0 ? "hover:bg-black/5" : "")}>
                       <input 
                         id="intelFileInput"
                         type="file" 
@@ -1085,7 +1107,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         accept="image/*" 
                         onChange={(e) => {
                           if (e.target.files) {
-                            setIntelFiles(Array.from(e.target.files));
+                            // 同時保留舊圖，並將新選圖疊加上去，達成「選擇好幾張會分開」的效果
+                            setIntelFiles(prev => [...prev, ...Array.from(e.target.files!)]);
                           }
                         }}
                         disabled={intelSyncing}
