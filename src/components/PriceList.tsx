@@ -97,32 +97,33 @@ export default function PriceList({ onBack }: PriceListProps) {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.4 }}
-                  className="space-y-8"
+                  className="w-full space-y-8"
                 >
-                  <div className="flex flex-col lg:flex-row gap-8">
+                  <div className="flex flex-col gap-8">
+                    {/* Header Area */}
+                    <div>
+                      <h3 className="text-3xl font-black tracking-widest text-[#53565b] mb-2">{activeItem.title}</h3>
+                      <p className="text-xl font-bold tracking-widest text-gray-800">標準價格：{activeItem.price || '未定'}</p>
+                    </div>
+
                     {/* Image Area */}
-                    <div className="flex-1">
-                      <div className="w-full aspect-[4/3] bg-gray-50 border border-gray-200 p-2 overflow-hidden group flex items-center justify-center">
+                    <div className="w-full">
+                      <div className="w-full bg-gray-50 border border-gray-200 p-2 overflow-hidden group flex items-center justify-center">
                         {activeItem.imageUrl ? (
                           <img loading="lazy" 
                             src={activeItem.imageUrl} 
                             alt={activeItem.title} 
                             crossOrigin="anonymous"
-                            className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-[1.02]"
+                            className="w-full object-contain"
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 tracking-widest text-sm">無圖片</div>
+                          <div className="w-full h-48 flex items-center justify-center text-gray-300 tracking-widest text-sm">無圖片</div>
                         )}
                       </div>
                     </div>
 
-                    {/* Text Area */}
-                    <div className="flex-1 space-y-8">
-                      <div>
-                        <h3 className="text-3xl font-black tracking-widest text-[#53565b] mb-2">{activeItem.title}</h3>
-                        <p className="text-xl font-bold tracking-widest text-gray-800">標準價格：{activeItem.price || '未定'}</p>
-                      </div>
-
+                    {/* Content Area */}
+                    <div className="w-full space-y-8">
                       <div className="space-y-4">
                         <div className="w-full bg-gray-50 border border-gray-100 p-4 neo-box shadow-sm">
                           <p className="text-xs text-gray-400 tracking-widest mb-4 font-bold border-b border-gray-200 pb-2 inline-block">委託對應流程</p>
