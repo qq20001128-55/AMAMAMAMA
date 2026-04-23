@@ -46,6 +46,24 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | null>(null);
 
   const [announcementInput, setAnnouncementInput] = useState('');
+  
+  const [socialLinks, setSocialLinks] = useState<any[]>([]);
+  const [socialLinksSaving, setSocialLinksSaving] = useState(false);
+
+  // default initial links
+  const DEFAULT_SOCIAL_LINKS = [
+    { id: 'fb', label: 'Facebook', url: 'https://www.facebook.com/profile.php?id=61555414072184' },
+    { id: 'ig', label: 'Instagram', url: 'https://www.instagram.com/ama_maaaaaa/' },
+    { id: 'threads', label: 'Threads', url: 'https://www.threads.net/@ama_maaaaaa' },
+    { id: 'x', label: 'X (Twitter)', url: 'https://x.com/ama_muma' },
+    { id: 'twitch', label: 'Twitch', url: 'https://www.twitch.tv/ama1128' },
+    { id: 'yt', label: 'YouTube', url: 'https://www.youtube.com/channel/UC466eWIWnNkeKREoyEy-gZg' },
+    { id: 'artstation', label: 'ArtStation', url: 'https://www.artstation.com/werelong' },
+    { id: 'plurk', label: 'Plurk', url: 'https://www.plurk.com/SSS2000126' },
+    { id: 'bluesky', label: 'Bluesky', url: 'https://bsky.app/profile/maaaaaaaaaaaaaaaa.bsky.social' },
+    { id: 'cara', label: 'Cara', url: 'https://cara.app/maaaaaaaaa/all' },
+    { id: 'mosir', label: 'Mosir', url: 'https://beta.mosir.app/profile/AMAMAA' },
+  ];
 
   const [activeModal, setActiveModal] = useState<'orders' | 'calendarDay' | null>(null);
   const [modalOrdersType, setModalOrdersType] = useState<'pending' | 'completed' | 'all'>('all');
@@ -82,9 +100,40 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       } else {
         await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
       }
+
+      // Fetch social links
+      const socialSnap = await getDoc(doc(db, 'settings', 'socialLinks'));
+      if (socialSnap.exists()) {
+        const savedLinks = socialSnap.data().links || [];
+        // merge with defaults to ensure all platforms exist
+        const mergedLinks = DEFAULT_SOCIAL_LINKS.map(defaultLink => {
+          const found = savedLinks.find((l: any) => l.id === defaultLink.id);
+          return found ? { ...defaultLink, url: found.url } : defaultLink;
+        });
+        setSocialLinks(mergedLinks);
+      } else {
+        setSocialLinks([...DEFAULT_SOCIAL_LINKS]);
+      }
     } catch (err) {
-      console.error('Fetch site config error:', err);
+      console.error('Fetch site config/social links error:', err);
     }
+  };
+
+  const handleSaveSocialLinks = async () => {
+    setSocialLinksSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'socialLinks'), { links: socialLinks });
+      alert('社群連結儲存成功！');
+    } catch (err) {
+      console.error('Save social links error:', err);
+      alert('儲存失敗，請稍後再試。');
+    } finally {
+      setSocialLinksSaving(false);
+    }
+  };
+
+  const handleSocialLinkChange = (id: string, url: string) => {
+    setSocialLinks(prev => prev.map(link => link.id === id ? { ...link, url } : link));
   };
 
   const handleSaveAnnouncement = async (isActive: boolean) => {
@@ -1349,6 +1398,40 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               </div>
             </div>
           </div>
+
+          {/* Social Links Management */}
+          <div className="neo-box border border-[#53565b]">
+            <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2">
+              <h3 className="text-xl font-black tracking-widest text-[#53565b]">社群連結設定 (追蹤我)</h3>
+              <button 
+                onClick={handleSaveSocialLinks}
+                disabled={socialLinksSaving}
+                className="px-4 py-2 bg-gray-800 text-white text-sm tracking-widest hover:bg-gray-900 transition-colors disabled:opacity-50"
+              >
+                {socialLinksSaving ? '儲存中...' : '儲存社群連結'}
+              </button>
+            </div>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+              {socialLinks.map((link) => (
+                <div key={link.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
+                  <label className="sm:w-32 font-bold tracking-widest text-sm text-[#53565b]">
+                    {link.label}
+                  </label>
+                  <input 
+                    type="text" 
+                    className="input-field flex-1"
+                    placeholder={`${link.label} 網址 (留空則該按鈕為無效連結)`}
+                    value={link.url}
+                    onChange={(e) => handleSocialLinkChange(link.id, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-gray-500 tracking-widest mt-4">
+              * 若將網址留空，前端點擊該社群按鈕時將沒有作用。儲存後會即刻更新前台「追蹤我」頁面的連結。
+            </p>
+          </div>
+
 
           {/* Price List Settings */}
           <div className="neo-box border border-[#53565b] flex flex-col h-[500px]">

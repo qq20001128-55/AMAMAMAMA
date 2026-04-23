@@ -29,6 +29,7 @@ const SOCIAL_LINKS = [
 
 export default function FollowMe({ onBack, user }: FollowMeProps) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [socialLinks, setSocialLinks] = useState<any[]>(SOCIAL_LINKS);
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -38,7 +39,29 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
 
   useEffect(() => {
     fetchProfile();
+    fetchSocialLinks();
   }, []);
+
+  const fetchSocialLinks = async () => {
+    try {
+      const docRef = doc(db, 'settings', 'socialLinks');
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists() && docSnap.data().links) {
+        const savedLinks = docSnap.data().links;
+        // Merge with DEFAULT to ensure missing platforms still appear
+        const merged = SOCIAL_LINKS.map(defaultLink => {
+          const found = savedLinks.find((l: any) => l.id === defaultLink.id);
+          return found ? { ...defaultLink, url: found.url } : defaultLink;
+        });
+        // Filter out empty URLs to not render them
+        setSocialLinks(merged.filter(link => link.url && link.url.trim() !== ''));
+      } else {
+        setSocialLinks(SOCIAL_LINKS.filter(link => link.url && link.url.trim() !== ''));
+      }
+    } catch (err) {
+      console.error('Fetch social links error:', err);
+    }
+  };
 
   const fetchProfile = async () => {
     try {
@@ -134,7 +157,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
         <div className="w-full md:w-2/3">
           <h3 className="text-2xl font-black tracking-widest mb-8 border-b-2 border-[#53565b] pb-4">追蹤我</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {SOCIAL_LINKS.map((link) => (
+            {socialLinks.map((link) => (
               <a 
                 key={link.id}
                 href={link.url}
