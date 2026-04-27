@@ -961,7 +961,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* Left Column: Operations */}
-        <div className="xl:col-span-7 w-full flex flex-col gap-8 bg-black/40 backdrop-blur-sm p-6 border border-[var(--theme-color,#d4af37)]">
+        <div className="xl:col-span-6 w-full flex flex-col gap-8 bg-black/40 backdrop-blur-sm p-6 border border-[var(--theme-color,#d4af37)]">
           
           {/* Order Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1786,7 +1786,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
         </div>
 
         {/* Right Column: Calendar */}
-        <div className="xl:col-span-5 w-full">
+        <div className="xl:col-span-6 w-full">
           <div className="sticky top-24 neo-box border border-[var(--theme-color,#d4af37)] bg-black/40 backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)]">排程日曆</h3>
@@ -1816,7 +1816,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   <div 
                     key={i} 
                     className={cn(
-                      "bg-black/40 min-h-[200px] md:min-h-[300px] xl:min-h-[400px] p-2 transition-colors hover:bg-black/60 cursor-pointer overflow-y-auto custom-scrollbar",
+                      "bg-black/40 min-h-[120px] 2xl:min-h-[160px] p-2 transition-colors hover:bg-black/60 cursor-pointer overflow-y-auto custom-scrollbar",
                       !isSameMonth(date, currentMonth) && "bg-[#1a1a1a]/50 text-gray-400",
                       isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
                     )}
