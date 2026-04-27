@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, ExternalLink, X, CheckCircle2 } from 'lucide-react';
 import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp, where } from 'firebase/firestore';
-import { db, storage } from '../firebase';
+import { db, storage, signInWithGoogle } from '../firebase';
 import { cn, STATUS_NODES, WORKFLOW_OPTIONS, getWorkflowNodes, compressImage } from '../lib/utils';
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
@@ -42,13 +42,14 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const isAdmin = user?.email === 'sara20001128@gmail.com';
 
-  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
-  const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | null>(null);
+  const [siteConfig, setSiteConfig] = useState<any>({ homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', bottomLeftBgUrl: '', bottomRightBgUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
+  const [siteConfigUploading, setSiteConfigUploading] = useState<'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | 'bottomLeftBg' | 'bottomRightBg' | null>(null);
 
   const [announcementInput, setAnnouncementInput] = useState('');
   
   const [socialLinks, setSocialLinks] = useState<any[]>([]);
   const [socialLinksSaving, setSocialLinksSaving] = useState(false);
+  const [socialIconUploading, setSocialIconUploading] = useState<string | null>(null);
 
   // default initial links
   const DEFAULT_SOCIAL_LINKS = [
@@ -79,6 +80,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const [intelSyncing, setIntelSyncing] = useState(false);
   const [intelCleaning, setIntelCleaning] = useState(false);
 
+  const [messages, setMessages] = useState<any[]>([]);
+
   useEffect(() => {
     fetchOrders();
     fetchAllOrders();
@@ -86,7 +89,37 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     fetchPriceList();
     fetchPortfolioData();
     fetchSiteConfig();
+    fetchMessages();
   }, []);
+
+  const fetchMessages = async () => {
+    try {
+      const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      setMessages(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error('Fetch messages error:', err);
+    }
+  };
+
+  const handleToggleMessageRead = async (id: string, currentRead: boolean) => {
+    try {
+      await updateDoc(doc(db, 'messages', id), { read: !currentRead });
+      setMessages(messages.map(m => m.id === id ? { ...m, read: !currentRead } : m));
+    } catch (err) {
+      console.error('Update message status error:', err);
+    }
+  };
+
+  const handleDeleteMessage = async (id: string) => {
+    if (!window.confirm('確定要刪除這則訊息嗎？')) return;
+    try {
+      await deleteDoc(doc(db, 'messages', id));
+      setMessages(messages.filter(m => m.id !== id));
+    } catch (err) {
+      console.error('Delete message error:', err);
+    }
+  };
 
   const fetchSiteConfig = async () => {
     try {
@@ -98,7 +131,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           setAnnouncementInput(data.announcement.text || '');
         }
       } else {
-        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
+        await setDoc(doc(db, 'settings', 'siteConfig'), { homeBgUrl: '', pageBgUrl: '', titleStyleUrl: '', faviconUrl: '', logoUrl: '', bottomLeftBgUrl: '', bottomRightBgUrl: '', themeColor: '#d4af37', announcement: { text: '', isActive: false } });
       }
 
       // Fetch social links
@@ -136,6 +169,46 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     setSocialLinks(prev => prev.map(link => link.id === id ? { ...link, url } : link));
   };
 
+  const handleSocialIconUpload = async (e: React.ChangeEvent<HTMLInputElement>, id: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setSocialIconUploading(id);
+    try {
+      const storageRef = ref(storage, `system/social_icons/${id}.png`);
+      const compressedBlob = await compressImage(file);
+      await uploadBytes(storageRef, compressedBlob, { cacheControl: 'public,max-age=31536000' });
+      const url = await getDownloadURL(storageRef);
+      
+      const newLinks = socialLinks.map(link => link.id === id ? { ...link, iconUrl: url } : link);
+      setSocialLinks(newLinks);
+      // auto save
+      await setDoc(doc(db, 'settings', 'socialLinks'), { links: newLinks }, { merge: true });
+    } catch (err) {
+      console.error('Upload social icon error:', err);
+      alert('上傳失敗，請稍後再試。');
+    } finally {
+      setSocialIconUploading(null);
+    }
+  };
+
+  const handleSocialIconDelete = async (id: string) => {
+    if (!window.confirm('確定要刪除此 ICON 並恢復預設文字嗎？')) return;
+    try {
+      const storageRef = ref(storage, `system/social_icons/${id}.png`);
+      await deleteObject(storageRef).catch(err => {
+        if (err.code !== 'storage/object-not-found') throw err;
+      });
+      
+      const newLinks = socialLinks.map(link => link.id === id ? { ...link, iconUrl: '' } : link);
+      setSocialLinks(newLinks);
+      await setDoc(doc(db, 'settings', 'socialLinks'), { links: newLinks }, { merge: true });
+    } catch (err) {
+      console.error('Delete social icon error:', err);
+      alert('刪除失敗，請稍後再試。');
+    }
+  };
+
   const handleSaveAnnouncement = async (isActive: boolean) => {
     try {
       const newConfig = { 
@@ -166,7 +239,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  const handleSiteConfigUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo') => {
+  const handleSiteConfigUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | 'bottomLeftBg' | 'bottomRightBg') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -189,7 +262,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  const handleDeleteSiteImage = async (type: 'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo') => {
+  const handleDeleteSiteImage = async (type: 'homeBg' | 'pageBg' | 'titleStyle' | 'favicon' | 'logo' | 'bottomLeftBg' | 'bottomRightBg') => {
     if (!window.confirm('確定要刪除此圖片並恢復預設嗎？')) return;
     try {
       const storageRef = ref(storage, `system/custom_ui/${type}.png`);
@@ -814,15 +887,29 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <h2 className="text-2xl font-bold mb-4">權限不足</h2>
-        <p className="text-gray-400 mb-8">您沒有訪問管理後台的權限。</p>
-        <button onClick={onBack} className="btn-primary">返回首頁</button>
-      </div>
-    );
-  }
+  // if (!user) {
+  //   return (
+  //     <div className="max-w-4xl mx-auto px-6 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
+  //       <h2 className="text-2xl font-bold mb-4 tracking-widest text-[var(--theme-color,#d4af37)]">需要登入</h2>
+  //       <p className="text-gray-400 mb-8 tracking-widest leading-loose">此為管理員專屬後台，請先登入。</p>
+  //       <button 
+  //         onClick={signInWithGoogle}
+  //         className="btn-primary w-64 h-16 text-lg"
+  //       >
+  //         使用 Google 登入
+  //       </button>
+  //     </div>
+  //   );
+  // }
+
+  // if (!isAdmin) {
+  //   return (
+  //     <div className="max-w-4xl mx-auto px-6 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
+  //       <h2 className="text-2xl font-bold mb-4 tracking-widest text-red-500">權限不足</h2>
+  //       <p className="text-gray-400 mb-8 tracking-widest leading-loose">您沒有訪問管理後台的權限。</p>
+  //     </div>
+  //   );
+  // }
 
   const totalOrders = allOrders.length;
   const completedOrders = allOrders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
@@ -839,19 +926,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       animate={{ opacity: 1 }}
       className="max-w-[1600px] mx-auto px-4 sm:px-6 py-10"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b-2 border-[#53565b] pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b-2 border-[var(--theme-color,#d4af37)] pb-6">
         <div>
-          <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-4 transition-colors tracking-widest">
-            <ChevronLeft size={20} />
-            <span>返回大廳</span>
-          </button>
+          
           <h2 className="text-4xl font-black tracking-widest">龍契局・後台</h2>
         </div>
 
-        <div className="flex items-center gap-4 neo-box !p-4 border border-[#53565b]">
+        <div className="flex items-center gap-4 neo-box !p-4 border border-[var(--theme-color,#d4af37)]">
           <div className="flex flex-col">
             <span className="text-[10px] uppercase tracking-widest text-gray-500">局門狀態</span>
-            <span className={cn("text-sm font-bold tracking-widest", commissionStatus === 'open' ? "text-gray-800" : "text-[#53565b]")}>
+            <span className={cn("text-sm font-bold tracking-widest", commissionStatus === 'open' ? "text-gray-200" : "text-[var(--theme-color,#d4af37)]")}>
               {commissionStatus === 'open' ? '開局接契' : '局門緊閉'}
             </span>
           </div>
@@ -859,7 +943,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             onClick={toggleCommission}
             className={cn(
               "p-3 border-2 transition-all duration-300",
-              commissionStatus === 'open' ? "border-gray-800 text-gray-800 hover:bg-gray-100" : "border-[#53565b] text-[#53565b] hover:bg-gray-100"
+              commissionStatus === 'open' ? "border-gray-800 text-gray-200 hover:bg-[#2a2a2a]" : "border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] hover:bg-[#2a2a2a]"
             )}
           >
             {commissionStatus === 'open' ? <Power size={20} /> : <PowerOff size={20} />}
@@ -869,36 +953,36 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
         {/* Left Column: Operations */}
-        <div className="xl:col-span-7 w-full flex flex-col gap-8 bg-white/70 backdrop-blur-sm p-6 border border-[#53565b]">
+        <div className="xl:col-span-7 w-full flex flex-col gap-8 bg-black/40 backdrop-blur-sm p-6 border border-[var(--theme-color,#d4af37)]">
           
           {/* Order Statistics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div 
-              className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors border border-[#53565b]"
+              className="neo-box text-center cursor-pointer hover:bg-[#1a1a1a] transition-colors border border-[var(--theme-color,#d4af37)]"
               onClick={() => { setModalOrdersType('all'); setActiveModal('orders'); }}
             >
               <p className="text-sm tracking-widest text-gray-500 mb-2">總書契數</p>
               <p className="text-4xl font-black">{totalOrders}</p>
             </div>
             <div 
-              className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors border border-[#53565b]"
+              className="neo-box text-center cursor-pointer hover:bg-[#1a1a1a] transition-colors border border-[var(--theme-color,#d4af37)]"
               onClick={() => { setModalOrdersType('pending'); setActiveModal('orders'); }}
             >
               <p className="text-sm tracking-widest text-gray-500 mb-2">待解之契 (排單/製作中)</p>
-              <p className="text-4xl font-black text-[#53565b]">{pendingOrders}</p>
+              <p className="text-4xl font-black text-[var(--theme-color,#d4af37)]">{pendingOrders}</p>
             </div>
             <div 
-              className="neo-box text-center cursor-pointer hover:bg-gray-50 transition-colors border border-[#53565b]"
+              className="neo-box text-center cursor-pointer hover:bg-[#1a1a1a] transition-colors border border-[var(--theme-color,#d4af37)]"
               onClick={() => { setModalOrdersType('completed'); setActiveModal('orders'); }}
             >
               <p className="text-sm tracking-widest text-gray-500 mb-2">已結之契</p>
-              <p className="text-4xl font-black text-gray-800">{completedOrders}</p>
+              <p className="text-4xl font-black text-gray-200">{completedOrders}</p>
             </div>
           </div>
 
           {/* Pending / Confirm Orders */}
-          <div className="neo-box border border-[#53565b]">
-            <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">待確定委託</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)]">
+            <h3 className="text-xl font-black tracking-widest mb-6 text-[var(--theme-color,#d4af37)] border-b border-[var(--theme-color,#d4af37)]/20 pb-2">待確定委託</h3>
             <div className="space-y-4">
               {allOrders
                 .filter(o => o.status === 'pending')
@@ -908,13 +992,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   return timeA - timeB;
                 })
                 .map(order => (
-                <div key={order.id} className="p-4 border border-[#53565b] bg-gray-50 flex flex-col md:flex-row justify-between gap-4">
+                <div key={order.id} className="p-4 border border-[var(--theme-color,#d4af37)] bg-[#1a1a1a] flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[var(--theme-color,#d4af37)] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <span className="inline-block px-3 py-1 bg-gray-300 text-gray-800 text-xs font-bold tracking-widest">
+                    <span className="inline-block px-3 py-1 bg-gray-300 text-gray-200 text-xs font-bold tracking-widest">
                       {order.status === 'pending' ? '確認中' : (getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '資料已歸檔')}
                     </span>
                     <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
@@ -923,15 +1007,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <input
                           type="text"
                           placeholder="請輸入報價"
-                          className="px-2 py-1 border border-[#53565b] text-sm w-24 focus:outline-none focus:ring-1 focus:ring-[#53565b]"
+                          className="px-2 py-1 border border-[var(--theme-color,#d4af37)] text-sm w-24 focus:outline-none focus:ring-1 focus:ring-[#53565b]"
                           value={acceptPrices[order.id] || ''}
                           onChange={(e) => setAcceptPrices(prev => ({ ...prev, [order.id]: e.target.value }))}
                         />
                       </div>
-                      <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-1 px-3 py-1 bg-[#53565b] text-[#fafafa] text-sm tracking-widest hover:bg-gray-800 transition-colors">
+                      <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-1 px-3 py-1 bg-[var(--theme-color,#d4af37)] text-[#fafafa] text-sm tracking-widest hover:bg-gray-800 transition-colors">
                         <CheckCircle2 size={14} /> 接收
                       </button>
-                      <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-1 px-3 py-1 border border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                      <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-1 px-3 py-1 border border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] text-sm tracking-widest hover:bg-[#2a2a2a] transition-colors">
                         <X size={14} /> 婉拒
                       </button>
                       <button 
@@ -943,7 +1027,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                           }, 100);
                         }}
-                        className="text-sm text-[#53565b] hover:font-bold tracking-widest flex items-center gap-1 ml-2"
+                        className="text-sm text-[var(--theme-color,#d4af37)] hover:font-bold tracking-widest flex items-center gap-1 ml-2"
                       >
                         <ExternalLink size={14} /> 詳情
                       </button>
@@ -960,8 +1044,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* Latest Orders */}
-          <div className="neo-box border border-[#53565b]">
-            <h3 className="text-xl font-black tracking-widest mb-6 text-[#53565b] border-b border-[#53565b]/20 pb-2">最新進行中卷宗</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)]">
+            <h3 className="text-xl font-black tracking-widest mb-6 text-[var(--theme-color,#d4af37)] border-b border-[var(--theme-color,#d4af37)]/20 pb-2">最新進行中卷宗</h3>
             <div className="space-y-4">
               {allOrders
                 .filter(o => !['completed', 'delivered', 'closed'].includes(o.status) && o.status !== 'pending')
@@ -972,13 +1056,13 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 })
                 .slice(0, 3)
                 .map(order => (
-                <div key={order.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row justify-between gap-4">
+                <div key={order.id} className="p-4 border border-gray-700 bg-black/40 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono text-[var(--theme-color,#d4af37)] mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="inline-block px-3 py-1 bg-[#53565b] text-[#fafafa] text-xs font-bold tracking-widest">
+                    <span className="inline-block px-3 py-1 bg-[var(--theme-color,#d4af37)] text-[#fafafa] text-xs font-bold tracking-widest">
                       {getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '未知階段'}
                     </span>
                     <button 
@@ -990,7 +1074,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         }, 100);
                       }}
-                      className="text-sm text-[#53565b] hover:underline tracking-widest flex items-center gap-1"
+                      className="text-sm text-[var(--theme-color,#d4af37)] hover:underline tracking-widest flex items-center gap-1"
                     >
                       <ExternalLink size={14} /> 詳情
                     </button>
@@ -1006,9 +1090,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* Announcement Management */}
-          <div className="neo-box border border-[#53565b]">
-            <div className="flex justify-between items-center mb-6 border-b border-[#53565b]/20 pb-2">
-              <h3 className="text-xl font-black tracking-widest text-[#53565b]">首頁公告管理</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)]">
+            <div className="flex justify-between items-center mb-6 border-b border-[var(--theme-color,#d4af37)]/20 pb-2">
+              <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)]">首頁公告管理</h3>
               <div className="flex items-center gap-2">
                 <span className={cn("inline-block w-3 h-3 rounded-full", siteConfig?.announcement?.isActive ? "bg-green-500" : "bg-gray-300")} />
                 <span className="text-sm font-bold tracking-widest text-gray-500">{siteConfig?.announcement?.isActive ? '展示中' : '已封存/隱藏'}</span>
@@ -1022,10 +1106,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 onChange={e => setAnnouncementInput(e.target.value)}
               />
               <div className="flex flex-wrap gap-4 justify-end">
-                <button onClick={() => handleDeleteAnnouncement()} className="px-4 py-2 text-sm text-[#53565b] border border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                <button onClick={() => handleDeleteAnnouncement()} className="px-4 py-2 text-sm text-[var(--theme-color,#d4af37)] border border-[var(--theme-color,#d4af37)] tracking-widest hover:bg-[#2a2a2a] transition-colors">
                   清除/刪除公告
                 </button>
-                <button onClick={() => handleSaveAnnouncement(false)} className="px-4 py-2 text-sm border border-[#53565b] bg-gray-100 text-[#53565b] tracking-widest hover:bg-gray-200 transition-colors">
+                <button onClick={() => handleSaveAnnouncement(false)} className="px-4 py-2 text-sm border border-[var(--theme-color,#d4af37)] bg-[#2a2a2a] text-[var(--theme-color,#d4af37)] tracking-widest hover:bg-gray-200 transition-colors">
                   儲存並封存 (不顯示)
                 </button>
                 <button onClick={() => handleSaveAnnouncement(true)} className="px-4 py-2 text-sm bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
@@ -1035,9 +1119,54 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             </div>
           </div>
 
+          {/* Messages Management */}
+          <div className="neo-box border border-[var(--theme-color,#d4af37)] flex flex-col h-[500px]">
+            <div className="flex justify-between items-center mb-4 border-b border-[var(--theme-color,#d4af37)]/20 pb-2 shrink-0">
+              <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)] flex items-center gap-2">
+                聯絡信箱 <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full">{messages.filter(m => !m.read).length}</span>
+              </h3>
+            </div>
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center py-10 text-gray-400 tracking-widest">目前沒有任何信件。</div>
+              ) : (
+                messages.map(msg => (
+                  <div key={msg.id} className={cn("p-4 border", msg.read ? "border-gray-700 bg-black/40 opacity-70" : "border-[#d4af37] bg-[var(--theme-color,#d4af37)]/5")}>
+                    <div className="flex justify-between items-start mb-2 border-b border-gray-700 pb-2">
+                      <div>
+                        <h4 className="font-bold tracking-widest text-base">來自：{msg.name}</h4>
+                        <p className="text-xs text-gray-500 font-mono mt-1">{msg.email || '未提供聯絡方式'}</p>
+                      </div>
+                      <div className="flex flex-col items-end gap-2">
+                        <span className="text-xs text-gray-400 font-mono">
+                          {msg.createdAt?.toDate ? msg.createdAt.toDate().toLocaleString() : ''}
+                        </span>
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={() => handleToggleMessageRead(msg.id, msg.read)}
+                            className={cn("text-xs px-2 py-1 tracking-widest transition-colors", msg.read ? "bg-gray-200 text-gray-600 hover:bg-gray-300" : "bg-gray-800 text-white hover:bg-gray-900")}
+                          >
+                            {msg.read ? '標為未讀' : '標為已讀'}
+                          </button>
+                          <button 
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="text-xs px-2 py-1 bg-red-100 text-red-600 hover:bg-red-200 tracking-widest transition-colors"
+                          >
+                            刪除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-300 whitespace-pre-wrap leading-loose mt-4">{msg.message}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
           {/* Portfolio Management */}
-          <div className="neo-box border border-[#53565b] flex flex-col h-[500px]">
-            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2 shrink-0">作品集管理</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)] flex flex-col h-[500px]">
+            <h3 className="text-xl font-black tracking-widest mb-4 text-[var(--theme-color,#d4af37)] border-b border-[var(--theme-color,#d4af37)]/20 pb-2 shrink-0">作品集管理</h3>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-6">
               <div className="flex flex-col gap-4">
                 <div className="flex gap-4">
@@ -1054,9 +1183,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {portfolioCategories.map(cat => (
-                    <div key={cat.id} className="flex items-center gap-2 bg-gray-100 px-3 py-1 border border-gray-300">
+                    <div key={cat.id} className="flex items-center gap-2 bg-[#2a2a2a] px-3 py-1 border border-gray-300">
                       <span className="text-sm tracking-widest">{cat.name}</span>
-                      <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[#53565b]">
+                      <button onClick={() => handleDeleteCategory(cat.id)} className="text-gray-400 hover:text-[var(--theme-color,#d4af37)]">
                         <X size={14} />
                       </button>
                     </div>
@@ -1064,7 +1193,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
               </div>
 
-              <div className="border-t border-gray-200 pt-4">
+              <div className="border-t border-gray-700 pt-4">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                   <select 
                     className="input-field py-2 text-sm max-w-[200px]"
@@ -1103,7 +1232,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                               <img loading="lazy" src={art.imageUrl} alt={art.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
                               <button 
                                 onClick={() => handleDeleteArtwork(art.id)}
-                                className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all"
+                                className="absolute top-1 right-1 p-1 bg-black/80 text-[var(--theme-color,#d4af37)] opacity-0 group-hover:opacity-100 hover:bg-[#2a2a2a] transition-all"
                               >
                                 <X size={16} />
                               </button>
@@ -1119,9 +1248,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* Intelligence Dept */}
-          <div className="neo-box border border-[#53565b]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2">
-              <h3 className="text-xl font-black tracking-widest text-[#53565b]">情報部發布中心</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)]">
+            <div className="flex justify-between items-center mb-4 border-b border-[var(--theme-color,#d4af37)]/20 pb-2">
+              <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)]">情報部發布中心</h3>
               <button 
                 onClick={handleCleanupExpiredIntel}
                 disabled={intelCleaning}
@@ -1134,7 +1263,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">情報標題</label>
+                  <label className="block text-sm font-bold tracking-widest text-[var(--theme-color,#d4af37)] mb-1">情報標題</label>
                   <input 
                     type="text" 
                     className="input-field w-full"
@@ -1145,7 +1274,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">情報內文</label>
+                  <label className="block text-sm font-bold tracking-widest text-[var(--theme-color,#d4af37)] mb-1">情報內文</label>
                   <textarea 
                     className="input-field w-full min-h-[120px]"
                     placeholder="請輸入發布細節與內容..."
@@ -1155,7 +1284,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">標籤 (用逗號分隔)</label>
+                  <label className="block text-sm font-bold tracking-widest text-[var(--theme-color,#d4af37)] mb-1">標籤 (用逗號分隔)</label>
                   <input 
                     type="text" 
                     className="input-field w-full"
@@ -1169,8 +1298,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               
               <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-bold tracking-widest text-[#53565b] mb-1">上傳加密圖檔 (可多選)</label>
-                  <div className="relative min-h-[200px] bg-gray-100 border border-dashed border-gray-300 flex flex-wrap gap-4 items-center p-4">
+                  <label className="block text-sm font-bold tracking-widest text-[var(--theme-color,#d4af37)] mb-1">上傳加密圖檔 (可多選)</label>
+                  <div className="relative min-h-[200px] bg-[#2a2a2a] border border-dashed border-gray-300 flex flex-wrap gap-4 items-center p-4">
                     {intelFiles.length > 0 ? (
                       intelFiles.map((f, i) => (
                         <div key={i} className="relative w-24 h-24 shadow-sm border border-gray-300 group z-20">
@@ -1181,7 +1310,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                               e.stopPropagation();
                               setIntelFiles(intelFiles.filter((_, index) => index !== i));
                             }}
-                            className="absolute top-1 right-1 p-1 bg-white/80 text-[#53565b] opacity-0 group-hover:opacity-100 hover:bg-white transition-all cursor-pointer z-30"
+                            className="absolute top-1 right-1 p-1 bg-black/80 text-[var(--theme-color,#d4af37)] opacity-0 group-hover:opacity-100 hover:bg-[#2a2a2a] transition-all cursor-pointer z-30"
                           >
                             <X size={16} />
                           </button>
@@ -1231,12 +1360,12 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* System Settings */}
-          <div className="neo-box border border-[#53565b]">
-            <h3 className="text-xl font-black tracking-widest mb-4 text-[#53565b] border-b border-[#53565b]/20 pb-2">系統設定</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)]">
+            <h3 className="text-xl font-black tracking-widest mb-4 text-[var(--theme-color,#d4af37)] border-b border-[var(--theme-color,#d4af37)]/20 pb-2">系統設定</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">首頁底圖</p>
-                <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                <div className="aspect-video bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.homeBgUrl ? (
                     <>
                       <img loading="lazy" src={siteConfig.homeBgUrl} alt="Home Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
@@ -1266,7 +1395,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">分頁底圖</p>
-                <div className="aspect-video bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                <div className="aspect-video bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.pageBgUrl ? (
                     <>
                       <img loading="lazy" src={siteConfig.pageBgUrl} alt="Page Background" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
@@ -1296,7 +1425,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">標題裝飾圖</p>
-                <div className="aspect-square max-w-[200px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                <div className="aspect-square max-w-[200px] bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.titleStyleUrl ? (
                     <>
                       <img loading="lazy" src={siteConfig.titleStyleUrl} alt="Title Style" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
@@ -1326,7 +1455,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">左上角 ICON</p>
-                <div className="aspect-square max-w-[200px] min-w-[150px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                <div className="aspect-square max-w-[200px] min-w-[150px] bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.logoUrl ? (
                     <>
                       <img loading="lazy" src={siteConfig.logoUrl} alt="Logo" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
@@ -1356,7 +1485,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">網頁 ICON</p>
-                <div className="aspect-square max-w-[200px] min-w-[150px] bg-gray-100 border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                <div className="aspect-square max-w-[200px] min-w-[150px] bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
                   {siteConfig.faviconUrl ? (
                     <>
                       <img loading="lazy" src={siteConfig.faviconUrl} alt="Favicon" crossOrigin="anonymous" className="max-w-full max-h-full object-contain p-4" />
@@ -1384,8 +1513,69 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   </label>
                 </div>
               </div>
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">左下角資訊卡背景</p>
+                <div className="aspect-video max-w-[200px] min-w-[150px] bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.bottomLeftBgUrl ? (
+                    <>
+                      <img loading="lazy" src={siteConfig.bottomLeftBgUrl} alt="Bottom Left Bg" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('bottomLeftBg')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（使用預設玻璃感）</span>
+                    </div>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'bottomLeftBg' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest text-center">上傳背景圖</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'bottomLeftBg')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-sm font-bold tracking-widest mb-2">右下角按鈕主圖</p>
+                <div className="aspect-video max-w-[200px] min-w-[150px] bg-[#2a2a2a] border border-dashed border-gray-300 relative flex items-center justify-center overflow-hidden group">
+                  {siteConfig.bottomRightBgUrl ? (
+                    <>
+                      <img loading="lazy" src={siteConfig.bottomRightBgUrl} alt="Bottom Right Bg" crossOrigin="anonymous" className="max-w-full max-h-full object-cover" />
+                      <button 
+                        onClick={() => handleDeleteSiteImage('bottomRightBg')}
+                        className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 z-10"
+                        title="刪除"
+                      >
+                        <X size={16} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center text-gray-400">
+                      <span className="text-sm tracking-widest mb-1">未上傳</span>
+                      <span className="text-xs">（使用純色樣式）</span>
+                    </div>
+                  )}
+                  <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                    {siteConfigUploading === 'bottomRightBg' ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <span className="text-xs tracking-widest text-center">上傳按鈕主圖</span>
+                    )}
+                    <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'bottomRightBg')} disabled={siteConfigUploading !== null} />
+                  </label>
+                </div>
+              </div>
             </div>
-            <div className="mt-6 border-t border-gray-200 pt-4">
+            <div className="mt-6 border-t border-gray-700 pt-4">
               <p className="text-sm font-bold tracking-widest mb-2">主題強調色</p>
               <div className="flex items-center gap-4">
                 <input 
@@ -1400,9 +1590,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           </div>
 
           {/* Social Links Management */}
-          <div className="neo-box border border-[#53565b]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2">
-              <h3 className="text-xl font-black tracking-widest text-[#53565b]">社群連結設定 (追蹤我)</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)]">
+            <div className="flex justify-between items-center mb-4 border-b border-[var(--theme-color,#d4af37)]/20 pb-2">
+              <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)]">社群連結設定 (追蹤我)</h3>
               <button 
                 onClick={handleSaveSocialLinks}
                 disabled={socialLinksSaving}
@@ -1411,10 +1601,40 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 {socialLinksSaving ? '儲存中...' : '儲存社群連結'}
               </button>
             </div>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
+            <div className="space-y-4 max-h-[500px] overflow-y-auto custom-scrollbar pr-2">
               {socialLinks.map((link) => (
-                <div key={link.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                  <label className="sm:w-32 font-bold tracking-widest text-sm text-[#53565b]">
+                <div key={link.id} className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 p-2 hover:bg-white/5 rounded">
+                  <div className="flex flex-col items-center gap-2 w-16">
+                    <div className="w-10 h-10 border border-white/20 bg-black/40 backdrop-blur-sm flex items-center justify-center text-white relative group overflow-hidden">
+                      {link.iconUrl ? (
+                        <>
+                          <img loading="lazy" src={link.iconUrl} alt={link.label} className="w-6 h-6 object-contain" crossOrigin="anonymous" />
+                          <button 
+                            onClick={() => handleSocialIconDelete(link.id)}
+                            className="absolute inset-0 bg-red-500/80 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                            title="刪除"
+                          >
+                            <X size={16} />
+                          </button>
+                        </>
+                      ) : (
+                        <span className="font-mono font-bold text-sm">
+                          {link.label[0]}
+                        </span>
+                      )}
+                      {!link.iconUrl && (
+                        <label className="absolute inset-0 bg-black/80 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+                          {socialIconUploading === link.id ? (
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <span className="text-[10px] tracking-widest text-[#d4af37]">上傳</span>
+                          )}
+                          <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSocialIconUpload(e, link.id)} disabled={socialIconUploading !== null} />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                  <label className="sm:w-24 font-bold tracking-widest text-sm text-[var(--theme-color,#d4af37)] mt-2 sm:mt-0">
                     {link.label}
                   </label>
                   <input 
@@ -1434,20 +1654,20 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
 
           {/* Price List Settings */}
-          <div className="neo-box border border-[#53565b] flex flex-col h-[500px]">
-            <div className="flex justify-between items-center mb-4 border-b border-[#53565b]/20 pb-2 shrink-0">
-              <h3 className="text-xl font-black tracking-widest text-[#53565b]">價目表設定</h3>
+          <div className="neo-box border border-[var(--theme-color,#d4af37)] flex flex-col h-[500px]">
+            <div className="flex justify-between items-center mb-4 border-b border-[var(--theme-color,#d4af37)]/20 pb-2 shrink-0">
+              <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)]">價目表設定</h3>
               <button onClick={handleAddPriceItem} className="btn-primary py-1 px-3 text-sm">
                 + 新增項目
               </button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar pr-2 space-y-4">
               {priceList.map((item) => (
-                <div key={item.id} className="p-4 border border-gray-200 bg-white/50 flex flex-col md:flex-row gap-6 items-start">
+                <div key={item.id} className="p-4 border border-gray-700 bg-black/40 flex flex-col md:flex-row gap-6 items-start">
                   {editingPriceId === item.id ? (
                     <>
                       <div className="w-full md:w-1/3 space-y-4">
-                        <div className="aspect-[4/3] bg-gray-100 border border-[#53565b] relative flex items-center justify-center overflow-hidden">
+                        <div className="aspect-[4/3] bg-[#2a2a2a] border border-[var(--theme-color,#d4af37)] relative flex items-center justify-center overflow-hidden">
                           {priceEditData.imageUrl ? (
                             <img loading="lazy" src={priceEditData.imageUrl} alt="Preview" crossOrigin="anonymous" className="w-full h-full object-cover" />
                           ) : (
@@ -1503,7 +1723,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           onChange={e => setPriceEditData({...priceEditData, description: e.target.value})}
                         />
                         <div className="flex justify-end gap-4 mt-auto">
-                          <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border border-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                          <button onClick={() => setEditingPriceId(null)} className="px-4 py-2 border border-[var(--theme-color,#d4af37)] text-sm tracking-widest hover:bg-[#2a2a2a] transition-colors">
                             取消
                           </button>
                           <button onClick={handleSavePriceItem} className="px-4 py-2 bg-gray-800 text-white text-sm tracking-widest hover:bg-gray-900 transition-colors">
@@ -1514,7 +1734,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     </>
                   ) : (
                     <>
-                      <div className="w-full md:w-1/4 aspect-[4/3] bg-gray-100 border border-[#53565b] overflow-hidden">
+                      <div className="w-full md:w-1/4 aspect-[4/3] bg-[#2a2a2a] border border-[var(--theme-color,#d4af37)] overflow-hidden">
                         {item.imageUrl ? (
                           <img loading="lazy" src={item.imageUrl} alt={item.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
                         ) : (
@@ -1527,7 +1747,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                             <h4 className="text-lg font-black tracking-widest">{item.title} <span className="text-sm font-normal text-[#d4af37] ml-2">{item.price}</span></h4>
                             <span className="text-xs text-gray-400 font-mono">排序: {item.order}</span>
                           </div>
-                          <p className="text-xs text-[#53565b] font-bold tracking-widest mb-2 border-b border-gray-100 pb-1 inline-block">
+                          <p className="text-xs text-[var(--theme-color,#d4af37)] font-bold tracking-widest mb-2 border-b border-gray-800 pb-1 inline-block">
                             流程：{WORKFLOW_OPTIONS[item.workflow as keyof typeof WORKFLOW_OPTIONS]?.label || '標準'}
                           </p>
                           <p className="text-sm text-gray-600 tracking-widest leading-loose whitespace-pre-wrap line-clamp-3">
@@ -1535,10 +1755,10 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           </p>
                         </div>
                         <div className="flex justify-end gap-4 mt-4">
-                          <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-3 py-1 border border-[#53565b] text-sm tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
+                          <button onClick={() => { setEditingPriceId(item.id); setPriceEditData(item); }} className="flex items-center gap-2 px-3 py-1 border border-[var(--theme-color,#d4af37)] text-sm tracking-widest hover:bg-[var(--theme-color,#d4af37)] hover:text-[#fafafa] transition-colors">
                             <Edit2 size={14} /> 編輯
                           </button>
-                          <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-3 py-1 border border-[#53565b] text-[#53565b] text-sm tracking-widest hover:bg-gray-100 transition-colors">
+                          <button onClick={() => handleDeletePriceItem(item.id)} className="flex items-center gap-2 px-3 py-1 border border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] text-sm tracking-widest hover:bg-[#2a2a2a] transition-colors">
                             <Trash2 size={14} /> 刪除
                           </button>
                         </div>
@@ -1548,7 +1768,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
               ))}
               {priceList.length === 0 && (
-                <div className="text-center py-10 text-gray-400 border border-dashed border-gray-200 tracking-widest">
+                <div className="text-center py-10 text-gray-400 border border-dashed border-gray-700 tracking-widest">
                   目前尚無價目項目。
                 </div>
               )}
@@ -1559,23 +1779,23 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
         {/* Right Column: Calendar */}
         <div className="xl:col-span-5 w-full">
-          <div className="sticky top-24 neo-box border border-[#53565b] bg-white/90 backdrop-blur-sm">
+          <div className="sticky top-24 neo-box border border-[var(--theme-color,#d4af37)] bg-black/40 backdrop-blur-sm">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black tracking-widest text-[#53565b]">排程日曆</h3>
+              <h3 className="text-xl font-black tracking-widest text-[var(--theme-color,#d4af37)]">排程日曆</h3>
               <div className="flex items-center gap-4">
-                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))} className="p-2 hover:bg-[#2a2a2a] rounded-full transition-colors">
                   <ChevronLeft size={20} />
                 </button>
                 <span className="text-base font-bold tracking-widest">{format(currentMonth, 'yyyy 年 MM 月')}</span>
-                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                <button onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))} className="p-2 hover:bg-[#2a2a2a] rounded-full transition-colors">
                   <ChevronRight size={20} />
                 </button>
               </div>
             </div>
             
-            <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-200">
+            <div className="grid grid-cols-7 gap-px bg-gray-200 border border-gray-700">
               {['日', '一', '二', '三', '四', '五', '六'].map(day => (
-                <div key={day} className="bg-gray-50 py-3 text-center text-sm font-bold tracking-widest text-gray-500">
+                <div key={day} className="bg-[#1a1a1a] py-3 text-center text-sm font-bold tracking-widest text-gray-500">
                   {day}
                 </div>
               ))}
@@ -1588,8 +1808,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   <div 
                     key={i} 
                     className={cn(
-                      "bg-white min-h-[120px] p-2 transition-colors hover:bg-gray-50 cursor-pointer",
-                      !isSameMonth(date, currentMonth) && "bg-gray-50/50 text-gray-400",
+                      "bg-black/40 min-h-[120px] p-2 transition-colors hover:bg-black/60 cursor-pointer",
+                      !isSameMonth(date, currentMonth) && "bg-[#1a1a1a]/50 text-gray-400",
                       isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
                     )}
                     onClick={() => {
@@ -1602,7 +1822,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
                       {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[#53565b] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderNo || '處理中...'} - ${order.title}`} onClick={() => {
+                        <div key={idx} className="text-[10px] truncate bg-[var(--theme-color,#d4af37)] text-white px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderNo || '處理中...'} - ${order.title}`} onClick={() => {
                           setModalOrdersType('all');
                           setActiveModal('orders');
                           setTimeout(() => {
@@ -1633,9 +1853,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
           {selectedCalendarDate && allOrders.filter(o => 
             o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), selectedCalendarDate))
           ).map(order => (
-            <div key={order.id} className="p-4 border border-gray-200 bg-white flex justify-between items-center">
+            <div key={order.id} className="p-4 border border-gray-700 bg-black/40 flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest"><span className="font-mono text-[#53565b] mr-2">{order.orderNo || '處理中...'}</span>{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono text-[var(--theme-color,#d4af37)] mr-2">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                 <p className="text-sm text-gray-500">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -1647,7 +1867,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
                   }, 100);
                 }}
-                className="text-sm text-[#53565b] hover:underline flex items-center gap-1"
+                className="text-sm text-[var(--theme-color,#d4af37)] hover:underline flex items-center gap-1"
               >
                 <ExternalLink size={14} /> 詳情
               </button>
@@ -1674,25 +1894,25 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
               return true;
             })
             .map(order => (
-            <div key={order.id} id={`order-${order.id}`} className="neo-box transition-colors duration-1000 border border-[#53565b]">
+            <div key={order.id} id={`order-${order.id}`} className="neo-box transition-colors duration-1000 border border-[var(--theme-color,#d4af37)]">
               <div className="flex flex-col lg:flex-row gap-8">
                 {/* Left: Info */}
                 <div className="flex-1 space-y-4">
-                  <div className="flex justify-between items-start border-b border-gray-200 pb-4">
+                  <div className="flex justify-between items-start border-b border-gray-700 pb-4">
                     <div>
                       <h4 className="text-xl font-black tracking-widest mb-1">{order.title}</h4>
                       <p className="text-sm text-gray-500 tracking-widest">{order.category} | {order.nickname}</p>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono font-bold text-sm tracking-widest bg-[#53565b] text-white px-2 py-1">
+                      <span className="font-mono font-bold text-sm tracking-widest bg-[var(--theme-color,#d4af37)] text-white px-2 py-1">
                         {order.orderNo || '處理中...'}
                       </span>
                     </div>
                   </div>
 
                   <div className="text-sm tracking-widest leading-relaxed">
-                    <p className="text-gray-500 mb-1">聯絡方式：<span className="text-[#53565b]">{order.contact}</span></p>
-                    <p className="text-gray-500 mb-1">需求描述：<span className="text-[#53565b]">{order.description || '無'}</span></p>
+                    <p className="text-gray-500 mb-1">聯絡方式：<span className="text-[var(--theme-color,#d4af37)]">{order.contact}</span></p>
+                    <p className="text-gray-500 mb-1">需求描述：<span className="text-[var(--theme-color,#d4af37)]">{order.description || '無'}</span></p>
                   </div>
 
                   {/* References */}
@@ -1701,7 +1921,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <div className="space-y-3">
                       {order.referenceLink && (
                         <div>
-                          <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[#53565b] hover:underline text-sm tracking-widest">
+                          <a href={order.referenceLink} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[var(--theme-color,#d4af37)] hover:underline text-sm tracking-widest">
                             <ExternalLink size={16} /> 開啟連結
                           </a>
                         </div>
@@ -1710,7 +1930,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <div className="flex gap-2 overflow-x-auto pb-2">
                           {order.referenceImages.map((img: string, i: number) => (
                             <a key={i} href={img} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                              <img loading="lazy" src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[#53565b] hover:opacity-80" />
+                              <img loading="lazy" src={img} alt="Ref" crossOrigin="anonymous" className="w-16 h-16 object-cover border border-[var(--theme-color,#d4af37)] hover:opacity-80" />
                             </a>
                           ))}
                         </div>
@@ -1723,7 +1943,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
 
                 {/* Right: Status & Actions */}
-                <div className="lg:w-72 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-200 pt-4 lg:pt-0 lg:pl-8">
+                <div className="lg:w-72 flex flex-col justify-between border-t lg:border-t-0 lg:border-l border-gray-700 pt-4 lg:pt-0 lg:pl-8">
                   <div className="space-y-4">
                     <div>
                       <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
@@ -1738,7 +1958,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           ))}
                         </select>
                       ) : (
-                        <span className="inline-block px-4 py-2 bg-[#53565b] text-[#fafafa] text-sm font-bold tracking-widest">
+                        <span className="inline-block px-4 py-2 bg-[var(--theme-color,#d4af37)] text-[#fafafa] text-sm font-bold tracking-widest">
                           {getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || STATUS_NODES.find(n => n.id === order.status)?.label || '資料已歸檔'}
                         </span>
                       )}
@@ -1746,7 +1966,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
                     {editingId === order.id && (
                       <>
-                        <div className="space-y-4 border-t border-gray-200 pt-4">
+                        <div className="space-y-4 border-t border-gray-700 pt-4">
                           <div className="space-y-2">
                             <p className="text-xs text-gray-500 tracking-widest">當前進度達成日 (可選)</p>
                           <input 
@@ -1789,16 +2009,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                       
                       {/* Stage Image Uploads */}
                       <div className="mt-6 space-y-3">
-                        <p className="text-sm font-bold tracking-widest border-b border-gray-200 pb-2 text-[#53565b]">各階段視覺進度預覽圖</p>
+                        <p className="text-sm font-bold tracking-widest border-b border-gray-700 pb-2 text-[var(--theme-color,#d4af37)]">各階段視覺進度預覽圖</p>
                         {getWorkflowNodes(editData.workflow || order.workflow).filter(n => !['pending', 'queued', 'delivered'].includes(n.id)).map(node => {
                           const stage = node.id;
                           const stageLabel = node.label;
                           const uploadedUrl = editData.progressImages?.[stage];
                           
                           return (
-                            <div key={stage} className="p-3 border border-dashed border-gray-300 bg-gray-50 flex items-center justify-between">
+                            <div key={stage} className="p-3 border border-dashed border-gray-300 bg-[#1a1a1a] flex items-center justify-between">
                               <div className="flex items-center gap-4">
-                                <span className="text-xs font-bold tracking-widest w-10 text-[#53565b]">{stageLabel}</span>
+                                <span className="text-xs font-bold tracking-widest w-10 text-[var(--theme-color,#d4af37)]">{stageLabel}</span>
                                 {uploadedUrl ? (
                                   <a href={uploadedUrl} target="_blank" rel="noopener noreferrer">
                                     <img loading="lazy" src={uploadedUrl} className="w-10 h-10 object-cover border border-gray-300 hover:opacity-80 transition-opacity" alt={`${stageLabel}預覽`} crossOrigin="anonymous" />
@@ -1808,7 +2028,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                                 )}
                               </div>
                               <div className="flex items-center gap-2">
-                                <label className="cursor-pointer text-xs border border-[#53565b] text-[#53565b] px-3 py-1 hover:bg-[#53565b] hover:text-white transition-colors">
+                                <label className="cursor-pointer text-xs border border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] px-3 py-1 hover:bg-[var(--theme-color,#d4af37)] hover:text-white transition-colors">
                                   {uploadedUrl ? '重新上傳' : '上傳圖片'}
                                   <input 
                                     type="file" 
@@ -1842,15 +2062,15 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                           <input
                             type="text"
                             placeholder="請輸入報價"
-                            className="px-3 py-2 border border-[#53565b] text-sm w-32 focus:outline-none focus:ring-1 focus:ring-[#53565b]"
+                            className="px-3 py-2 border border-[var(--theme-color,#d4af37)] text-sm w-32 focus:outline-none focus:ring-1 focus:ring-[#53565b]"
                             value={acceptPrices[order.id] || ''}
                             onChange={(e) => setAcceptPrices(prev => ({ ...prev, [order.id]: e.target.value }))}
                           />
                         </div>
-                        <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-2 px-4 py-2 bg-[#53565b] text-[#fafafa] tracking-widest hover:bg-gray-800 transition-colors">
+                        <button onClick={() => handleAcceptOrder(order)} className="flex items-center gap-2 px-4 py-2 bg-[var(--theme-color,#d4af37)] text-[#fafafa] tracking-widest hover:bg-gray-800 transition-colors">
                           <CheckCircle2 size={16} /> 確認委託
                         </button>
-                        <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                        <button onClick={() => handleRejectOrder(order)} className="flex items-center gap-2 px-4 py-2 border border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] tracking-widest hover:bg-[#2a2a2a] transition-colors">
                           <X size={16} /> 婉拒
                         </button>
                       </div>
@@ -1859,16 +2079,16 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                         <button onClick={handleSave} className="flex items-center gap-2 px-4 py-2 bg-gray-800 text-white tracking-widest hover:bg-gray-900 transition-colors">
                           <Save size={16} /> 儲存
                         </button>
-                        <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                        <button onClick={() => setEditingId(null)} className="flex items-center gap-2 px-4 py-2 border border-[var(--theme-color,#d4af37)] tracking-widest hover:bg-[#2a2a2a] transition-colors">
                           取消
                         </button>
                       </>
                     ) : (
                       <>
-                        <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] tracking-widest hover:bg-[#53565b] hover:text-[#fafafa] transition-colors">
+                        <button onClick={() => handleEdit(order)} className="flex items-center gap-2 px-4 py-2 border border-[var(--theme-color,#d4af37)] tracking-widest hover:bg-[var(--theme-color,#d4af37)] hover:text-[#fafafa] transition-colors">
                           <Edit2 size={16} /> 編輯
                         </button>
-                        <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border border-[#53565b] text-[#53565b] tracking-widest hover:bg-gray-100 transition-colors">
+                        <button onClick={() => handleDelete(order.id)} className="flex items-center gap-2 px-4 py-2 border border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] tracking-widest hover:bg-[#2a2a2a] transition-colors">
                           <Trash2 size={16} /> 刪除
                         </button>
                       </>
@@ -1884,7 +2104,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             if (modalOrdersType === 'completed') return o.status === 'completed' || o.status === 'delivered';
             return true;
           }).length === 0 && !loading && (
-            <div className="py-20 text-center text-gray-400 border border-dashed border-gray-200 mt-4 tracking-widest">
+            <div className="py-20 text-center text-gray-400 border border-dashed border-gray-700 mt-4 tracking-widest">
               目前尚無卷宗。
             </div>
           )}
@@ -1901,7 +2121,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
             src={lightboxImage} 
             alt="Full size reference" 
             crossOrigin="anonymous"
-            className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
+            className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[var(--theme-color,#d4af37)]"
           />
         </div>
       )}

@@ -1,88 +1,112 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { User } from 'firebase/auth';
-import { User as UserIcon, Settings } from 'lucide-react';
+import { Search, Mail, Settings, LogOut, Code, UserCircle } from 'lucide-react';
 import { logout } from '../firebase';
+import { cn } from '../lib/utils';
+import ContactForm from './ContactForm';
+
+// We map generic IDs for social icons since some platforms don't have lucide icons.
+const SOCIAL_ICONS: Record<string, any> = {
+  fb: 'F', ig: 'I', threads: '@', x: 'X', twitch: 'Tw', yt: 'Y', artstation: 'A', plurk: 'P', bluesky: 'B', cara: 'C', mosir: 'M'
+};
 
 interface NavbarProps {
   setPage: (page: any) => void;
   currentPage: string;
   user: User | null;
   siteConfig?: any;
+  socialLinks?: any[];
 }
 
-export default function Navbar({ setPage, currentPage, user, siteConfig }: NavbarProps) {
-  // Check if user is admin
+export default function Navbar({ setPage, currentPage, user, siteConfig, socialLinks = [] }: NavbarProps) {
   const isAdmin = user?.email === 'sara20001128@gmail.com';
+  const [showContact, setShowContact] = useState(false);
+
+  // Nav Items Data
+  const mainNav = [
+    { id: 'home', label: '首頁', en: 'HOME' },
+    { id: 'pricelist', label: '價目', en: 'PRICE' },
+    { id: 'order', label: '立契', en: 'ORDER' },
+    { id: 'tracking', label: '追跡', en: 'TRACK' },
+    { id: 'portfolio', label: '圖鑑', en: 'ARCHIVE' }
+  ];
+
+  const validSocialLinks = socialLinks.filter(l => l.url && l.url.trim() !== '');
 
   return (
-    <nav className="fixed top-0 left-0 right-0 bg-[#fafafa]/90 backdrop-blur-md z-50 border-b-2 border-[#53565b]">
-      <div className="max-w-7xl mx-auto px-2 sm:px-6 h-auto min-h-[80px] py-2 sm:py-0 flex flex-wrap items-center justify-between">
-        <button 
-          onClick={() => setPage('home')}
-          className="text-lg sm:text-2xl font-black tracking-widest hover:text-[#53565b] transition-colors flex items-center gap-2 mb-1 sm:mb-0"
-        >
-          {siteConfig?.logoUrl ? (
-            <img src={siteConfig.logoUrl} alt="Logo" crossOrigin="anonymous" className="h-6 sm:h-8 w-auto object-contain" />
-          ) : (
-            <span className="w-6 h-6 sm:w-8 sm:h-8 border-2 border-[#53565b] flex items-center justify-center text-xs sm:text-sm font-bold bg-[#53565b] text-[#fafafa]">龍</span>
-          )}
-          <span className="hidden min-[375px]:inline whitespace-nowrap">龍契局</span>
-        </button>
-
-        <div className="flex items-center gap-2 sm:gap-4 md:gap-8 flex-wrap justify-center flex-1 sm:flex-none">
-          <button 
-            onClick={() => setPage('order')}
-            className={`text-[10px] sm:text-sm tracking-widest hover:text-[#53565b] transition-colors whitespace-nowrap ${currentPage === 'order' ? 'text-[#53565b] font-bold' : 'text-[#53565b]'}`}
-          >
-            填寫願望
-          </button>
-          <button 
-            onClick={() => setPage('pricelist')}
-            className={`text-[10px] sm:text-sm tracking-widest hover:text-[#53565b] transition-colors whitespace-nowrap ${currentPage === 'pricelist' ? 'text-[#53565b] font-bold' : 'text-[#53565b]'}`}
-          >
-            價目表
-          </button>
-          <button 
-            onClick={() => setPage('tracking')}
-            className={`text-[10px] sm:text-sm tracking-widest hover:text-[#53565b] transition-colors whitespace-nowrap ${currentPage === 'tracking' ? 'text-[#53565b] font-bold' : 'text-[#53565b]'}`}
-          >
-            追蹤進度
-          </button>
-          <button 
-            onClick={() => setPage('portfolio')}
-            className={`text-[10px] sm:text-sm tracking-widest hover:text-[#53565b] transition-colors whitespace-nowrap ${currentPage === 'portfolio' ? 'text-[#53565b] font-bold' : 'text-[#53565b]'}`}
-          >
-            作品集
-          </button>
-          
-          <div className="flex items-center gap-2 sm:gap-4 border-l-2 border-[#53565b] pl-2 sm:pl-8 overflow-hidden">
-            <button 
-              onClick={() => setPage('follow')}
-              className={`text-[10px] sm:text-sm tracking-widest hover:text-[#53565b] transition-colors whitespace-nowrap ${currentPage === 'follow' ? 'text-[#53565b] font-bold' : 'text-[#53565b]'}`}
-            >
-              追蹤我
-            </button>
-            {isAdmin && (
-              <button 
-                onClick={() => setPage('admin')}
-                className={`flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm tracking-widest hover:text-[#53565b] transition-colors whitespace-nowrap ${currentPage === 'admin' ? 'text-[#53565b] font-bold' : 'text-[#53565b]'}`}
-              >
-                <Settings size={14} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="hidden lg:inline">後台管理</span>
-              </button>
+    <>
+      {/* Top Left Main Menu */}
+      <nav className="fixed top-4 sm:top-6 left-4 sm:left-6 z-50 flex gap-2 sm:gap-4 max-w-[70vw] sm:max-w-none flex-wrap sm:flex-nowrap">
+        {mainNav.map(item => (
+          <div 
+            key={item.id}
+            onClick={() => setPage(item.id)}
+            className={cn(
+              "nav-item",
+              currentPage === item.id ? "active text-[var(--theme-color,#d4af37)] opacity-100 font-bold" : "text-white"
             )}
-            {user && (
-              <button 
-                onClick={logout}
-                className="flex items-center gap-1 sm:gap-2 text-[10px] sm:text-sm text-[#53565b] hover:text-[#53565b] transition-colors whitespace-nowrap"
-              >
-                <UserIcon size={14} className="sm:w-[18px] sm:h-[18px]" />
-                <span className="hidden lg:inline">登出</span>
-              </button>
-            )}
+          >
+            <div className="nav-box"></div>
+            <span className="text-xs md:text-base tracking-widest font-black leading-none">{item.label}</span>
+            <span className="text-[8px] md:text-[9px] tracking-widest font-mono opacity-60 mt-1">{item.en}</span>
           </div>
+        ))}
+      </nav>
+
+      {/* Top Right Utility Icons */}
+      <nav className="fixed top-4 sm:top-6 right-4 sm:right-6 z-50 flex gap-2 sm:gap-4 items-center scale-90 sm:scale-100 origin-top-right">
+        <button 
+          onClick={() => setPage('tracking')}
+          className="text-white opacity-70 hover:opacity-100 hover:text-[var(--theme-color,#d4af37)] transition-all flex flex-col items-center gap-1"
+          title="追跡 (搜尋進度)"
+        >
+          <Search size={22} />
+        </button>
+        <button 
+          onClick={() => setShowContact(true)}
+          className="text-white opacity-70 hover:opacity-100 hover:text-[var(--theme-color,#d4af37)] transition-all flex flex-col items-center gap-1"
+          title="聯絡我們"
+        >
+          <Mail size={22} />
+        </button>
+        <button 
+          onClick={() => setPage('admin')}
+          className={cn("opacity-70 hover:opacity-100 transition-all flex flex-col items-center gap-1", currentPage === 'admin' ? "text-[var(--theme-color,#d4af37)] opacity-100" : "text-white hover:text-[var(--theme-color,#d4af37)]")}
+          title="後台設定"
+        >
+          <Settings size={22} />
+        </button>
+      </nav>
+
+      {/* Right Vertical Social Icons */}
+      {validSocialLinks.length > 0 && (
+        <div className="fixed right-4 sm:right-6 top-1/2 -translate-y-1/2 z-40 flex flex-col gap-2 sm:gap-3">
+          {validSocialLinks.map(link => (
+            <a 
+              key={link.id} 
+              href={link.url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="w-7 h-7 sm:w-8 sm:h-8 border border-white/20 bg-black/40 backdrop-blur-sm flex items-center justify-center text-white opacity-60 hover:opacity-100 hover:border-[var(--theme-color,#d4af37)] hover:text-[var(--theme-color,#d4af37)] transition-all group overflow-hidden"
+              title={link.label}
+            >
+              {link.iconUrl ? (
+                <img loading="lazy" src={link.iconUrl} alt={link.label} className="w-4 h-4 object-contain transform group-hover:scale-110 transition-transform opacity-80 group-hover:opacity-100" crossOrigin="anonymous" />
+              ) : (
+                <span className="font-mono font-bold text-xs transform group-hover:scale-110 transition-transform">
+                  {SOCIAL_ICONS[link.id as string] || link.label[0]}
+                </span>
+              )}
+            </a>
+          ))}
+          <div className="w-[1px] h-12 sm:h-20 bg-gradient-to-b from-white/30 to-transparent mx-auto mt-2"></div>
         </div>
-      </div>
-    </nav>
+      )}
+
+      {/* Contact Modal */}
+      {showContact && (
+        <ContactForm onClose={() => setShowContact(false)} />
+      )}
+    </>
   );
 }

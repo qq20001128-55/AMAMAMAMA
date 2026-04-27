@@ -199,10 +199,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       animate={{ opacity: 1 }}
       className="max-w-5xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
-        <ChevronLeft size={20} />
-        <span>返回大廳</span>
-      </button>
+      
 
       <SectionTitle>探問因果</SectionTitle>
 
@@ -212,7 +209,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           <input 
             type="text" 
             placeholder="輸入專屬契約編號"
-            className="input-field pl-12 bg-white"
+            className="input-field pl-12 bg-transparent"
             value={searchId}
             onChange={(e) => setSearchId(e.target.value)}
           />
@@ -223,7 +220,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
       </form>
 
       {error && (
-        <div className="text-center py-10 text-[#53565b] border-2 border-dashed border-[#53565b] tracking-widest">
+        <div className="text-center py-10 text-[var(--theme-color,#d4af37)] border-2 border-dashed border-[var(--theme-color,#d4af37)] tracking-widest">
           {error}
         </div>
       )}
@@ -234,7 +231,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           animate={{ opacity: 1, y: 0 }}
           className="space-y-16"
         >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-8 border-b-2 border-[#53565b]">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-8 border-b-2 border-[var(--theme-color,#d4af37)]">
             <div>
               <p className="text-xs text-gray-500 tracking-widest mb-2">契約標題</p>
               <h3 className="text-3xl font-black tracking-widest">{order.title}</h3>
@@ -242,13 +239,13 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             <div className="text-left md:text-right flex flex-col items-start md:items-end gap-4">
               <div>
                 <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
-                <p className="text-xl font-bold tracking-widest text-[#53565b]">
+                <p className="text-xl font-bold tracking-widest text-[var(--theme-color,#d4af37)]">
                   {order.status === 'pending' ? '確認中' : (orderNodes[currentStatusIndex]?.label || '未知')}
                 </p>
               </div>
               <button 
                 onClick={generateProgressCard}
-                className="px-4 py-2 bg-[#53565b] text-white text-sm tracking-widest hover:bg-[#53565b] transition-colors"
+                className="px-4 py-2 bg-[var(--theme-color,#d4af37)] text-white text-sm tracking-widest hover:bg-[var(--theme-color,#d4af37)] transition-colors"
               >
                 下載進度卡
               </button>
@@ -260,7 +257,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               {/* Progress Line */}
               <div className="absolute top-14 left-10 right-10 h-0.5 bg-gray-200 -z-10" />
               <div 
-                className="absolute top-14 left-10 h-0.5 bg-[#53565b] transition-all duration-1000 -z-10" 
+                className="absolute top-14 left-10 h-0.5 bg-[var(--theme-color,#d4af37)] transition-all duration-1000 -z-10" 
                 style={{ width: `calc(${((Math.max(0, currentStatusIndex)) / (orderNodes.length - 1)) * 100}% - 20px)` }}
               />
 
@@ -275,14 +272,14 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                     <div key={node.id} className="flex flex-col items-center group w-24">
                       <div className={cn(
                         "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#fafafa] mb-4",
-                        isCompleted ? "border-[#53565b] text-[#53565b]" : "border-gray-200 text-gray-300",
-                        isCurrent && "ring-4 ring-gray-100 bg-[#53565b] text-white"
+                        isCompleted ? "border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)]" : "border-gray-700 text-gray-300",
+                        isCurrent && "ring-4 ring-gray-100 bg-[var(--theme-color,#d4af37)] text-white"
                       )}>
                         {isCompleted ? <CheckCircle2 size={24} /> : <Clock size={24} />}
                       </div>
                       <span className={cn(
                         "text-sm tracking-widest transition-colors mb-2 text-center",
-                        isCompleted ? "text-[#53565b] font-bold" : "text-gray-400"
+                        isCompleted ? "text-[var(--theme-color,#d4af37)] font-bold" : "text-gray-400"
                       )}>
                         {node.label}
                       </span>
@@ -304,7 +301,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <div className="window-box-octagon lg:col-span-1 space-y-6">
-              <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block">契約詳情</h4>
+              <h4 className="text-lg font-black tracking-widest border-b-2 border-[var(--theme-color,#d4af37)] pb-2 inline-block">契約詳情</h4>
               <div className="space-y-4 text-sm tracking-widest">
                 <div>
                   <span className="text-gray-500 block mb-1">委託人</span>
@@ -322,13 +319,13 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
             </div>
             
             <div className="lg:col-span-2 space-y-6">
-              <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block">參考資料</h4>
+              <h4 className="text-lg font-black tracking-widest border-b-2 border-[var(--theme-color,#d4af37)] pb-2 inline-block">參考資料</h4>
               {order.referenceType === 'link' ? (
                 <a 
                   href={order.referenceLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[#53565b] hover:underline tracking-widest p-4 border-2 border-dashed border-[#53565b] bg-gray-100/50"
+                  className="flex items-center gap-2 text-[var(--theme-color,#d4af37)] hover:underline tracking-widest p-4 border-2 border-dashed border-[var(--theme-color,#d4af37)] bg-[#2a2a2a]/50"
                 >
                   <ExternalLink size={20} />
                   前往參考連結
@@ -336,7 +333,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               ) : order.referenceImages?.length > 0 ? (
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
                   {order.referenceImages.map((img: string, i: number) => (
-                    <div key={i} className="aspect-square border-2 border-[#53565b] overflow-hidden">
+                    <div key={i} className="aspect-square border-2 border-[var(--theme-color,#d4af37)] overflow-hidden">
                       <img loading="lazy" src={img} alt={`Reference ${i}`} crossOrigin="anonymous" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all duration-500" />
                     </div>
                   ))}
@@ -351,7 +348,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                 return order.progressImages?.[node.id] || order.progressHistory?.[node.id]?.imageUrl;
               }) && (
                 <div className="mt-12">
-                  <h4 className="text-lg font-black tracking-widest border-b-2 border-[#53565b] pb-2 inline-block mb-6">進度預覽</h4>
+                  <h4 className="text-lg font-black tracking-widest border-b-2 border-[var(--theme-color,#d4af37)] pb-2 inline-block mb-6">進度預覽</h4>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {orderNodes.map(node => {
                       const stage = node.id;
@@ -362,9 +359,9 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                       
                       return (
                         <div key={stage} className="space-y-2">
-                          <p className="text-sm font-bold tracking-widest text-[#53565b] text-center">{stageLabel}</p>
+                          <p className="text-sm font-bold tracking-widest text-[var(--theme-color,#d4af37)] text-center">{stageLabel}</p>
                           <div 
-                            className="aspect-square border border-[#53565b] overflow-hidden cursor-pointer group bg-gray-50 flex items-center justify-center p-1"
+                            className="aspect-square border border-[var(--theme-color,#d4af37)] overflow-hidden cursor-pointer group bg-[#1a1a1a] flex items-center justify-center p-1"
                             onClick={() => setLightboxImage(imgUrl)}
                           >
                             <img loading="lazy" 
@@ -396,7 +393,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           onClick={() => setLightboxImage(null)}
         >
           <button 
-            className="absolute top-6 right-6 text-[#53565b] hover:text-gray-500 transition-colors z-10"
+            className="absolute top-6 right-6 text-[var(--theme-color,#d4af37)] hover:text-gray-500 transition-colors z-10"
             onClick={() => setLightboxImage(null)}
           >
             <X size={32} />
@@ -406,7 +403,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               src={lightboxImage} 
               alt="Full size preview"
               crossOrigin="anonymous"
-              className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[#53565b]"
+              className="max-w-full max-h-[90vh] object-contain shadow-2xl border-4 border-[var(--theme-color,#d4af37)]"
             />
           </div>
         </div>

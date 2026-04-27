@@ -44,17 +44,17 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative bg-white w-full ${maxWidth} max-h-[90vh] flex flex-col rounded-lg shadow-2xl border-2 border-[#53565b] overflow-hidden`}
+            className={`relative bg-[#121212] w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-[var(--theme-color,#d4af37)] overflow-hidden text-gray-200`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-gray-50 flex-none">
-              <h3 className="text-xl font-bold tracking-widest text-[#53565b]">
+            <div className="p-4 border-b flex justify-between items-center bg-[#1a1a1a] flex-none">
+              <h3 className="text-xl font-bold tracking-widest text-[var(--theme-color,#d4af37)]">
                 {title}
               </h3>
               <button
                 onClick={onClose}
-                className="p-2 hover:bg-gray-200 rounded-full text-[#53565b] transition-colors"
+                className="p-2 hover:bg-gray-200 rounded-full text-[var(--theme-color,#d4af37)] transition-colors"
                 title="關閉"
               >
                 <X size={20} />

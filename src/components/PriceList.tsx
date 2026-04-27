@@ -49,10 +49,7 @@ export default function PriceList({ onBack }: PriceListProps) {
       animate={{ opacity: 1 }}
       className="max-w-6xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
-        <ChevronLeft size={20} />
-        <span>返回大廳</span>
-      </button>
+      
 
       <div className="mb-12">
         <SectionTitle className="!text-left !mb-2">價目與內容</SectionTitle>
@@ -61,10 +58,10 @@ export default function PriceList({ onBack }: PriceListProps) {
 
       {loading ? (
         <div className="flex justify-center py-20">
-          <div className="w-8 h-8 border-2 border-[#53565b] border-t-transparent rounded-full animate-spin" />
+          <div className="w-8 h-8 border-2 border-[var(--theme-color,#d4af37)] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-20 text-gray-400 border border-dashed border-gray-200 tracking-widest">
+        <div className="text-center py-20 text-gray-400 border border-dashed border-gray-700 tracking-widest">
           目前尚無價目資訊。
         </div>
       ) : (
@@ -78,8 +75,8 @@ export default function PriceList({ onBack }: PriceListProps) {
                 onClick={() => setActiveItem(item)}
                 className={`text-left px-6 py-4 tracking-widest transition-all duration-300 font-bold border-l-4 ${
                   activeItem?.id === item.id 
-                    ? 'border-[#53565b] text-[#53565b] bg-[#53565b]/5' 
-                    : 'border-transparent text-gray-400 hover:text-[#53565b] hover:bg-gray-50'
+                    ? 'border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] bg-[var(--theme-color,#d4af37)]/5' 
+                    : 'border-transparent text-gray-400 hover:text-[var(--theme-color,#d4af37)] hover:bg-[#1a1a1a]'
                 }`}
               >
                 {item.title}
@@ -102,13 +99,13 @@ export default function PriceList({ onBack }: PriceListProps) {
                   <div className="flex flex-col gap-8">
                     {/* Header Area */}
                     <div>
-                      <h3 className="text-3xl font-black tracking-widest text-[#53565b] mb-2">{activeItem.title}</h3>
-                      <p className="text-xl font-bold tracking-widest text-gray-800">標準價格：{activeItem.price || '未定'}</p>
+                      <h3 className="text-3xl font-black tracking-widest text-[var(--theme-color,#d4af37)] mb-2">{activeItem.title}</h3>
+                      <p className="text-xl font-bold tracking-widest text-gray-200">標準價格：{activeItem.price || '未定'}</p>
                     </div>
 
                     {/* Image Area */}
                     <div className="w-full">
-                      <div className="w-full bg-gray-50 border border-gray-200 p-2 overflow-hidden group flex items-center justify-center">
+                      <div className="w-full bg-[#1a1a1a] border border-gray-700 p-2 overflow-hidden group flex items-center justify-center">
                         {activeItem.imageUrl ? (
                           <img loading="lazy" 
                             src={activeItem.imageUrl} 
@@ -125,8 +122,8 @@ export default function PriceList({ onBack }: PriceListProps) {
                     {/* Content Area */}
                     <div className="w-full space-y-8">
                       <div className="space-y-4">
-                        <div className="w-full bg-gray-50 border border-gray-100 p-4 neo-box shadow-sm">
-                          <p className="text-xs text-gray-400 tracking-widest mb-4 font-bold border-b border-gray-200 pb-2 inline-block">委託對應流程</p>
+                        <div className="w-full bg-[#1a1a1a] border border-gray-800 p-4 neo-box shadow-sm">
+                          <p className="text-xs text-gray-400 tracking-widest mb-4 font-bold border-b border-gray-700 pb-2 inline-block">委託對應流程</p>
                           <div className="relative pt-2 pb-2 overflow-x-auto">
                             {(() => {
                               const nodes = getWorkflowNodes(activeItem.workflow);
@@ -137,10 +134,10 @@ export default function PriceList({ onBack }: PriceListProps) {
                                   <div className="flex justify-between relative z-0">
                                     {nodes.map((node, i) => (
                                       <div key={node.id} className="flex flex-col items-center group w-16">
-                                        <div className="w-8 h-8 rounded-full border-2 border-gray-300 bg-white flex items-center justify-center mb-2 shadow-sm transition-all duration-300 group-hover:border-[#53565b]">
-                                          <div className="w-2.5 h-2.5 rounded-full bg-gray-200 group-hover:bg-[#53565b] transition-all duration-300" />
+                                        <div className="w-8 h-8 rounded-full border border-[var(--theme-color,#d4af37)]/30 bg-[#121212] flex items-center justify-center mb-2 shadow-sm transition-all duration-300 group-hover:border-[var(--theme-color,#d4af37)]">
+                                          <div className="w-2.5 h-2.5 rounded-full bg-[var(--theme-color,#d4af37)]/20 group-hover:bg-[var(--theme-color,#d4af37)] transition-all duration-300" />
                                         </div>
-                                        <span className="text-[11px] tracking-widest text-[#53565b] text-center font-bold">
+                                        <span className="text-[11px] tracking-widest text-[var(--theme-color,#d4af37)] text-center font-bold">
                                           {node.label}
                                         </span>
                                       </div>

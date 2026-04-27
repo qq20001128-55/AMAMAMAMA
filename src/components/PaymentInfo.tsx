@@ -14,10 +14,7 @@ export default function PaymentInfo({ onBack }: PaymentInfoProps) {
       animate={{ opacity: 1 }}
       className="max-w-4xl mx-auto px-6 py-10"
     >
-      <button onClick={onBack} className="flex items-center gap-2 text-gray-400 hover:text-[#53565b] mb-8 transition-colors tracking-widest">
-        <ChevronLeft size={20} />
-        <span>返回</span>
-      </button>
+      
 
       <div className="text-center mb-12">
         <SectionTitle>支付方式與手續費說明</SectionTitle>
@@ -30,30 +27,30 @@ export default function PaymentInfo({ onBack }: PaymentInfoProps) {
       <div className="space-y-12">
         {/* ATM 與 虛擬帳號 */}
         <section className="window-box">
-          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[#53565b] inline-block pb-2">ATM 與 虛擬帳號</h3>
+          <h3 className="text-xl font-bold mb-4 tracking-widest border-b-2 border-[var(--theme-color,#d4af37)] inline-block pb-2">ATM 與 虛擬帳號</h3>
           <p className="text-gray-600 mb-6 tracking-widest text-sm">適合習慣轉帳或無信用卡的委託人。</p>
           
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse min-w-[600px]">
               <thead>
-                <tr className="border-b-2 border-[#53565b]">
+                <tr className="border-b-2 border-[var(--theme-color,#d4af37)]">
                   <th className="py-3 px-4 font-bold tracking-widest w-1/4">方式</th>
                   <th className="py-3 px-4 font-bold tracking-widest w-1/2">說明</th>
                   <th className="py-3 px-4 font-bold tracking-widest w-1/4">手續費</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                <tr className="hover:bg-gray-50 transition-colors">
+                <tr className="hover:bg-[#1a1a1a] transition-colors">
                   <td className="py-4 px-4 tracking-widest">虛擬帳號 / ATM</td>
                   <td className="py-4 px-4 tracking-widest text-gray-600">智慧 ATM 2.0、網路轉帳</td>
                   <td className="py-4 px-4 tracking-widest font-mono text-sm">1.0%<br/><span className="text-xs text-gray-400">(單筆下限 10 元 / 上限 20 元)</span></td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
+                <tr className="hover:bg-[#1a1a1a] transition-colors">
                   <td className="py-4 px-4 tracking-widest">超商代碼</td>
                   <td className="py-4 px-4 tracking-widest text-gray-600">至便利商店機台輸入代碼繳費</td>
                   <td className="py-4 px-4 tracking-widest font-mono">28 元 / 筆</td>
                 </tr>
-                <tr className="hover:bg-gray-50 transition-colors">
+                <tr className="hover:bg-[#1a1a1a] transition-colors">
                   <td className="py-4 px-4 tracking-widest">條碼繳費</td>
                   <td className="py-4 px-4 tracking-widest text-gray-600">出示手機條碼至櫃檯掃描</td>
                   <td className="py-4 px-4 tracking-widest font-mono">20 元 / 筆</td>
@@ -64,7 +61,7 @@ export default function PaymentInfo({ onBack }: PaymentInfoProps) {
         </section>
 
         {/* 委託須知 */}
-        <section className="neo-box mt-12 bg-white/80">
+        <section className="neo-box mt-12 bg-black/40 backdrop-blur-sm">
           <h3 className="text-xl font-bold mb-6 tracking-widest text-center">委託須知</h3>
           <ul className="space-y-4 tracking-widest text-sm leading-relaxed">
             <li className="flex gap-4">

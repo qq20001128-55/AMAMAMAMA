@@ -1,17 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { STATUS_NODES } from '../lib/utils';
 import { SectionTitle } from './SectionTitle';
-import { Megaphone } from 'lucide-react';
 
 export default function CommissionQueue() {
-  const [queue, setQueue] = useState<any[]>([]);
   const [announcement, setAnnouncement] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchQueueAndConfig = async () => {
+    const fetchConfig = async () => {
       try {
         const configSnap = await getDoc(doc(db, 'settings', 'siteConfig'));
         if (configSnap.exists()) {
@@ -20,56 +17,28 @@ export default function CommissionQueue() {
             setAnnouncement(ann);
           }
         }
-
-        const q = query(
-          collection(db, 'orders'),
-          where('status', 'in', ['queued', 'rough_sketch', 'draft', 'colored_sketch', 'completed']),
-          orderBy('createdAt', 'asc')
-        );
-        const snap = await getDocs(q);
-        setQueue(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
-        console.error('Fetch queue/config error:', err);
+        console.error('Fetch config error:', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchQueueAndConfig();
+    fetchConfig();
   }, []);
 
   if (loading) return null;
-  if (!announcement && queue.length === 0) return null;
+  if (!announcement) return null;
 
   return (
-    <div className="max-w-2xl mx-auto mt-20 mb-10 space-y-6">
-      {announcement && (
-        <div className="text-center mb-6">
-          <p className="text-gray-700 tracking-widest leading-loose whitespace-pre-wrap">
+    <div className="max-w-2xl mx-auto mt-20 mb-10 space-y-6 px-6">
+      <div className="window-box-octagon">
+        <SectionTitle className="!mb-6 !text-2xl">站內公告</SectionTitle>
+        <div className="text-center">
+          <p className="text-gray-300 tracking-widest leading-loose whitespace-pre-wrap text-sm md:text-base">
             {announcement.text}
           </p>
         </div>
-      )}
-
-      {queue.length > 0 && (
-        <div className="window-box-octagon">
-          <SectionTitle className="!mb-6 !text-2xl">當前局內進度</SectionTitle>
-          <div className="space-y-3">
-            {queue.map(order => {
-              const statusLabel = STATUS_NODES.find(n => n.id === order.status)?.label || order.status;
-              return (
-                <div key={order.id} className="flex justify-between items-center py-2 border-b border-gray-200 last:border-0">
-                  <span className="font-mono text-sm font-bold tracking-widest text-[#53565b]">
-                    {order.orderNo || '處理中...'}
-                  </span>
-                  <span className="text-sm tracking-widest bg-[#53565b] text-white px-3 py-1">
-                    {statusLabel}中
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
