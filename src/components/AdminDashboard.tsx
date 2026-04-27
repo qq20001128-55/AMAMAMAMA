@@ -1400,6 +1400,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'homeBg')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (螢幕滿版) 1920x1080 像素</p>
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">分頁底圖</p>
@@ -1430,6 +1431,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'pageBg')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (螢幕滿版) 1920x1080 像素</p>
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">標題裝飾圖</p>
@@ -1460,6 +1462,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'titleStyle')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (標題區域) 400x120 像素</p>
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">左上角 ICON</p>
@@ -1490,6 +1493,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'logo')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (選單標誌) 200x60 像素</p>
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">網頁 ICON</p>
@@ -1520,6 +1524,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'favicon')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (分頁圖示) 512x512 像素</p>
               </div>
               <div>
                 <p className="text-sm font-bold tracking-widest mb-2">左下角資訊卡背景</p>
@@ -1550,6 +1555,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'bottomLeftBg')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (填滿按鈕) 384x96 像素</p>
               </div>
 
               <div>
@@ -1581,6 +1587,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                     <input type="file" className="hidden" accept="image/*" onChange={(e) => handleSiteConfigUpload(e, 'bottomRightBg')} disabled={siteConfigUploading !== null} />
                   </label>
                 </div>
+                <p className="text-xs text-[var(--theme-color,#d4af37)]/90 mt-3 tracking-widest">支援最大尺寸: (填滿按鈕) 256x96 像素</p>
               </div>
             </div>
             <div className="mt-6 border-t border-gray-700 pt-4">

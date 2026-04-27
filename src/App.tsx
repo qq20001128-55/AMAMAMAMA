@@ -149,16 +149,16 @@ export default function App() {
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-full max-w-sm h-16 bg-black/80 backdrop-blur-md border border-[var(--theme-color,#d4af37)] disabled:opacity-50 disabled:grayscale transition-all duration-500 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+                    className="group relative flex items-center justify-center w-full max-w-sm h-16 disabled:opacity-50 disabled:grayscale transition-all duration-500"
                  >
                    {siteConfig.bottomRightBgUrl && (
-                     <div className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
+                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
                    )}
                    <div className="relative z-10 flex flex-col items-center">
-                      <span className={cn("text-lg font-black tracking-[0.5em] ml-[0.35em]", commissionStatus === 'closed' ? "text-red-500" : "text-white")}>
+                      <span className={cn("text-lg font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
-                      <span className="text-[8px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest opacity-80 uppercase">
+                      <span className="text-[8px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 uppercase">
                         {commissionStatus === 'closed' ? 'COMMISSION CLOSED' : 'INITIATE CONTRACT'}
                       </span>
                    </div>
@@ -168,14 +168,14 @@ export default function App() {
                    onClick={() => {
                      document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
                    }} 
-                   className="group relative overflow-hidden glass-card w-full max-w-sm h-16 p-3 text-center flex flex-col justify-center items-center border border-[var(--theme-color,#d4af37)]/30"
+                   className="group relative overflow-hidden w-full max-w-sm h-16 p-3 text-center flex flex-col justify-center items-center"
                  >
                    {siteConfig.bottomLeftBgUrl && (
-                     <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
+                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
                    )}
                    <div className="relative z-10 text-center">
-                     <div className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1 tracking-widest uppercase">Announcement</div>
-                     <div className="font-bold tracking-[0.2em] text-white text-sm">站內公告</div>
+                     <div className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] uppercase">Announcement</div>
+                     <div className="font-bold tracking-[0.2em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-sm">站內公告</div>
                    </div>
                  </button>
               </div>
@@ -223,20 +223,17 @@ export default function App() {
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-56 md:w-64 h-20 md:h-24 bg-black/50 backdrop-blur-md border border-[var(--theme-color,#d4af37)] disabled:opacity-50 disabled:grayscale transition-all duration-500 hover:bg-[var(--theme-color,#d4af37)]/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.3)]"
+                    className="group relative flex items-center justify-center w-56 md:w-64 h-20 md:h-24 disabled:opacity-50 disabled:grayscale transition-all duration-500"
                  >
                    {siteConfig.bottomRightBgUrl && (
-                     <div className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-60 transition-opacity mix-blend-overlay" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
+                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
                    )}
-                   {/* Decorative slash */}
-                   <div className="absolute top-0 right-0 w-6 md:w-8 h-6 md:h-8 border-t border-r border-[var(--theme-color,#d4af37)] translate-x-2 -translate-y-2 opacity-50 group-hover:translate-x-3 group-hover:-translate-y-3 transition-transform"></div>
-                   <div className="absolute bottom-0 left-0 w-6 md:w-8 h-6 md:h-8 border-b border-l border-[var(--theme-color,#d4af37)] -translate-x-2 translate-y-2 opacity-50 group-hover:-translate-x-3 group-hover:translate-y-3 transition-transform"></div>
                    
                    <div className="relative z-10 flex flex-col items-center">
-                      <span className={cn("text-xl md:text-2xl font-black tracking-[0.5em] ml-[0.35em]", commissionStatus === 'closed' ? "text-red-500" : "text-white group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
+                      <span className={cn("text-xl md:text-2xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
-                      <span className="text-[8px] md:text-[10px] text-[var(--theme-color,#d4af37)] font-mono mt-2 tracking-widest opacity-80 group-hover:opacity-100">
+                      <span className="text-[8px] md:text-[10px] text-[var(--theme-color,#d4af37)] font-mono mt-2 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 group-hover:opacity-100">
                         {commissionStatus === 'closed' ? 'COMMISSION CLOSED' : 'INITIATE CONTRACT'}
                       </span>
                    </div>
