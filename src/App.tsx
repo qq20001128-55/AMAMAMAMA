@@ -111,11 +111,11 @@ export default function App() {
               <div className="absolute inset-0 landing-gradient pointer-events-none z-0"></div>
 
               {/* Central Main Title */}
-              <div className="mb-12 md:mb-16 -mt-32 md:-mt-48 relative z-10 mx-auto w-[80vw] md:w-[50vw]">
+              <div className="mb-4 md:mb-16 mt-16 md:-mt-48 relative z-10 mx-auto w-[80vw] md:w-[50vw]">
                 {siteConfig.titleStyleUrl ? (
-                  <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[30vh] md:max-h-[35vh] object-contain mx-auto" crossOrigin="anonymous" />
+                  <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[25vh] md:max-h-[35vh] object-contain mx-auto" crossOrigin="anonymous" />
                 ) : (
-                  <h1 className="text-6xl md:text-9xl font-black tracking-[0.2em] text-[var(--theme-color,#d4af37)] mx-auto text-center font-serif drop-shadow-2xl">
+                  <h1 className="text-5xl md:text-9xl font-black tracking-[0.2em] text-[var(--theme-color,#d4af37)] mx-auto text-center font-serif drop-shadow-2xl">
                     龍契局
                   </h1>
                 )}
@@ -137,47 +137,67 @@ export default function App() {
               </div>
 
               {/* Mobile Subtext fallback */}
-              <div className="md:hidden mt-8 mb-6 text-center text-sm tracking-[0.3em] text-[var(--theme-color,#d4af37)]/80 leading-loose mx-6 px-4 py-6 border-y border-[var(--theme-color,#d4af37)]/30 backdrop-blur-sm bg-black/20 z-10 w-full max-w-[80vw]">
-                <p>世間有一局，名為龍契。</p>
-                <p>不問來歷，不問善惡，</p>
-                <p>但凡所求，皆可成交</p>
+              <div className="md:hidden mt-2 mb-[25vh] text-center text-sm tracking-[0.3em] text-[var(--theme-color,#d4af37)]/90 leading-loose mx-6 px-4 z-10 w-full max-w-[80vw]">
+                <p className="mb-1">世間有一局，名為龍契。</p>
+                <p className="mb-1">不問來歷，不問善惡，</p>
+                <p className="mb-1">但凡所求，皆可成交</p>
                 <p>願望可託，因果自承。</p>
               </div>
 
               {/* Mobile Action Buttons (Displayed flex in column on mobile) */}
-              <div className="md:hidden flex flex-col items-center gap-4 w-full px-6 z-20 pb-12">
+              <div className="md:hidden flex flex-col items-center gap-6 w-full px-6 z-20 pb-12">
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-full max-w-sm h-16 disabled:opacity-50 disabled:grayscale transition-all duration-500"
+                    className="group relative flex items-center justify-center w-full max-w-sm h-20 disabled:opacity-50 disabled:grayscale transition-all duration-500"
                  >
                    {siteConfig.bottomRightBgUrl && (
-                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
+                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none drop-shadow-md" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
                    )}
                    <div className="relative z-10 flex flex-col items-center">
-                      <span className={cn("text-lg font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white")}>
+                      <span className={cn("text-xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
-                      <span className="text-[8px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 uppercase">
+                      <span className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-90 uppercase">
                         {commissionStatus === 'closed' ? 'COMMISSION CLOSED' : 'INITIATE CONTRACT'}
                       </span>
                    </div>
                  </button>
 
-                 <button 
-                   onClick={() => {
-                     document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
-                   }} 
-                   className="group relative overflow-hidden w-full max-w-sm h-16 p-3 text-center flex flex-col justify-center items-center"
-                 >
-                   {siteConfig.bottomLeftBgUrl && (
-                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
-                   )}
-                   <div className="relative z-10 text-center">
-                     <div className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] uppercase">Announcement</div>
-                     <div className="font-bold tracking-[0.2em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-sm">站內公告</div>
-                   </div>
-                 </button>
+                 <div className="group relative w-full max-w-sm h-24 flex items-center justify-end">
+                    {siteConfig.bottomLeftBgUrl && (
+                      <div className="absolute inset-0 bg-contain bg-left bg-no-repeat pointer-events-none drop-shadow-md" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
+                    )}
+                    
+                    {/* Flow text to the right */}
+                    <div className="flex-1 flex flex-col relative z-10 w-full justify-center gap-4 pl-[30%]">
+                       {/* Top Button: Announcement */}
+                       <button 
+                         onClick={() => {
+                           document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
+                         }}
+                         className="flex w-full text-left items-center justify-end pr-2 active:scale-95 transition-transform group/btn1"
+                       >
+                         <div className="flex items-center gap-3 mr-3">
+                           <span className="text-white text-[14px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors">站內公告</span>
+                           <span className="text-[9px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Announcement</span>
+                         </div>
+                         <span className="text-[var(--theme-color,#d4af37)] text-xl transition-transform">&raquo;</span>
+                       </button>
+                       
+                       {/* Bottom Button: Tracking */}
+                       <button 
+                         onClick={() => setPage('tracking')}
+                         className="flex w-full text-left items-center justify-end pr-2 active:scale-95 transition-transform group/btn2"
+                       >
+                         <div className="flex items-center gap-3 mr-3">
+                           <span className="text-white text-[14px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors">委託進度</span>
+                           <span className="text-[9px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Track Order</span>
+                         </div>
+                         <span className="text-[var(--theme-color,#d4af37)] text-xl transition-transform">&raquo;</span>
+                       </button>
+                    </div>
+                 </div>
               </div>
 
               {/* Desktop Bottom Left Utility Cards */}
