@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { User } from 'firebase/auth';
 import { Search, Mail, Settings, LogOut, Code, UserCircle } from 'lucide-react';
-import { logout } from '../firebase';
+import { logout, signInWithGoogle } from '../firebase';
 import { cn } from '../lib/utils';
 import ContactForm from './ContactForm';
 
@@ -36,7 +36,12 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
   return (
     <>
       {/* Top Left Main Menu */}
-      <nav className="fixed top-4 sm:top-6 left-4 sm:left-6 z-50 flex gap-2 sm:gap-4 max-w-[70vw] sm:max-w-none flex-wrap sm:flex-nowrap">
+      <nav className="fixed top-4 sm:top-6 left-4 sm:left-6 z-50 flex items-center gap-2 sm:gap-4 max-w-[70vw] sm:max-w-none flex-wrap sm:flex-nowrap">
+        {siteConfig?.logoUrl && (
+          <div className="mr-2 md:mr-4 cursor-pointer" onDoubleClick={signInWithGoogle}>
+             <img src={siteConfig.logoUrl} alt="Icon" className="h-10 md:h-12 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" crossOrigin="anonymous" />
+          </div>
+        )}
         {mainNav.map(item => (
           <div 
             key={item.id}
@@ -69,13 +74,15 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
         >
           <Mail size={22} />
         </button>
-        <button 
-          onClick={() => setPage('admin')}
-          className={cn("opacity-70 hover:opacity-100 transition-all flex flex-col items-center gap-1", currentPage === 'admin' ? "text-[var(--theme-color,#d4af37)] opacity-100" : "text-white hover:text-[var(--theme-color,#d4af37)]")}
-          title="後台設定"
-        >
-          <Settings size={22} />
-        </button>
+        {isAdmin && (
+          <button 
+            onClick={() => setPage('admin')}
+            className={cn("opacity-70 hover:opacity-100 transition-all flex flex-col items-center gap-1", currentPage === 'admin' ? "text-[var(--theme-color,#d4af37)] opacity-100" : "text-white hover:text-[var(--theme-color,#d4af37)]")}
+            title="後台設定"
+          >
+            <Settings size={22} />
+          </button>
+        )}
       </nav>
 
       {/* Right Vertical Social Icons */}

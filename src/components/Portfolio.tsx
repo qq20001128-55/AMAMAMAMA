@@ -46,7 +46,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+      <div className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-20 text-center">
         <div className="w-8 h-8 border-4 border-[var(--theme-color,#d4af37)] border-t-transparent rounded-full animate-spin mx-auto mb-4" />
         <p className="tracking-widest text-gray-500">載入中...</p>
       </div>
@@ -57,7 +57,7 @@ export default function Portfolio({ onBack }: PortfolioProps) {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-7xl mx-auto px-6 py-10"
+      className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
     >
       
 
@@ -102,10 +102,14 @@ export default function Portfolio({ onBack }: PortfolioProps) {
             exit={{ opacity: 0, scale: 0.9 }}
             transition={{ duration: 0.5 }}
             key={art.id} 
-            className="relative aspect-[3/4] cursor-pointer group overflow-hidden border-2 border-[var(--theme-color,#d4af37)]/30 p-2 bg-[#1a1a1a] hover:border-[var(--theme-color,#d4af37)] transition-all shadow-lg"
+            className="relative aspect-[3/4] cursor-pointer group bg-[#0d0d0d] p-3 border border-[var(--theme-color,#d4af37)]/20 hover:border-[var(--theme-color,#d4af37)]/80 transition-all duration-500 shadow-[0_0_20px_rgba(0,0,0,0.8)] hover:shadow-[0_0_30px_rgba(212,175,55,0.15)] flex flex-col items-center justify-center"
             onClick={() => setLightboxImage(art.imageUrl)}
           >
-            <div className="w-full h-full overflow-hidden relative">
+            <div className="absolute inset-1 border border-[var(--theme-color,#d4af37)]/10 pointer-events-none"></div>
+            <div className="absolute top-0 right-0 w-4 h-4 border-t border-r border-[var(--theme-color,#d4af37)]/50 translate-x-1 -translate-y-1 opacity-0 group-hover:opacity-100 group-hover:-translate-y-1 group-hover:translate-x-1 transition-all duration-500 pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-[var(--theme-color,#d4af37)]/50 -translate-x-1 translate-y-1 opacity-0 group-hover:opacity-100 group-hover:translate-y-1 group-hover:-translate-x-1 transition-all duration-500 pointer-events-none"></div>
+            
+            <div className="w-full h-full overflow-hidden relative border border-[var(--theme-color,#d4af37)]/20 shadow-inner bg-black">
               <img loading="lazy" 
                 src={art.imageUrl} 
                 alt={art.title}

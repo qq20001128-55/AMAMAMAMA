@@ -12,7 +12,7 @@ export default function PaymentInfo({ onBack }: PaymentInfoProps) {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-4xl mx-auto px-6 py-10"
+      className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
     >
       
 

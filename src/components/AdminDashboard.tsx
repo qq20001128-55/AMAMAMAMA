@@ -887,29 +887,37 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     }
   };
 
-  // if (!user) {
-  //   return (
-  //     <div className="max-w-4xl mx-auto px-6 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
-  //       <h2 className="text-2xl font-bold mb-4 tracking-widest text-[var(--theme-color,#d4af37)]">需要登入</h2>
-  //       <p className="text-gray-400 mb-8 tracking-widest leading-loose">此為管理員專屬後台，請先登入。</p>
-  //       <button 
-  //         onClick={signInWithGoogle}
-  //         className="btn-primary w-64 h-16 text-lg"
-  //       >
-  //         使用 Google 登入
-  //       </button>
-  //     </div>
-  //   );
-  // }
+  if (!user) {
+    return (
+      <div className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold mb-4 tracking-widest text-[var(--theme-color,#d4af37)]">需要登入</h2>
+        <p className="text-gray-400 mb-8 tracking-widest leading-loose">此為管理員專屬後台，請先登入。</p>
+        <button 
+          onClick={signInWithGoogle}
+          className="btn-primary w-64 h-16 text-lg tracking-widest"
+        >
+          使用 Google 登入
+        </button>
+      </div>
+    );
+  }
 
-  // if (!isAdmin) {
-  //   return (
-  //     <div className="max-w-4xl mx-auto px-6 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
-  //       <h2 className="text-2xl font-bold mb-4 tracking-widest text-red-500">權限不足</h2>
-  //       <p className="text-gray-400 mb-8 tracking-widest leading-loose">您沒有訪問管理後台的權限。</p>
-  //     </div>
-  //   );
-  // }
+  if (!isAdmin) {
+    return (
+      <div className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
+        <h2 className="text-2xl font-bold mb-4 tracking-widest text-red-500">權限不足</h2>
+        <p className="text-gray-400 mb-8 tracking-widest leading-loose">您沒有訪問管理後台的權限。</p>
+        <button 
+          onClick={() => {
+            import('../firebase').then(m => m.logout());
+          }}
+          className="glass-card px-8 py-3 tracking-widest"
+        >
+          登出
+        </button>
+      </div>
+    );
+  }
 
   const totalOrders = allOrders.length;
   const completedOrders = allOrders.filter(o => o.status === 'completed' || o.status === 'delivered').length;
@@ -1808,7 +1816,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   <div 
                     key={i} 
                     className={cn(
-                      "bg-black/40 min-h-[120px] p-2 transition-colors hover:bg-black/60 cursor-pointer",
+                      "bg-black/40 min-h-[160px] md:min-h-[200px] p-2 transition-colors hover:bg-black/60 cursor-pointer",
                       !isSameMonth(date, currentMonth) && "bg-[#1a1a1a]/50 text-gray-400",
                       isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
                     )}

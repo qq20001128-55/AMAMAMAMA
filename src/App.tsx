@@ -111,9 +111,9 @@ export default function App() {
               <div className="absolute inset-0 landing-gradient pointer-events-none z-0"></div>
 
               {/* Central Main Title */}
-              <div className="mb-8 relative z-10 mx-auto w-full max-w-[80vw]">
+              <div className="mb-12 md:mb-16 -mt-32 md:-mt-48 relative z-10 mx-auto w-[80vw] md:w-[50vw]">
                 {siteConfig.titleStyleUrl ? (
-                  <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[35vh] md:max-h-[45vh] object-contain mx-auto" crossOrigin="anonymous" />
+                  <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[30vh] md:max-h-[35vh] object-contain mx-auto" crossOrigin="anonymous" />
                 ) : (
                   <h1 className="text-6xl md:text-9xl font-black tracking-[0.2em] text-[var(--theme-color,#d4af37)] mx-auto text-center font-serif drop-shadow-2xl">
                     龍契局
@@ -145,11 +145,11 @@ export default function App() {
               </div>
 
               {/* Mobile Action Buttons (Displayed flex in column on mobile) */}
-              <div className="md:hidden flex flex-col items-center gap-4 w-full px-6 z-20">
+              <div className="md:hidden flex flex-col items-center gap-4 w-full px-6 z-20 pb-12">
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-full max-w-sm h-16 bg-black/50 backdrop-blur-md border border-[var(--theme-color,#d4af37)] disabled:opacity-50 disabled:grayscale transition-all duration-500 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
+                    className="group relative flex items-center justify-center w-full max-w-sm h-16 bg-black/80 backdrop-blur-md border border-[var(--theme-color,#d4af37)] disabled:opacity-50 disabled:grayscale transition-all duration-500 shadow-[0_0_15px_rgba(212,175,55,0.1)]"
                  >
                    {siteConfig.bottomRightBgUrl && (
                      <div className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
@@ -158,64 +158,74 @@ export default function App() {
                       <span className={cn("text-lg font-black tracking-[0.5em] ml-[0.35em]", commissionStatus === 'closed' ? "text-red-500" : "text-white")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
-                      <span className="text-[8px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest opacity-80">
+                      <span className="text-[8px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest opacity-80 uppercase">
                         {commissionStatus === 'closed' ? 'COMMISSION CLOSED' : 'INITIATE CONTRACT'}
                       </span>
                    </div>
                  </button>
 
-                 <div className="flex gap-4 w-full max-w-sm">
-                   <button 
-                     onClick={() => setPage('tracking')} 
-                     className="group relative overflow-hidden glass-card flex-1 h-16 p-3 text-left flex flex-col justify-center"
-                   >
-                     <div className="relative z-10 text-center">
-                       <div className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1">01 / LOG</div>
-                       <div className="font-bold tracking-widest text-white text-sm">探問因果</div>
-                     </div>
-                   </button>
-                   <button 
-                     onClick={() => {
-                       document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
-                     }} 
-                     className="group relative overflow-hidden glass-card flex-1 h-16 p-3 text-left flex flex-col justify-center"
-                   >
-                     {siteConfig.bottomLeftBgUrl && (
-                       <div className="absolute inset-0 bg-cover bg-center opacity-40" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
-                     )}
-                     <div className="relative z-10 text-center">
-                       <div className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1">02 / QUEUE</div>
-                       <div className="font-bold tracking-widest text-white text-sm">站內公告</div>
-                     </div>
-                   </button>
-                 </div>
-              </div>
-
-              {/* Desktop Bottom Left Utility Cards */}
-              <div className="hidden md:flex absolute bottom-12 left-6 z-20 flex-col gap-4 items-start w-auto">
-                 <button 
-                   onClick={() => setPage('tracking')} 
-                   className="group relative overflow-hidden glass-card w-48 h-20 p-4 text-left flex flex-col justify-end"
-                 >
-                   <div className="relative z-10">
-                     <div className="text-xs text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1">01 / LOG</div>
-                     <div className="font-bold tracking-widest text-white text-base">探問因果</div>
-                   </div>
-                 </button>
                  <button 
                    onClick={() => {
                      document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
                    }} 
-                   className="group relative overflow-hidden glass-card w-48 h-20 p-4 text-left flex flex-col justify-end"
+                   className="group relative overflow-hidden glass-card w-full max-w-sm h-16 p-3 text-center flex flex-col justify-center items-center border border-[var(--theme-color,#d4af37)]/30"
                  >
                    {siteConfig.bottomLeftBgUrl && (
-                     <div className="absolute inset-0 bg-cover bg-center opacity-40 group-hover:opacity-70 transition-opacity" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
+                     <div className="absolute inset-0 bg-cover bg-center opacity-40 mix-blend-overlay" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
                    )}
-                   <div className="relative z-10">
-                     <div className="text-xs text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1">02 / QUEUE</div>
-                     <div className="font-bold tracking-widest text-white text-base">站內公告</div>
+                   <div className="relative z-10 text-center">
+                     <div className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono opacity-80 mb-1 tracking-widest uppercase">Announcement</div>
+                     <div className="font-bold tracking-[0.2em] text-white text-sm">站內公告</div>
                    </div>
                  </button>
+              </div>
+
+              {/* Desktop Bottom Left Utility Cards */}
+              <div className="hidden md:block absolute bottom-12 left-12 xl:left-24 z-20">
+                 <div className="group relative flex w-[28rem] h-24 bg-black/80 backdrop-blur-md border border-[var(--theme-color,#d4af37)]/50 hover:border-[var(--theme-color,#d4af37)] transition-all duration-500 overflow-hidden text-left shadow-[0_0_15px_rgba(212,175,55,0.05)] hover:shadow-[0_0_25px_rgba(212,175,55,0.3)]">
+                   {/* Left Icon Area */}
+                   <div className="w-[100px] border-r border-[var(--theme-color,#d4af37)]/30 flex justify-center items-center h-full relative overflow-hidden group-hover:bg-[var(--theme-color,#d4af37)]/10 transition-colors pointer-events-none">
+                      {siteConfig.bottomLeftBgUrl && (
+                        <div className="absolute inset-0 w-full h-full object-cover">
+                          <img src={siteConfig.bottomLeftBgUrl} alt="" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 group-hover:scale-110 transition-all duration-700 mix-blend-screen" />
+                        </div>
+                      )}
+                      {!siteConfig.bottomLeftBgUrl && (
+                        <div className="w-10 h-10 border border-[var(--theme-color,#d4af37)] rotate-45 flex items-center justify-center relative z-10">
+                          <div className="w-4 h-4 border border-[var(--theme-color,#d4af37)] -rotate-45"></div>
+                        </div>
+                      )}
+                   </div>
+                   
+                   {/* Right Info Area - Split into two exact halves vertically */}
+                   <div className="flex-1 flex flex-col h-full bg-black/60 relative">
+                      {/* Top Button: Announcement */}
+                      <button 
+                        onClick={() => {
+                          document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="flex-1 flex w-full text-left items-center justify-between px-5 border-b border-[var(--theme-color,#d4af37)]/30 hover:bg-[var(--theme-color,#d4af37)]/20 transition-colors group/btn1"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-white text-[15px] font-bold tracking-[0.2em] group-hover/btn1:text-[var(--theme-color,#d4af37)] transition-colors">站內公告</span>
+                          <span className="text-[9px] text-[var(--theme-color,#d4af37)]/70 font-mono tracking-widest uppercase">Announcement</span>
+                        </div>
+                        <span className="text-[var(--theme-color,#d4af37)] text-xl group-hover/btn1:translate-x-2 transition-transform">&raquo;</span>
+                      </button>
+                      
+                      {/* Bottom Button: Tracking */}
+                      <button 
+                        onClick={() => setPage('tracking')}
+                        className="flex-1 flex w-full text-left items-center justify-between px-5 hover:bg-[var(--theme-color,#d4af37)]/20 transition-colors group/btn2"
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-white text-[15px] font-bold tracking-[0.2em] group-hover/btn2:text-[var(--theme-color,#d4af37)] transition-colors">委託進度</span>
+                          <span className="text-[9px] text-[var(--theme-color,#d4af37)]/70 font-mono tracking-widest uppercase">Track Order</span>
+                        </div>
+                        <span className="text-[var(--theme-color,#d4af37)] text-xl group-hover/btn2:translate-x-2 transition-transform">&raquo;</span>
+                      </button>
+                   </div>
+                 </div>
               </div>
 
               {/* Desktop Bottom Right Main Button */}
@@ -223,7 +233,7 @@ export default function App() {
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-48 md:w-64 h-20 md:h-24 bg-black/50 backdrop-blur-md border border-[var(--theme-color,#d4af37)] disabled:opacity-50 disabled:grayscale transition-all duration-500 hover:bg-[var(--theme-color,#d4af37)]/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.3)]"
+                    className="group relative flex items-center justify-center w-56 md:w-64 h-20 md:h-24 bg-black/50 backdrop-blur-md border border-[var(--theme-color,#d4af37)] disabled:opacity-50 disabled:grayscale transition-all duration-500 hover:bg-[var(--theme-color,#d4af37)]/20 shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.3)]"
                  >
                    {siteConfig.bottomRightBgUrl && (
                      <div className="absolute inset-0 bg-cover bg-center opacity-30 group-hover:opacity-60 transition-opacity mix-blend-overlay" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>

@@ -164,7 +164,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-2xl mx-auto px-6 py-10"
+        className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
       >
         
         <div className="window-box-octagon mb-10">
@@ -264,7 +264,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="max-w-2xl mx-auto px-6 py-10"
+        className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
       >
         <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-gray-400 hover:text-[var(--theme-color,#d4af37)] mb-8 transition-colors tracking-widest">
           <ChevronLeft size={20} />
@@ -386,7 +386,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
     <motion.div 
       initial={{ opacity: 0, x: 20 }}
       animate={{ opacity: 1, x: 0 }}
-      className="max-w-2xl mx-auto px-6 py-10"
+      className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
     >
       <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-gray-400 hover:text-[var(--theme-color,#d4af37)] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />

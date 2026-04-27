@@ -30,7 +30,7 @@ export default function CommissionQueue() {
   if (!announcement) return null;
 
   return (
-    <div className="max-w-2xl mx-auto mt-20 mb-10 space-y-6 px-6">
+    <div className="w-full max-w-full mx-auto mt-20 mb-10 space-y-6 px-6">
       <div className="window-box-octagon">
         <SectionTitle className="!mb-6 !text-2xl">站內公告</SectionTitle>
         <div className="text-center">
