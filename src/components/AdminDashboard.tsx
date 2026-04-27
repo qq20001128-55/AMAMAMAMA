@@ -1816,7 +1816,7 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   <div 
                     key={i} 
                     className={cn(
-                      "bg-black/40 min-h-[160px] md:min-h-[200px] p-2 transition-colors hover:bg-black/60 cursor-pointer",
+                      "bg-black/40 min-h-[200px] md:min-h-[300px] xl:min-h-[400px] p-2 transition-colors hover:bg-black/60 cursor-pointer overflow-y-auto custom-scrollbar",
                       !isSameMonth(date, currentMonth) && "bg-[#1a1a1a]/50 text-gray-400",
                       isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
                     )}
