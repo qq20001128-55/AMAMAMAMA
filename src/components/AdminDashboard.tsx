@@ -932,9 +932,9 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
     <motion.div 
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
-      className="max-w-[1600px] mx-auto px-4 sm:px-6 py-10"
+      className="w-full max-w-none mx-auto px-4 lg:px-8 pt-24 pb-12"
     >
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b-2 border-[var(--theme-color,#d4af37)] pb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 border-b border-[var(--theme-color,#d4af37)] pb-6">
         <div>
           
           <h2 className="text-4xl font-black tracking-widest">龍契局・後台</h2>
