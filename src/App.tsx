@@ -214,7 +214,7 @@ export default function App() {
                          onClick={() => {
                            document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
                          }}
-                         className="flex w-full text-left items-center justify-end pr-2 group/btn1"
+                         className="flex w-full text-left items-center justify-end pr-6 xl:pr-8 group/btn1"
                        >
                          <div className="flex items-center gap-4 mr-4">
                            <span className="text-white text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn1:text-[var(--theme-color,#d4af37)] transition-colors">站內公告</span>
@@ -226,7 +226,7 @@ export default function App() {
                        {/* Bottom Button: Tracking */}
                        <button 
                          onClick={() => setPage('tracking')}
-                         className="flex w-full text-left items-center justify-end pr-2 group/btn2"
+                         className="flex w-full text-left items-center justify-end pr-6 xl:pr-8 group/btn2"
                        >
                          <div className="flex items-center gap-4 mr-4">
                            <span className="text-white text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn2:text-[var(--theme-color,#d4af37)] transition-colors">委託進度</span>
@@ -239,21 +239,21 @@ export default function App() {
               </div>
 
               {/* Desktop Bottom Right Main Button */}
-              <div className="hidden md:block absolute bottom-12 right-12 z-20">
+              <div className="hidden md:block absolute bottom-12 right-12 lg:right-24 z-20">
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-56 md:w-64 h-20 md:h-24 disabled:opacity-50 disabled:grayscale transition-all duration-500"
+                    className="group relative flex items-center justify-center w-64 md:w-72 lg:w-96 h-24 md:h-28 lg:h-32 disabled:opacity-50 disabled:grayscale transition-all duration-500"
                  >
                    {siteConfig.bottomRightBgUrl && (
-                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
+                     <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none drop-shadow-lg" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
                    )}
                    
                    <div className="relative z-10 flex flex-col items-center">
-                      <span className={cn("text-xl md:text-2xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
+                      <span className={cn("text-2xl lg:text-3xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
-                      <span className="text-[8px] md:text-[10px] text-[var(--theme-color,#d4af37)] font-mono mt-2 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 group-hover:opacity-100">
+                      <span className="text-[10px] lg:text-xs text-[var(--theme-color,#d4af37)] font-mono mt-3 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 group-hover:opacity-100">
                         {commissionStatus === 'closed' ? 'COMMISSION CLOSED' : 'INITIATE CONTRACT'}
                       </span>
                    </div>
