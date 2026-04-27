@@ -5,7 +5,7 @@ import { ChevronLeft, ChevronRight, Edit2, Save, Trash2, Power, PowerOff, Extern
 import { collection, query, orderBy, getDocs, getDoc, doc, updateDoc, deleteDoc, setDoc, limit, startAfter, serverTimestamp, where } from 'firebase/firestore';
 import { db, storage, signInWithGoogle } from '../firebase';
 import { cn, STATUS_NODES, WORKFLOW_OPTIONS, getWorkflowNodes, compressImage } from '../lib/utils';
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
+import { format, startOfMonth, startOfWeek, endOfMonth, endOfWeek, eachDayOfInterval, isSameDay, parseISO, isSameMonth } from 'date-fns';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { addDoc } from 'firebase/firestore';
 import Modal from './Modal';
@@ -924,8 +924,8 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
   const pendingOrders = totalOrders - completedOrders;
 
   const daysInMonth = eachDayOfInterval({
-    start: startOfMonth(currentMonth),
-    end: endOfMonth(currentMonth)
+    start: startOfWeek(startOfMonth(currentMonth)),
+    end: endOfWeek(endOfMonth(currentMonth))
   });
 
   return (

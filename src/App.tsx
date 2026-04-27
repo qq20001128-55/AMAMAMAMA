@@ -182,37 +182,37 @@ export default function App() {
 
               {/* Desktop Bottom Left Utility Cards */}
               <div className="hidden md:block absolute bottom-12 left-12 xl:left-24 z-20">
-                 <div className="group relative flex flex-col w-[24rem] h-24 bg-black/50 backdrop-blur-md border border-[var(--theme-color,#d4af37)] transition-all duration-500 overflow-hidden text-left shadow-[0_0_15px_rgba(212,175,55,0.1)] hover:shadow-[0_0_25px_rgba(212,175,55,0.3)]">
+                 <div className="group relative w-[24rem] h-24 flex items-center">
                     {siteConfig.bottomLeftBgUrl && (
-                      <div className="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay transition-opacity duration-500 group-hover:opacity-60 pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
+                      <div className="absolute inset-0 bg-contain bg-left bg-no-repeat pointer-events-none" style={{ backgroundImage: `url(${siteConfig.bottomLeftBgUrl})`}}></div>
                     )}
                     
-                    {/* Split into two exact halves vertically */}
-                    <div className="flex-1 flex flex-col h-full relative z-10 w-full">
+                    {/* Flow text to the right */}
+                    <div className="flex-1 flex flex-col relative z-10 w-full justify-center gap-4">
                        {/* Top Button: Announcement */}
                        <button 
                          onClick={() => {
                            document.getElementById('commission-queue-section')?.scrollIntoView({ behavior: 'smooth' });
                          }}
-                         className="flex-1 flex w-full text-left items-center justify-between px-6 border-b border-[var(--theme-color,#d4af37)]/50 hover:bg-[var(--theme-color,#d4af37)]/20 transition-colors group/btn1"
+                         className="flex w-full text-left items-center justify-end pr-2 group/btn1"
                        >
-                         <div className="flex items-center gap-4">
-                           <span className="text-white text-[15px] font-bold tracking-[0.2em] group-hover/btn1:text-[var(--theme-color,#d4af37)] transition-colors">站內公告</span>
-                           <span className="text-[10px] text-[var(--theme-color,#d4af37)]/90 font-mono tracking-widest uppercase">Announcement</span>
+                         <div className="flex items-center gap-4 mr-4">
+                           <span className="text-white text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn1:text-[var(--theme-color,#d4af37)] transition-colors">站內公告</span>
+                           <span className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Announcement</span>
                          </div>
-                         <span className="text-[var(--theme-color,#d4af37)] text-xl group-hover/btn1:translate-x-2 transition-transform">&raquo;</span>
+                         <span className="text-[var(--theme-color,#d4af37)] text-2xl group-hover/btn1:translate-x-2 transition-transform">&raquo;</span>
                        </button>
                        
                        {/* Bottom Button: Tracking */}
                        <button 
                          onClick={() => setPage('tracking')}
-                         className="flex-1 flex w-full text-left items-center justify-between px-6 hover:bg-[var(--theme-color,#d4af37)]/20 transition-colors group/btn2"
+                         className="flex w-full text-left items-center justify-end pr-2 group/btn2"
                        >
-                         <div className="flex items-center gap-4">
-                           <span className="text-white text-[15px] font-bold tracking-[0.2em] group-hover/btn2:text-[var(--theme-color,#d4af37)] transition-colors">委託進度</span>
-                           <span className="text-[10px] text-[var(--theme-color,#d4af37)]/90 font-mono tracking-widest uppercase">Track Order</span>
+                         <div className="flex items-center gap-4 mr-4">
+                           <span className="text-white text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn2:text-[var(--theme-color,#d4af37)] transition-colors">委託進度</span>
+                           <span className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Track Order</span>
                          </div>
-                         <span className="text-[var(--theme-color,#d4af37)] text-xl group-hover/btn2:translate-x-2 transition-transform">&raquo;</span>
+                         <span className="text-[var(--theme-color,#d4af37)] text-2xl group-hover/btn2:translate-x-2 transition-transform">&raquo;</span>
                        </button>
                     </div>
                  </div>
