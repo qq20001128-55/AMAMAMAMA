@@ -38,7 +38,7 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
       {/* Top Left Main Menu */}
       <nav className="fixed top-4 sm:top-6 left-4 sm:left-6 z-50 flex items-center gap-2 sm:gap-4 max-w-[70vw] sm:max-w-none flex-wrap sm:flex-nowrap">
         {siteConfig?.logoUrl && (
-          <div className="mr-2 md:mr-4 cursor-pointer transform md:-translate-y-5 lg:-translate-y-6" onDoubleClick={signInWithGoogle}>
+          <div className="mr-2 md:mr-4 cursor-pointer transform md:-translate-y-6 lg:-translate-y-8" onDoubleClick={signInWithGoogle}>
              <img src={siteConfig.logoUrl} alt="Icon" className="h-10 md:h-8 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" crossOrigin="anonymous" />
           </div>
         )}
