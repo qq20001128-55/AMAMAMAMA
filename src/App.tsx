@@ -111,9 +111,9 @@ export default function App() {
               <div className="absolute inset-0 landing-gradient pointer-events-none z-0"></div>
 
               {/* Central Main Title */}
-              <div className="mb-4 md:mb-16 mt-16 md:-mt-48 relative z-10 mx-auto w-[80vw] md:w-[50vw]">
+              <div className="mb-4 md:mb-16 mt-16 md:-mt-64 relative z-10 mx-auto w-[80vw] md:w-[65vw]">
                 {siteConfig.titleStyleUrl ? (
-                  <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[25vh] md:max-h-[35vh] object-contain mx-auto" crossOrigin="anonymous" />
+                  <img loading="lazy" src={siteConfig.titleStyleUrl} alt="龍契局" className="max-h-[25vh] md:max-h-[45vh] object-contain mx-auto" crossOrigin="anonymous" />
                 ) : (
                   <h1 className="text-5xl md:text-9xl font-black tracking-[0.2em] text-[var(--theme-color,#d4af37)] mx-auto text-center font-serif drop-shadow-2xl">
                     龍契局
@@ -239,11 +239,11 @@ export default function App() {
               </div>
 
               {/* Desktop Bottom Right Main Button */}
-              <div className="hidden md:block absolute bottom-12 right-12 lg:right-24 z-20">
+              <div className="hidden md:block absolute bottom-12 right-12 xl:right-24 z-20">
                  <button 
                     onClick={() => setPage('order')}
                     disabled={commissionStatus === 'closed'}
-                    className="group relative flex items-center justify-center w-64 md:w-72 lg:w-96 h-24 md:h-28 lg:h-32 disabled:opacity-50 disabled:grayscale transition-all duration-500"
+                    className="group relative flex items-center justify-center w-[24rem] h-24 disabled:opacity-50 disabled:grayscale transition-all duration-500"
                  >
                    {siteConfig.bottomRightBgUrl && (
                      <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none drop-shadow-lg" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
@@ -253,7 +253,7 @@ export default function App() {
                       <span className={cn("text-2xl lg:text-3xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
-                      <span className="text-[10px] lg:text-xs text-[var(--theme-color,#d4af37)] font-mono mt-3 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 group-hover:opacity-100">
+                      <span className="text-[10px] lg:text-xs text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 group-hover:opacity-100">
                         {commissionStatus === 'closed' ? 'COMMISSION CLOSED' : 'INITIATE CONTRACT'}
                       </span>
                    </div>
