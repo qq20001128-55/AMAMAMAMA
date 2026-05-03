@@ -220,6 +220,10 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">時程：</span> 依排單順序製作，請避免頻繁催稿。若有急件需求請事先告知。</li>
                 <li><span className="font-bold">資料提供：</span> 委託人應提供清晰參考資料。立契後，不可隨意更改基礎委託內容（如更換角色）。</li>
+                <li><span className="font-bold">直播創作紀錄：</span> 您的委託作品在繪製過程中，可能會在 Twitch 平台進行同步直播或錄影。</li>
+                <li><span className="font-bold">社群公開展示：</span> 完稿作品未來可能會發布於龍契局的官方社群頻道，包含 Facebook、Instagram、X (Twitter) 及 Pinterest。</li>
+                <li><span className="font-bold">版權保護措施：</span> 所有公開展示的作品皆會加上專屬防盜浮水印，以保護您的委託權益與作品原創性。</li>
+                <li><span className="font-bold">隱私保護方案：</span> 若您的委託屬於私密性質，不希望進行直播或在社群公開，請使用買斷方式進行委託。</li>
                 <li><span className="font-bold">版權：</span> 除非另有商議，龍契局保有作品收錄於作品集、展示與公開發表之權利。嚴禁將作品投入 AI 訓練或未授權之商業用途。</li>
               </ul>
               <p className="font-bold text-center mt-6 tracking-widest">—— 契成，即請守約。 ——</p>
@@ -297,7 +301,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               <div className="mt-4 p-4 border border-[var(--theme-color,#d4af37)] bg-[#1a1a1a] relative">
                 <div className="absolute -top-3 left-4 bg-[#1a1a1a] px-2 font-bold tracking-widest text-xs text-[var(--theme-color,#d4af37)]">【特別優待・VTuber 應援契】</div>
                 <ul className="list-none space-y-2 p-0 m-0 mt-2">
-                  <li><span className="font-bold">對象：</span> 委託贈送給特定 VTuber 使用（如直播、社群宣傳、非販售性質周邊）。</li>
+                  <li><span className="font-bold">對象：</span> 委託贈送給特定 VTuber 使用（社群宣傳、非販售性質周邊）。</li>
                   <li><span className="font-bold">計費：</span> 底價 x 2（這是龍契局對創作者社群的特別支持）。</li>
                 </ul>
               </div>
