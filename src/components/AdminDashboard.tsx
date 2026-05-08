@@ -1028,11 +1028,11 @@ const hexToRgba = (hex: string, opacity: number) => {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-[var(--theme-color,#d4af37)] bg-[var(--box-bg-color,#1a1a1a)] flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono bg-[#374151] text-[#fafafa] px-2 py-0.5 rounded-sm mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono bg-[#2e2e2e] text-[#fafafa] px-2 py-0.5 rounded-sm mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-[var(--text-muted,#6b7280)] tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <span className="inline-block px-3 py-1 bg-[#374151] text-[#fafafa] text-xs font-bold tracking-widest">
+                    <span className="inline-block px-3 py-1 bg-[#2e2e2e] text-[#fafafa] text-xs font-bold tracking-widest">
                       {order.status === 'pending' ? '確認中' : (getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '資料已歸檔')}
                     </span>
                     <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
@@ -1092,11 +1092,11 @@ const hexToRgba = (hex: string, opacity: number) => {
                 .map(order => (
                 <div key={order.id} className="p-4 border border-[var(--border-color,#374151)] bg-black/40 flex flex-col md:flex-row justify-between gap-4">
                   <div>
-                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono bg-[#374151] text-[#fafafa] px-2 py-0.5 rounded-sm mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
+                    <h4 className="text-lg font-bold tracking-widest"><span className="font-mono bg-[#2e2e2e] text-[#fafafa] px-2 py-0.5 rounded-sm mr-2 text-sm">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                     <p className="text-sm text-[var(--text-muted,#6b7280)] tracking-widest">{order.category} | {order.nickname}</p>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="inline-block px-3 py-1 bg-[#374151] text-[#fafafa] text-xs font-bold tracking-widest">
+                    <span className="inline-block px-3 py-1 bg-[#2e2e2e] text-[#fafafa] text-xs font-bold tracking-widest">
                       {getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || '未知階段'}
                     </span>
                     <button 
@@ -1978,7 +1978,7 @@ const hexToRgba = (hex: string, opacity: number) => {
           ).map(order => (
             <div key={order.id} className="p-4 border border-[var(--border-color,#374151)] bg-black/40 flex justify-between items-center">
               <div>
-                <h4 className="font-bold tracking-widest"><span className="font-mono bg-[#374151] text-[#fafafa] px-2 py-0.5 rounded-sm mr-2">{order.orderNo || '處理中...'}</span>{order.title}</h4>
+                <h4 className="font-bold tracking-widest"><span className="font-mono bg-[#2e2e2e] text-[#fafafa] px-2 py-0.5 rounded-sm mr-2">{order.orderNo || '處理中...'}</span>{order.title}</h4>
                 <p className="text-sm text-[var(--text-muted,#6b7280)]">{order.category} | {order.nickname}</p>
               </div>
               <button 
@@ -2027,7 +2027,7 @@ const hexToRgba = (hex: string, opacity: number) => {
                       <p className="text-sm text-[var(--text-muted,#6b7280)] tracking-widest">{order.category} | {order.nickname}</p>
                     </div>
                     <div className="text-right">
-                      <span className="font-mono font-bold text-sm tracking-widest bg-[#374151] text-[#fafafa] px-2 py-1">
+                      <span className="font-mono font-bold text-sm tracking-widest bg-[#2e2e2e] text-[#fafafa] px-2 py-1">
                         {order.orderNo || '處理中...'}
                       </span>
                     </div>
@@ -2081,7 +2081,7 @@ const hexToRgba = (hex: string, opacity: number) => {
                           ))}
                         </select>
                       ) : (
-                        <span className="inline-block px-4 py-2 bg-[#374151] text-[#fafafa] text-sm font-bold tracking-widest">
+                        <span className="inline-block px-4 py-2 bg-[#2e2e2e] text-[#fafafa] text-sm font-bold tracking-widest">
                           {getWorkflowNodes(order.workflow).find(n => n.id === order.status)?.label || STATUS_NODES.find(n => n.id === order.status)?.label || '資料已歸檔'}
                         </span>
                       )}
