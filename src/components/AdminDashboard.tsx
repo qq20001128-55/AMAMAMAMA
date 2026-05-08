@@ -1915,7 +1915,7 @@ const hexToRgba = (hex: string, opacity: number) => {
                     )}
                     style={{
                       backgroundColor: isSameMonth(date, currentMonth) 
-                        ? hexToRgba(siteConfig.calendarBgColor || '#000000', (siteConfig.calendarOpacity ?? 40) / 100)
+                        ? (siteConfig.calendarBgColor || '#000000')
                         : hexToRgba(siteConfig.boxBgColor || '#1a1a1a', 0.5)
                     }}
                     onClick={() => {
@@ -1957,13 +1957,6 @@ const hexToRgba = (hex: string, opacity: number) => {
                   <div className="flex items-center gap-4">
                     <input type="color" value={siteConfig.calendarBgColor || '#000000'} onChange={(e) => handleColorChange('calendarBgColor', e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent" />
                     <span className="font-mono text-sm">{siteConfig.calendarBgColor || '#000000'}</span>
-                  </div>
-               </div>
-               <div className="flex-1">
-                  <p className="text-sm font-bold tracking-widest mb-2 text-[var(--theme-color,#d4af37)]">日曆底部透明度 (不影響進度方塊)</p>
-                  <div className="flex items-center gap-4">
-                    <input type="range" min="0" max="100" value={siteConfig.calendarOpacity ?? 40} onChange={(e) => handleColorChange('calendarOpacity', parseInt(e.target.value) as any)} className="w-full accent-[var(--theme-color,#d4af37)]" />
-                    <span className="font-mono text-sm w-12 text-right">{siteConfig.calendarOpacity ?? 40}%</span>
                   </div>
                </div>
             </div>
