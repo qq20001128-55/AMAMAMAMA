@@ -7,7 +7,7 @@
 
 @layer base {
   body {
-    @apply text-gray-200 font-serif antialiased bg-[#0d0d0d];
+    @apply text-gray-200 font-serif antialiased bg-[var(--bg-color,#0d0d0d)];
     position: relative;
     min-height: 100vh;
     background-image: var(--page-bg-url, none);
@@ -43,14 +43,14 @@
     background: rgba(20, 20, 20, 0.6);
   }
   .input-field {
-    @apply w-full px-4 py-3 bg-[#1a1a1a]/80 backdrop-blur-sm border-b border-[var(--theme-color,#d4af37)] focus:outline-none focus:border-white transition-all placeholder:text-gray-600 text-white;
+    @apply w-full px-4 py-3 bg-[var(--box-bg-color,#1a1a1a)]/80 backdrop-blur-sm border-b border-[var(--theme-color,#d4af37)] focus:outline-none focus:border-white transition-all placeholder:text-gray-600 text-[var(--text-main,#ffffff)];
   }
   .neo-box {
-    @apply border border-gray-700 bg-[#121212]/90 backdrop-blur-md p-6 relative m-2;
+    @apply border border-[var(--border-color,#374151)] bg-[var(--box-bg-color,#121212)]/90 backdrop-blur-md p-6 relative m-2;
     box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1), 0 0 0 2px var(--theme-color, #d4af37);
   }
   .window-box, .window-box-octagon {
-    @apply relative p-8 bg-[#121212]/90 backdrop-blur-md m-3;
+    @apply relative p-8 bg-[var(--box-bg-color,#121212)]/90 backdrop-blur-md m-3;
     border: 1px solid var(--theme-color, #d4af37);
   }
   .window-box::before, .window-box-octagon::before {
@@ -79,7 +79,7 @@
   }
 
   .window-box-circle {
-    @apply relative p-8 bg-[#121212]/90 m-2 rounded-full border border-[var(--theme-color,#d4af37)];
+    @apply relative p-8 bg-[var(--box-bg-color,#121212)]/90 m-2 rounded-full border border-[var(--theme-color,#d4af37)];
   }
   .window-box-circle::before {
     content: '';
@@ -87,7 +87,7 @@
   }
   
   .section-title-decorated {
-    @apply relative inline-flex items-center justify-center text-white;
+    @apply relative inline-flex items-center justify-center text-[var(--text-main,#ffffff)];
   }
   .section-title-decorated::before,
   .section-title-decorated::after {

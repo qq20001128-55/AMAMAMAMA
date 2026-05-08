@@ -198,10 +198,10 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
               <ul className="list-none space-y-2 p-0 m-0">
                 <li><span className="font-bold">開畫前（兩天以上）：</span> 可退還全額定金。</li>
                 <li><span className="font-bold">開畫前（一天內）：</span> 由於已佔用本局排期，不予退還定金。</li>
-                <li><span className="font-bold">已動筆製作（粗草/色草階段）：</span> * 因創作具備主觀性，若因委託人個人喜好（如：與範例不符）取消，不予退還定金。<br/><span className="text-xs text-gray-500">（備註：粗草階段若雙方達成共識止損，客戶僅需負擔總額 20% 作為勞務成本，其餘定金退還；但此項由創作者視情況判斷之。）</span></li>
+                <li><span className="font-bold">已動筆製作（粗草/色草階段）：</span> * 因創作具備主觀性，若因委託人個人喜好（如：與範例不符）取消，不予退還定金。<br/><span className="text-xs text-[var(--text-muted,#6b7280)]">（備註：粗草階段若雙方達成共識止損，客戶僅需負擔總額 20% 作為勞務成本，其餘定金退還；但此項由創作者視情況判斷之。）</span></li>
                 <li><span className="font-bold">完稿階段：</span> 不接受任何退款要求。</li>
               </ul>
-              <p className="mt-4 p-3 bg-[#2a2a2a] rounded text-sm text-[var(--theme-color,#d4af37)] border-l-4 border-[var(--theme-color,#d4af37)]">
+              <p className="mt-4 p-3 bg-[var(--box-bg-color,#2a2a2a)] rounded text-sm text-[var(--theme-color,#d4af37)] border-l-4 border-[var(--theme-color,#d4af37)]">
                 <span className="font-bold">核心聲明：</span> 創作具有審美主觀性。委託人應於立契前充分理解並認可「龍契局」之過往風格。不接受以「與預期不符」、「感覺不對」為由要求全額退費。
               </p>
             </div>
@@ -236,7 +236,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
             onClick={() => {
               if (onPaymentInfoClick) onPaymentInfoClick();
             }}
-            className="text-sm tracking-widest text-[var(--theme-color,#d4af37)] underline hover:text-gray-500 transition-colors"
+            className="text-sm tracking-widest text-[var(--theme-color,#d4af37)] underline hover:text-[var(--text-muted,#6b7280)] transition-colors"
           >
             查看支付方式與手續費說明
           </button>
@@ -270,7 +270,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         animate={{ opacity: 1 }}
         className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
       >
-        <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-gray-400 hover:text-[var(--theme-color,#d4af37)] mb-8 transition-colors tracking-widest">
+        <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-[var(--text-muted,#9ca3af)] hover:text-[var(--theme-color,#d4af37)] mb-8 transition-colors tracking-widest">
           <ChevronLeft size={20} />
           <span>返回注意事項</span>
         </button>
@@ -298,8 +298,8 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
                 <li><span className="font-bold">計費：</span> 底價 x 3</li>
               </ul>
               
-              <div className="mt-4 p-4 border border-[var(--theme-color,#d4af37)] bg-[#1a1a1a] relative">
-                <div className="absolute -top-3 left-4 bg-[#1a1a1a] px-2 font-bold tracking-widest text-xs text-[var(--theme-color,#d4af37)]">【特別優待・VTuber 應援契】</div>
+              <div className="mt-4 p-4 border border-[var(--theme-color,#d4af37)] bg-[var(--box-bg-color,#1a1a1a)] relative">
+                <div className="absolute -top-3 left-4 bg-[var(--box-bg-color,#1a1a1a)] px-2 font-bold tracking-widest text-xs text-[var(--theme-color,#d4af37)]">【特別優待・VTuber 應援契】</div>
                 <ul className="list-none space-y-2 p-0 m-0 mt-2">
                   <li><span className="font-bold">對象：</span> 委託贈送給特定 VTuber 使用（社群宣傳、非販售性質周邊）。</li>
                   <li><span className="font-bold">計費：</span> 底價 x 2（這是龍契局對創作者社群的特別支持）。</li>
@@ -392,7 +392,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
       animate={{ opacity: 1, x: 0 }}
       className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-10"
     >
-      <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-gray-400 hover:text-[var(--theme-color,#d4af37)] mb-8 transition-colors tracking-widest">
+      <button onClick={() => setStep('terms')} className="flex items-center gap-2 text-[var(--text-muted,#9ca3af)] hover:text-[var(--theme-color,#d4af37)] mb-8 transition-colors tracking-widest">
         <ChevronLeft size={20} />
         <span>返回須知</span>
       </button>
@@ -461,23 +461,23 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         <div className="window-box-octagon">
           <label className="block text-sm tracking-widest font-bold mb-4">參考資料 Reference</label>
           
-          <div className="flex gap-4 mb-6 border-b-2 border-gray-700 pb-4">
+          <div className="flex gap-4 mb-6 border-b-2 border-[var(--border-color,#374151)] pb-4">
             <button
               type="button"
               onClick={() => setRefType('image')}
-              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[var(--theme-color,#d4af37)] text-[#fafafa]" : "hover:bg-[#2a2a2a]")}
+              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'image' ? "bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#fafafa)]" : "hover:bg-[var(--box-bg-color,#2a2a2a)]")}
             >
-              <ImageIcon size={18} /> 上傳圖片 {files.length > 0 && <span className={cn("text-xs px-2 py-0.5 font-bold", refType === 'image' ? "bg-[#fafafa] text-[var(--theme-color,#d4af37)]" : "bg-[var(--theme-color,#d4af37)] text-white")}>{files.length}</span>}
+              <ImageIcon size={18} /> 上傳圖片 {files.length > 0 && <span className={cn("text-xs px-2 py-0.5 font-bold", refType === 'image' ? "bg-[#fafafa] text-[var(--theme-color,#d4af37)]" : "bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#ffffff)]")}>{files.length}</span>}
             </button>
             <button
               type="button"
               onClick={() => setRefType('link')}
-              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[var(--theme-color,#d4af37)] text-[#fafafa]" : "hover:bg-[#2a2a2a]")}
+              className={cn("flex items-center gap-2 px-4 py-2 tracking-widest transition-colors", refType === 'link' ? "bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#fafafa)]" : "hover:bg-[var(--box-bg-color,#2a2a2a)]")}
             >
-              <LinkIcon size={18} /> 附上連結 {formData.referenceLink && <CheckCircle2 size={16} className={refType === 'link' ? "text-[#fafafa]" : "text-[var(--theme-color,#d4af37)]"} />}
+              <LinkIcon size={18} /> 附上連結 {formData.referenceLink && <CheckCircle2 size={16} className={refType === 'link' ? "text-[var(--text-main,#fafafa)]" : "text-[var(--theme-color,#d4af37)]"} />}
             </button>
           </div>
-          <p className="text-xs text-gray-500 font-bold tracking-widest mb-4">* 可同時提供圖片與連結</p>
+          <p className="text-xs text-[var(--text-muted,#6b7280)] font-bold tracking-widest mb-4">* 可同時提供圖片與連結</p>
 
           {refType === 'image' ? (
             <div className="space-y-4">
@@ -488,19 +488,19 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
                     <button 
                       type="button"
                       onClick={() => removeFile(index)}
-                      className="absolute top-1 right-1 p-1 bg-[var(--theme-color,#d4af37)] text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="absolute top-1 right-1 p-1 bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#ffffff)] opacity-0 group-hover:opacity-100 transition-opacity"
                     >
                       <X size={14} />
                     </button>
                   </div>
                 ))}
-                <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-[var(--theme-color,#d4af37)] hover:bg-[#2a2a2a] cursor-pointer transition-colors">
+                <label className="flex flex-col items-center justify-center aspect-square border-2 border-dashed border-[var(--theme-color,#d4af37)] hover:bg-[var(--box-bg-color,#2a2a2a)] cursor-pointer transition-colors">
                   <Upload size={24} className="mb-2" />
                   <span className="text-xs tracking-widest">新增圖片</span>
                   <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                 </label>
               </div>
-              <p className="text-xs text-gray-500 tracking-widest">支援多圖上傳，將自動壓縮以節省空間。</p>
+              <p className="text-xs text-[var(--text-muted,#6b7280)] tracking-widest">支援多圖上傳，將自動壓縮以節省空間。</p>
             </div>
           ) : (
             <div>

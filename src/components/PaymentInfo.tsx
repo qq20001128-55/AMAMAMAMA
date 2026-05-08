@@ -40,17 +40,17 @@ export default function PaymentInfo({ onBack }: PaymentInfoProps) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                <tr className="hover:bg-[#1a1a1a] transition-colors">
+                <tr className="hover:bg-[var(--box-bg-color,#1a1a1a)] transition-colors">
                   <td className="py-4 px-4 tracking-widest">虛擬帳號 / ATM</td>
                   <td className="py-4 px-4 tracking-widest text-gray-600">智慧 ATM 2.0、網路轉帳</td>
-                  <td className="py-4 px-4 tracking-widest font-mono text-sm">1.0%<br/><span className="text-xs text-gray-400">(單筆下限 10 元 / 上限 20 元)</span></td>
+                  <td className="py-4 px-4 tracking-widest font-mono text-sm">1.0%<br/><span className="text-xs text-[var(--text-muted,#9ca3af)]">(單筆下限 10 元 / 上限 20 元)</span></td>
                 </tr>
-                <tr className="hover:bg-[#1a1a1a] transition-colors">
+                <tr className="hover:bg-[var(--box-bg-color,#1a1a1a)] transition-colors">
                   <td className="py-4 px-4 tracking-widest">超商代碼</td>
                   <td className="py-4 px-4 tracking-widest text-gray-600">至便利商店機台輸入代碼繳費</td>
                   <td className="py-4 px-4 tracking-widest font-mono">28 元 / 筆</td>
                 </tr>
-                <tr className="hover:bg-[#1a1a1a] transition-colors">
+                <tr className="hover:bg-[var(--box-bg-color,#1a1a1a)] transition-colors">
                   <td className="py-4 px-4 tracking-widest">條碼繳費</td>
                   <td className="py-4 px-4 tracking-widest text-gray-600">出示手機條碼至櫃檯掃描</td>
                   <td className="py-4 px-4 tracking-widest font-mono">20 元 / 筆</td>

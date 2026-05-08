@@ -43,16 +43,16 @@ export default function ContactForm({ onClose }: ContactFormProps) {
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="relative w-full max-w-lg neo-box bg-[#121212]/95 border-[var(--theme-color,#d4af37)] z-10"
+        className="relative w-full max-w-lg neo-box bg-[var(--box-bg-color,#121212)]/95 border-[var(--theme-color,#d4af37)] z-10"
       >
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-400 hover:text-[var(--theme-color,#d4af37)] transition-colors"
+          className="absolute top-4 right-4 text-[var(--text-muted,#9ca3af)] hover:text-[var(--theme-color,#d4af37)] transition-colors"
         >
           <X size={24} />
         </button>
 
-        <h3 className="text-2xl font-black tracking-widest text-white mb-6 flex items-center gap-2">
+        <h3 className="text-2xl font-black tracking-widest text-[var(--text-main,#ffffff)] mb-6 flex items-center gap-2">
           <Mail className="text-[var(--theme-color,#d4af37)]" /> 聯絡瑪阿
         </h3>
 
@@ -61,8 +61,8 @@ export default function ContactForm({ onClose }: ContactFormProps) {
             <div className="w-16 h-16 rounded-full border-2 border-[var(--theme-color,#d4af37)] flex items-center justify-center mx-auto mb-4 text-[var(--theme-color,#d4af37)]">
               <Send size={24} />
             </div>
-            <h4 className="text-xl font-bold text-white mb-2 tracking-widest">訊息已傳送</h4>
-            <p className="text-gray-400 tracking-widest">我會盡快查看並在適當時機回覆您。</p>
+            <h4 className="text-xl font-bold text-[var(--text-main,#ffffff)] mb-2 tracking-widest">訊息已傳送</h4>
+            <p className="text-[var(--text-muted,#9ca3af)] tracking-widest">我會盡快查看並在適當時機回覆您。</p>
             <button 
               onClick={onClose}
               className="mt-8 btn-primary"

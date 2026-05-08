@@ -53,7 +53,7 @@ export default function PriceList({ onBack }: PriceListProps) {
 
       <div className="mb-12">
         <SectionTitle className="!text-left !mb-2">價目與內容</SectionTitle>
-        <p className="text-gray-500 tracking-widest">龍契局各項委託之明細說明</p>
+        <p className="text-[var(--text-muted,#6b7280)] tracking-widest">龍契局各項委託之明細說明</p>
       </div>
 
       {loading ? (
@@ -61,7 +61,7 @@ export default function PriceList({ onBack }: PriceListProps) {
           <div className="w-8 h-8 border-2 border-[var(--theme-color,#d4af37)] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : items.length === 0 ? (
-        <div className="text-center py-20 text-gray-400 border border-dashed border-gray-700 tracking-widest">
+        <div className="text-center py-20 text-[var(--text-muted,#9ca3af)] border border-dashed border-[var(--border-color,#374151)] tracking-widest">
           目前尚無價目資訊。
         </div>
       ) : (
@@ -76,7 +76,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                 className={`text-left px-6 py-4 tracking-widest transition-all duration-300 font-bold border-l-4 ${
                   activeItem?.id === item.id 
                     ? 'border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)] bg-[var(--theme-color,#d4af37)]/5' 
-                    : 'border-transparent text-gray-400 hover:text-[var(--theme-color,#d4af37)] hover:bg-[#1a1a1a]'
+                    : 'border-transparent text-[var(--text-muted,#9ca3af)] hover:text-[var(--theme-color,#d4af37)] hover:bg-[var(--box-bg-color,#1a1a1a)]'
                 }`}
               >
                 {item.title}
@@ -105,7 +105,7 @@ export default function PriceList({ onBack }: PriceListProps) {
 
                     {/* Image Area */}
                     <div className="w-full">
-                      <div className="w-full bg-[#1a1a1a] border border-gray-700 p-2 overflow-hidden group flex items-center justify-center">
+                      <div className="w-full bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#374151)] p-2 overflow-hidden group flex items-center justify-center">
                         {activeItem.imageUrl ? (
                           <img loading="lazy" 
                             src={activeItem.imageUrl} 
@@ -122,8 +122,8 @@ export default function PriceList({ onBack }: PriceListProps) {
                     {/* Content Area */}
                     <div className="w-full space-y-8">
                       <div className="space-y-4">
-                        <div className="w-full bg-[#1a1a1a] border border-gray-800 p-4 neo-box shadow-sm">
-                          <p className="text-xs text-gray-400 tracking-widest mb-4 font-bold border-b border-gray-700 pb-2 inline-block">委託對應流程</p>
+                        <div className="w-full bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#1f2937)] p-4 neo-box shadow-sm">
+                          <p className="text-xs text-[var(--text-muted,#9ca3af)] tracking-widest mb-4 font-bold border-b border-[var(--border-color,#374151)] pb-2 inline-block">委託對應流程</p>
                           <div className="relative pt-2 pb-2 overflow-x-auto">
                             {(() => {
                               const nodes = getWorkflowNodes(activeItem.workflow);
@@ -134,7 +134,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                                   <div className="flex justify-between relative z-0">
                                     {nodes.map((node, i) => (
                                       <div key={node.id} className="flex flex-col items-center group w-16">
-                                        <div className="w-8 h-8 rounded-full border border-[var(--theme-color,#d4af37)]/30 bg-[#121212] flex items-center justify-center mb-2 shadow-sm transition-all duration-300 group-hover:border-[var(--theme-color,#d4af37)]">
+                                        <div className="w-8 h-8 rounded-full border border-[var(--theme-color,#d4af37)]/30 bg-[var(--box-bg-color,#121212)] flex items-center justify-center mb-2 shadow-sm transition-all duration-300 group-hover:border-[var(--theme-color,#d4af37)]">
                                           <div className="w-2.5 h-2.5 rounded-full bg-[var(--theme-color,#d4af37)]/20 group-hover:bg-[var(--theme-color,#d4af37)] transition-all duration-300" />
                                         </div>
                                         <span className="text-[11px] tracking-widest text-[var(--theme-color,#d4af37)] text-center font-bold">
@@ -150,7 +150,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                         </div>
                         
                         <div>
-                          <p className="text-xs text-gray-400 tracking-widest mb-2">委託內容</p>
+                          <p className="text-xs text-[var(--text-muted,#9ca3af)] tracking-widest mb-2">委託內容</p>
                           <p className="text-sm tracking-widest leading-loose text-gray-600 whitespace-pre-wrap">
                             {activeItem.description || '無詳細說明'}
                           </p>

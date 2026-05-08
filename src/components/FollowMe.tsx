@@ -121,7 +121,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
             </div>
             
             {isAdmin && (
-              <label className="absolute inset-0 bg-black/50 text-white flex flex-col items-center justify-center rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
+              <label className="absolute inset-0 bg-black/50 text-[var(--text-main,#ffffff)] flex flex-col items-center justify-center rounded-full opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
                 {uploading ? (
                   <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : (
@@ -160,7 +160,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="window-box-octagon !p-4 flex items-center justify-between hover:bg-[var(--theme-color,#d4af37)] hover:text-[#fafafa] transition-colors group"
+                className="window-box-octagon !p-4 flex items-center justify-between hover:bg-[var(--theme-color,#d4af37)] hover:text-[var(--text-main,#fafafa)] transition-colors group"
               >
                 <span className="font-bold tracking-widest">{link.label}</span>
                 <span className="text-xs tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">前往 &rarr;</span>

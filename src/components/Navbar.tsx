@@ -48,7 +48,7 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
             onClick={() => setPage(item.id)}
             className={cn(
               "nav-item",
-              currentPage === item.id ? "active text-[var(--theme-color,#d4af37)] opacity-100 font-bold" : "text-white"
+              currentPage === item.id ? "active text-[var(--theme-color,#d4af37)] opacity-100 font-bold" : "text-[var(--text-main,#ffffff)]"
             )}
           >
             <div className="nav-box"></div>
@@ -62,14 +62,14 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
       <nav className="fixed top-4 sm:top-6 right-4 sm:right-6 z-50 flex gap-2 sm:gap-4 items-center scale-90 sm:scale-100 origin-top-right">
         <button 
           onClick={() => setPage('tracking')}
-          className="text-white opacity-70 hover:opacity-100 hover:text-[var(--theme-color,#d4af37)] transition-all flex flex-col items-center gap-1"
+          className="text-[var(--text-main,#ffffff)] opacity-70 hover:opacity-100 hover:text-[var(--theme-color,#d4af37)] transition-all flex flex-col items-center gap-1"
           title="追跡 (搜尋進度)"
         >
           <Search size={22} />
         </button>
         <button 
           onClick={() => setShowContact(true)}
-          className="text-white opacity-70 hover:opacity-100 hover:text-[var(--theme-color,#d4af37)] transition-all flex flex-col items-center gap-1"
+          className="text-[var(--text-main,#ffffff)] opacity-70 hover:opacity-100 hover:text-[var(--theme-color,#d4af37)] transition-all flex flex-col items-center gap-1"
           title="聯絡我們"
         >
           <Mail size={22} />
@@ -77,7 +77,7 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
         {isAdmin && (
           <button 
             onClick={() => setPage('admin')}
-            className={cn("opacity-70 hover:opacity-100 transition-all flex flex-col items-center gap-1", currentPage === 'admin' ? "text-[var(--theme-color,#d4af37)] opacity-100" : "text-white hover:text-[var(--theme-color,#d4af37)]")}
+            className={cn("opacity-70 hover:opacity-100 transition-all flex flex-col items-center gap-1", currentPage === 'admin' ? "text-[var(--theme-color,#d4af37)] opacity-100" : "text-[var(--text-main,#ffffff)] hover:text-[var(--theme-color,#d4af37)]")}
             title="後台設定"
           >
             <Settings size={22} />
@@ -94,7 +94,7 @@ export default function Navbar({ setPage, currentPage, user, siteConfig, socialL
               href={link.url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="w-7 h-7 sm:w-8 sm:h-8 border border-white/20 bg-black/40 backdrop-blur-sm flex items-center justify-center text-white opacity-60 hover:opacity-100 hover:border-[var(--theme-color,#d4af37)] hover:text-[var(--theme-color,#d4af37)] transition-all group overflow-hidden"
+              className="w-7 h-7 sm:w-8 sm:h-8 border border-white/20 bg-black/40 backdrop-blur-sm flex items-center justify-center text-[var(--text-main,#ffffff)] opacity-60 hover:opacity-100 hover:border-[var(--theme-color,#d4af37)] hover:text-[var(--theme-color,#d4af37)] transition-all group overflow-hidden"
               title={link.label}
             >
               {link.iconUrl ? (

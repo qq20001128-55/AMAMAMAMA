@@ -56,6 +56,11 @@ export default function App() {
         if (data.homeBgUrl) document.documentElement.style.setProperty('--home-bg-url', `url("${data.homeBgUrl}")`);
         if (data.pageBgUrl) document.documentElement.style.setProperty('--page-bg-url', `url("${data.pageBgUrl}")`);
         if (data.themeColor) document.documentElement.style.setProperty('--theme-color', data.themeColor);
+        if (data.bgColor) document.documentElement.style.setProperty('--bg-color', data.bgColor);
+        if (data.boxBgColor) document.documentElement.style.setProperty('--box-bg-color', data.boxBgColor);
+        if (data.textColor) document.documentElement.style.setProperty('--text-main', data.textColor);
+        if (data.textMutedColor) document.documentElement.style.setProperty('--text-muted', data.textMutedColor);
+        if (data.borderColor) document.documentElement.style.setProperty('--border-color', data.borderColor);
         
         let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
         if (!link) {
@@ -89,7 +94,7 @@ export default function App() {
 
   if (!isAuthReady) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#0d0d0d]">
+      <div className="h-screen w-screen flex items-center justify-center bg-[var(--bg-color,#0d0d0d)]">
         <div className="w-8 h-8 border-2 border-[var(--theme-color,#d4af37)] border-t-transparent rounded-full animate-spin" />
       </div>
     );
@@ -155,7 +160,7 @@ export default function App() {
                      <div className="absolute inset-0 bg-contain bg-center bg-no-repeat pointer-events-none drop-shadow-md" style={{ backgroundImage: `url(${siteConfig.bottomRightBgUrl})`}}></div>
                    )}
                    <div className="relative z-10 flex flex-col items-center">
-                      <span className={cn("text-xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white")}>
+                      <span className={cn("text-xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-[var(--text-main,#ffffff)]")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
                       <span className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-90 uppercase">
@@ -179,7 +184,7 @@ export default function App() {
                          className="flex w-full text-left items-center justify-end pr-2 active:scale-95 transition-transform group/btn1"
                        >
                          <div className="flex items-center gap-3 mr-3">
-                           <span className="text-white text-[14px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors">站內公告</span>
+                           <span className="text-[var(--text-main,#ffffff)] text-[14px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors">站內公告</span>
                            <span className="text-[9px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Announcement</span>
                          </div>
                          <span className="text-[var(--theme-color,#d4af37)] text-xl transition-transform">&raquo;</span>
@@ -191,7 +196,7 @@ export default function App() {
                          className="flex w-full text-left items-center justify-end pr-2 active:scale-95 transition-transform group/btn2"
                        >
                          <div className="flex items-center gap-3 mr-3">
-                           <span className="text-white text-[14px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors">委託進度</span>
+                           <span className="text-[var(--text-main,#ffffff)] text-[14px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] transition-colors">委託進度</span>
                            <span className="text-[9px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Track Order</span>
                          </div>
                          <span className="text-[var(--theme-color,#d4af37)] text-xl transition-transform">&raquo;</span>
@@ -217,7 +222,7 @@ export default function App() {
                          className="flex w-full text-left items-center justify-end pr-6 xl:pr-8 group/btn1"
                        >
                          <div className="flex items-center gap-4 mr-4">
-                           <span className="text-white text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn1:text-[var(--theme-color,#d4af37)] transition-colors">站內公告</span>
+                           <span className="text-[var(--text-main,#ffffff)] text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn1:text-[var(--theme-color,#d4af37)] transition-colors">站內公告</span>
                            <span className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Announcement</span>
                          </div>
                          <span className="text-[var(--theme-color,#d4af37)] text-2xl group-hover/btn1:translate-x-2 transition-transform">&raquo;</span>
@@ -229,7 +234,7 @@ export default function App() {
                          className="flex w-full text-left items-center justify-end pr-6 xl:pr-8 group/btn2"
                        >
                          <div className="flex items-center gap-4 mr-4">
-                           <span className="text-white text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn2:text-[var(--theme-color,#d4af37)] transition-colors">委託進度</span>
+                           <span className="text-[var(--text-main,#ffffff)] text-[15px] font-bold tracking-[0.2em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] group-hover/btn2:text-[var(--theme-color,#d4af37)] transition-colors">委託進度</span>
                            <span className="text-[10px] text-[var(--theme-color,#d4af37)] font-mono drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] tracking-widest uppercase">Track Order</span>
                          </div>
                          <span className="text-[var(--theme-color,#d4af37)] text-2xl group-hover/btn2:translate-x-2 transition-transform">&raquo;</span>
@@ -250,7 +255,7 @@ export default function App() {
                    )}
                    
                    <div className="relative z-10 flex flex-col items-center">
-                      <span className={cn("text-2xl lg:text-3xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-white group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
+                      <span className={cn("text-2xl lg:text-3xl font-black tracking-[0.5em] ml-[0.35em] drop-shadow-[0_2px_6px_rgba(0,0,0,0.8)]", commissionStatus === 'closed' ? "text-red-500" : "text-[var(--text-main,#ffffff)] group-hover:text-[var(--theme-color,#d4af37)] transition-colors")}>
                         {commissionStatus === 'closed' ? '局門暫閉' : '締結契約'}
                       </span>
                       <span className="text-[10px] lg:text-xs text-[var(--theme-color,#d4af37)] font-mono mt-1 tracking-widest drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] opacity-80 group-hover:opacity-100">
@@ -273,7 +278,7 @@ export default function App() {
             </div>
             
             {/* Scrollable Content Below Hero */}
-            <div id="commission-queue-section" className="relative z-10 w-full bg-[#0d0d0d] pt-20 pb-32">
+            <div id="commission-queue-section" className="relative z-10 w-full bg-[var(--bg-color,#0d0d0d)] pt-20 pb-32">
               <CommissionQueue />
             </div>
           </motion.div>
@@ -308,7 +313,7 @@ export default function App() {
       </main>
       
       {page !== 'home' && (
-        <footer className="py-6 mt-12 border-t border-[var(--theme-color,#d4af37)]/30 text-center text-xs text-gray-500 tracking-widest relative z-10">
+        <footer className="py-6 mt-12 border-t border-[var(--theme-color,#d4af37)]/30 text-center text-xs text-[var(--text-muted,#6b7280)] tracking-widest relative z-10">
           <span 
             onDoubleClick={() => !user && signInWithGoogle()} 
             className="cursor-default select-none transition-colors hover:text-gray-300"

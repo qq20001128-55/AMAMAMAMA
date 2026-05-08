@@ -205,7 +205,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
 
       <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4 mb-16 max-w-2xl mx-auto">
         <div className="relative flex-1">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted,#9ca3af)]" size={18} />
           <input 
             type="text" 
             placeholder="輸入專屬契約編號"
@@ -233,19 +233,19 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
         >
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 pb-8 border-b-2 border-[var(--theme-color,#d4af37)]">
             <div>
-              <p className="text-xs text-gray-500 tracking-widest mb-2">契約標題</p>
+              <p className="text-xs text-[var(--text-muted,#6b7280)] tracking-widest mb-2">契約標題</p>
               <h3 className="text-3xl font-black tracking-widest">{order.title}</h3>
             </div>
             <div className="text-left md:text-right flex flex-col items-start md:items-end gap-4">
               <div>
-                <p className="text-xs text-gray-500 tracking-widest mb-2">當前進度</p>
+                <p className="text-xs text-[var(--text-muted,#6b7280)] tracking-widest mb-2">當前進度</p>
                 <p className="text-xl font-bold tracking-widest text-[var(--theme-color,#d4af37)]">
                   {order.status === 'pending' ? '確認中' : (orderNodes[currentStatusIndex]?.label || '未知')}
                 </p>
               </div>
               <button 
                 onClick={generateProgressCard}
-                className="px-4 py-2 bg-[var(--theme-color,#d4af37)] text-white text-sm tracking-widest hover:bg-[var(--theme-color,#d4af37)] transition-colors"
+                className="px-4 py-2 bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#ffffff)] text-sm tracking-widest hover:bg-[var(--theme-color,#d4af37)] transition-colors"
               >
                 下載進度卡
               </button>
@@ -272,23 +272,23 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                     <div key={node.id} className="flex flex-col items-center group w-24">
                       <div className={cn(
                         "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#fafafa] mb-4",
-                        isCompleted ? "border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)]" : "border-gray-700 text-gray-300",
-                        isCurrent && "ring-4 ring-gray-100 bg-[var(--theme-color,#d4af37)] text-white"
+                        isCompleted ? "border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)]" : "border-[var(--border-color,#374151)] text-gray-300",
+                        isCurrent && "ring-4 ring-gray-100 bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#ffffff)]"
                       )}>
                         {isCompleted ? <CheckCircle2 size={24} /> : <Clock size={24} />}
                       </div>
                       <span className={cn(
                         "text-sm tracking-widest transition-colors mb-2 text-center",
-                        isCompleted ? "text-[var(--theme-color,#d4af37)] font-bold" : "text-gray-400"
+                        isCompleted ? "text-[var(--theme-color,#d4af37)] font-bold" : "text-[var(--text-muted,#9ca3af)]"
                       )}>
                         {node.label}
                       </span>
                       {historyData?.dateString ? (
-                        <span className="text-[10px] text-gray-500 text-center tracking-wider">
+                        <span className="text-[10px] text-[var(--text-muted,#6b7280)] text-center tracking-wider">
                           {formatDate(historyData.dateString)}
                         </span>
                       ) : expectedDate ? (
-                        <span className="text-[10px] text-gray-400 text-center tracking-wider italic">
+                        <span className="text-[10px] text-[var(--text-muted,#9ca3af)] text-center tracking-wider italic">
                           預計: {formatDate(expectedDate)}
                         </span>
                       ) : null}
@@ -304,15 +304,15 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
               <h4 className="text-lg font-black tracking-widest border-b-2 border-[var(--theme-color,#d4af37)] pb-2 inline-block">契約詳情</h4>
               <div className="space-y-4 text-sm tracking-widest">
                 <div>
-                  <span className="text-gray-500 block mb-1">委託人</span>
+                  <span className="text-[var(--text-muted,#6b7280)] block mb-1">委託人</span>
                   <span className="font-bold">{order.nickname}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500 block mb-1">類別</span>
+                  <span className="text-[var(--text-muted,#6b7280)] block mb-1">類別</span>
                   <span className="font-bold">{order.category}</span>
                 </div>
                 <div>
-                  <span className="text-gray-500 block mb-1">正式編號</span>
+                  <span className="text-[var(--text-muted,#6b7280)] block mb-1">正式編號</span>
                   <span className="font-mono font-bold">{order.officialOrderId || '尚未分配'}</span>
                 </div>
               </div>
@@ -325,7 +325,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                   href={order.referenceLink} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-[var(--theme-color,#d4af37)] hover:underline tracking-widest p-4 border-2 border-dashed border-[var(--theme-color,#d4af37)] bg-[#2a2a2a]/50"
+                  className="flex items-center gap-2 text-[var(--theme-color,#d4af37)] hover:underline tracking-widest p-4 border-2 border-dashed border-[var(--theme-color,#d4af37)] bg-[var(--box-bg-color,#2a2a2a)]/50"
                 >
                   <ExternalLink size={20} />
                   前往參考連結
@@ -339,7 +339,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                   ))}
                 </div>
               ) : (
-                <p className="text-gray-500 tracking-widest">無參考資料</p>
+                <p className="text-[var(--text-muted,#6b7280)] tracking-widest">無參考資料</p>
               )}
 
               {/* Stage Previews */}
@@ -361,7 +361,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                         <div key={stage} className="space-y-2">
                           <p className="text-sm font-bold tracking-widest text-[var(--theme-color,#d4af37)] text-center">{stageLabel}</p>
                           <div 
-                            className="aspect-square border border-[var(--theme-color,#d4af37)] overflow-hidden cursor-pointer group bg-[#1a1a1a] flex items-center justify-center p-1"
+                            className="aspect-square border border-[var(--theme-color,#d4af37)] overflow-hidden cursor-pointer group bg-[var(--box-bg-color,#1a1a1a)] flex items-center justify-center p-1"
                             onClick={() => setLightboxImage(imgUrl)}
                           >
                             <img loading="lazy" 
@@ -393,7 +393,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
           onClick={() => setLightboxImage(null)}
         >
           <button 
-            className="absolute top-6 right-6 text-[var(--theme-color,#d4af37)] hover:text-gray-500 transition-colors z-10"
+            className="absolute top-6 right-6 text-[var(--theme-color,#d4af37)] hover:text-[var(--text-muted,#6b7280)] transition-colors z-10"
             onClick={() => setLightboxImage(null)}
           >
             <X size={32} />

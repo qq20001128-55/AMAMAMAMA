@@ -44,11 +44,11 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative bg-[#121212] w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-[var(--theme-color,#d4af37)] overflow-hidden text-gray-200`}
+            className={`relative bg-[var(--box-bg-color,#121212)] w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-[var(--theme-color,#d4af37)] overflow-hidden text-gray-200`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="p-4 border-b flex justify-between items-center bg-[#1a1a1a] flex-none">
+            <div className="p-4 border-b flex justify-between items-center bg-[var(--box-bg-color,#1a1a1a)] flex-none">
               <h3 className="text-xl font-bold tracking-widest text-[var(--theme-color,#d4af37)]">
                 {title}
               </h3>
