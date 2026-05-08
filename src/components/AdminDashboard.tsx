@@ -72,9 +72,14 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
 
   const [acceptPrices, setAcceptPrices] = useState<Record<string, string>>({});
 
+  // Helper for rgba
+const hexToRgba = (hex: string, opacity: number) => {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})` : `rgba(0,0,0,${opacity})`;
+};
+
   // 情報部自動化同步系統
   const [intelTitle, setIntelTitle] = useState('');
-  const [intelText, setIntelText] = useState('');
   const [intelTags, setIntelTags] = useState('');
   const [intelFiles, setIntelFiles] = useState<File[]>([]);
   const [intelSyncing, setIntelSyncing] = useState(false);
@@ -290,6 +295,22 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
       await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
     } catch (err) {
       console.error(`Update ${key} error:`, err);
+    }
+  };
+  
+  const handleStageColorChange = async (stageId: string, color: string) => {
+    const newConfig = { 
+      ...siteConfig, 
+      stageColors: {
+        ...(siteConfig.stageColors || {}),
+        [stageId]: color
+      } 
+    };
+    setSiteConfig(newConfig);
+    try {
+      await setDoc(doc(db, 'settings', 'siteConfig'), newConfig, { merge: true });
+    } catch (err) {
+      console.error(`Update stage color error:`, err);
     }
   };
 
@@ -1641,6 +1662,21 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
               </div>
             </div>
+
+            <div className="mt-6 border-t border-[var(--border-color,#374151)] pt-4">
+              <h4 className="text-md font-bold tracking-widest mb-4 text-[var(--theme-color,#d4af37)]">各階段方塊顏色設定</h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {STATUS_NODES.map(node => (
+                  <div key={node.id}>
+                    <p className="text-sm font-bold tracking-widest mb-2">{node.label}</p>
+                    <div className="flex items-center gap-4">
+                      <input type="color" value={siteConfig.stageColors?.[node.id] || siteConfig.themeColor || '#d4af37'} onChange={(e) => handleStageColorChange(node.id, e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent" />
+                      <span className="font-mono text-sm">{siteConfig.stageColors?.[node.id] || siteConfig.themeColor || '#d4af37'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Social Links Management */}
@@ -1854,20 +1890,36 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                 </div>
               ))}
               {daysInMonth.map((date, i) => {
-                const dayOrders = allOrders.filter(o => 
-                  o.expectedDates && Object.values(o.expectedDates).some((d: any) => d && isSameDay(parseISO(d), date))
-                );
+                const dayStages: { order: any, stageId: string, stageLabel: string }[] = [];
+                allOrders.forEach(o => {
+                  if (o.expectedDates) {
+                    Object.entries(o.expectedDates).forEach(([stageId, dateStr]) => {
+                      if (dateStr && isSameDay(parseISO(dateStr as string), date)) {
+                        dayStages.push({
+                          order: o,
+                          stageId,
+                          stageLabel: STATUS_NODES.find(n => n.id === stageId)?.label || stageId
+                        });
+                      }
+                    });
+                  }
+                });
                 
                 return (
                   <div 
                     key={i} 
                     className={cn(
-                      "bg-black/40 min-h-[120px] 2xl:min-h-[160px] p-2 transition-colors hover:bg-black/60 cursor-pointer overflow-y-auto custom-scrollbar",
-                      !isSameMonth(date, currentMonth) && "bg-[var(--box-bg-color,#1a1a1a)]/50 text-[var(--text-muted,#9ca3af)]",
+                      "min-h-[120px] 2xl:min-h-[160px] p-2 transition-colors cursor-pointer overflow-y-auto custom-scrollbar",
+                      isSameMonth(date, currentMonth) ? "hover:brightness-125" : "text-[var(--text-muted,#9ca3af)] opacity-50 hover:opacity-80",
                       isSameDay(date, new Date()) && "ring-2 ring-inset ring-[#53565b]"
                     )}
+                    style={{
+                      backgroundColor: isSameMonth(date, currentMonth) 
+                        ? hexToRgba(siteConfig.calendarBgColor || '#000000', (siteConfig.calendarOpacity ?? 40) / 100)
+                        : hexToRgba(siteConfig.boxBgColor || '#1a1a1a', 0.5)
+                    }}
                     onClick={() => {
-                      if (dayOrders.length > 0) {
+                      if (dayStages.length > 0) {
                         setSelectedCalendarDate(date);
                         setActiveModal('calendarDay');
                       }
@@ -1875,22 +1927,45 @@ export default function AdminDashboard({ onBack, user }: AdminDashboardProps) {
                   >
                     <div className="text-right text-sm mb-1 font-mono">{format(date, 'd')}</div>
                     <div className="space-y-1">
-                      {dayOrders.map((order, idx) => (
-                        <div key={idx} className="text-[10px] truncate bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#ffffff)] px-1 py-0.5 rounded-sm cursor-pointer" title={`${order.orderNo || '處理中...'} - ${order.title}`} onClick={() => {
-                          setModalOrdersType('all');
-                          setActiveModal('orders');
-                          setTimeout(() => {
-                            const el = document.getElementById(`order-${order.id}`);
-                            if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                          }, 100);
-                        }}>
-                          {order.orderNo || '處理中...'} - {order.title}
+                      {dayStages.map(({order, stageId, stageLabel}, idx) => (
+                        <div key={idx} 
+                          className="text-[10px] truncate text-[var(--text-main,#ffffff)] px-1 py-0.5 rounded-sm cursor-pointer font-bold shadow-sm"
+                          style={{ backgroundColor: siteConfig.stageColors?.[stageId] || siteConfig.themeColor || '#d4af37' }}
+                          title={`${order.orderNo || '處理中...'} - ${order.title} (${stageLabel})`} 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setModalOrdersType('all');
+                            setActiveModal('orders');
+                            setTimeout(() => {
+                              const el = document.getElementById(`order-${order.id}`);
+                              if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }, 100);
+                          }}>
+                          {stageLabel}
                         </div>
                       ))}
                     </div>
                   </div>
                 );
               })}
+            </div>
+
+            {/* Calendar display config */}
+            <div className="mt-4 p-4 border border-[var(--border-color,#374151)] bg-black/40 backdrop-blur-sm flex flex-col md:flex-row gap-6">
+               <div>
+                  <p className="text-sm font-bold tracking-widest mb-2 text-[var(--theme-color,#d4af37)]">日曆背景顏色</p>
+                  <div className="flex items-center gap-4">
+                    <input type="color" value={siteConfig.calendarBgColor || '#000000'} onChange={(e) => handleColorChange('calendarBgColor', e.target.value)} className="w-10 h-10 rounded cursor-pointer border-0 p-0 bg-transparent" />
+                    <span className="font-mono text-sm">{siteConfig.calendarBgColor || '#000000'}</span>
+                  </div>
+               </div>
+               <div className="flex-1">
+                  <p className="text-sm font-bold tracking-widest mb-2 text-[var(--theme-color,#d4af37)]">日曆底部透明度 (不影響進度方塊)</p>
+                  <div className="flex items-center gap-4">
+                    <input type="range" min="0" max="100" value={siteConfig.calendarOpacity ?? 40} onChange={(e) => handleColorChange('calendarOpacity', parseInt(e.target.value) as any)} className="w-full accent-[var(--theme-color,#d4af37)]" />
+                    <span className="font-mono text-sm w-12 text-right">{siteConfig.calendarOpacity ?? 40}%</span>
+                  </div>
+               </div>
             </div>
           </div>
         </div>
