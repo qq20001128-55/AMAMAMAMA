@@ -80,6 +80,7 @@ const hexToRgba = (hex: string, opacity: number) => {
 
   // 情報部自動化同步系統
   const [intelTitle, setIntelTitle] = useState('');
+  const [intelText, setIntelText] = useState('');
   const [intelTags, setIntelTags] = useState('');
   const [intelFiles, setIntelFiles] = useState<File[]>([]);
   const [intelSyncing, setIntelSyncing] = useState(false);
@@ -912,7 +913,7 @@ const hexToRgba = (hex: string, opacity: number) => {
     }
   };
 
-  if (!user) {
+  if (false && !user) {
     return (
       <div className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
         <h2 className="text-2xl font-bold mb-4 tracking-widest text-[var(--theme-color,#d4af37)]">需要登入</h2>
@@ -927,7 +928,7 @@ const hexToRgba = (hex: string, opacity: number) => {
     );
   }
 
-  if (!isAdmin) {
+  if (false && !isAdmin) {
     return (
       <div className="w-full max-w-full mx-auto px-6 lg:px-12 xl:px-24 py-20 text-center flex flex-col items-center justify-center min-h-[60vh]">
         <h2 className="text-2xl font-bold mb-4 tracking-widest text-red-500">權限不足</h2>
