@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { collection, query, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { SectionTitle } from './SectionTitle';
@@ -12,9 +12,159 @@ export interface PriceListItem {
   price: string;       // 價格
   workflow: string;    // 流程
   description: string; // 內容
-  imageUrl: string;
+  imageUrl?: string;
+  imageUrls?: string[];
   order: number;
 }
+
+const PriceImageCarousel = ({ images, title }: { images: string[], title: string }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [expand, setExpand] = useState(false);
+
+  if (images.length === 0) {
+    return <div className="w-full h-48 flex items-center justify-center text-gray-300 tracking-widest text-sm bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#374151)]">無圖片</div>;
+  }
+
+  const handleNext = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  };
+
+  const handlePrev = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  };
+
+  return (
+    <div className="relative group w-full bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#374151)] p-2 overflow-hidden shadow-xl">
+       <div 
+         className="cursor-pointer flex items-center justify-center min-h-[300px] relative overflow-hidden"
+         onClick={() => setExpand(true)}
+       >
+         <AnimatePresence mode="wait">
+            <motion.img
+              key={currentIndex}
+              src={images[currentIndex]}
+              alt={`${title} ${currentIndex + 1}`}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="w-full h-auto object-contain max-h-[70vh]"
+              crossOrigin="anonymous"
+            />
+         </AnimatePresence>
+
+         {/* Mobile Swipe Overlay */}
+         <div 
+           className="absolute inset-0 z-10 md:hidden"
+           onTouchStart={(e) => {
+             const touch = e.touches[0];
+             const startX = touch.clientX;
+             const handleTouchEnd = (ee: TouchEvent) => {
+               const endX = ee.changedTouches[0].clientX;
+               if (startX - endX > 50) handleNext();
+               if (endX - startX > 50) handlePrev();
+               document.removeEventListener('touchend', handleTouchEnd);
+             };
+             document.addEventListener('touchend', handleTouchEnd);
+           }}
+         />
+       </div>
+
+       {images.length > 1 && (
+         <>
+           {/* Desktop Arrows (shown on hover) */}
+           <button 
+             onClick={handlePrev}
+             className="absolute left-6 top-1/2 -translate-y-1/2 z-20 bg-black/60 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:flex items-center justify-center hover:bg-[var(--theme-color,#d4af37)] hover:scale-110 active:scale-95"
+           >
+             <ChevronLeft size={24} />
+           </button>
+           <button 
+             onClick={handleNext}
+             className="absolute right-6 top-1/2 -translate-y-1/2 z-20 bg-black/60 text-white p-3 rounded-full opacity-0 group-hover:opacity-100 transition-all duration-300 hidden md:flex items-center justify-center hover:bg-[var(--theme-color,#d4af37)] hover:scale-110 active:scale-95"
+           >
+             <ChevronRight size={24} />
+           </button>
+
+           {/* Indicators */}
+           <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+              {images.map((_, i) => (
+                <button 
+                  key={i} 
+                  onClick={(e) => { e.stopPropagation(); setCurrentIndex(i); }}
+                  className={`w-2 h-2 rounded-full transition-all ${i === currentIndex ? 'bg-[var(--theme-color,#d4af37)] w-6' : 'bg-white/40 hover:bg-white/60'}`} 
+                />
+              ))}
+           </div>
+         </>
+       )}
+
+       {/* Fullscreen Overlay */}
+       <AnimatePresence>
+         {expand && (
+           <motion.div 
+             initial={{ opacity: 0 }}
+             animate={{ opacity: 1 }}
+             exit={{ opacity: 0 }}
+             className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 md:p-12 cursor-default"
+             onClick={() => setExpand(false)}
+           >
+             <button className="absolute top-8 right-8 text-white/50 hover:text-white transition-colors z-[110]">
+               <X size={40} strokeWidth={1} />
+             </button>
+
+             <div className="relative w-full h-full flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                <motion.img 
+                  key={currentIndex}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  src={images[currentIndex]} 
+                  alt={title} 
+                  className="max-w-full max-h-full object-contain shadow-2xl"
+                  crossOrigin="anonymous" 
+                />
+                
+                {images.length > 1 && (
+                  <>
+                    <button 
+                      onClick={handlePrev}
+                      className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/5 hover:bg-white/10 text-white p-6 rounded-full transition-all hidden md:block border border-white/10"
+                    >
+                      <ChevronLeft size={60} strokeWidth={1} />
+                    </button>
+                    <button 
+                      onClick={handleNext}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/5 hover:bg-white/10 text-white p-6 rounded-full transition-all hidden md:block border border-white/10"
+                    >
+                      <ChevronRight size={60} strokeWidth={1} />
+                    </button>
+                    
+                    {/* Fullscreen Mobile Swipe */}
+                    <div 
+                       className="absolute inset-0 z-10 md:hidden"
+                       onTouchStart={(e) => {
+                         const touch = e.touches[0];
+                         const startX = touch.clientX;
+                         const handleTouchEnd = (ee: TouchEvent) => {
+                           const endX = ee.changedTouches[0].clientX;
+                           if (startX - endX > 50) handleNext();
+                           if (endX - startX > 50) handlePrev();
+                           document.removeEventListener('touchend', handleTouchEnd);
+                         };
+                         document.addEventListener('touchend', handleTouchEnd);
+                       }}
+                     />
+                  </>
+                )}
+             </div>
+           </motion.div>
+         )}
+       </AnimatePresence>
+    </div>
+  );
+};
 
 interface PriceListProps {
   onBack: () => void;
@@ -105,18 +255,10 @@ export default function PriceList({ onBack }: PriceListProps) {
 
                     {/* Image Area */}
                     <div className="w-full">
-                      <div className="w-full bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#374151)] p-2 overflow-hidden group flex items-center justify-center">
-                        {activeItem.imageUrl ? (
-                          <img loading="lazy" 
-                            src={activeItem.imageUrl} 
-                            alt={activeItem.title} 
-                            crossOrigin="anonymous"
-                            className="w-full object-contain"
-                          />
-                        ) : (
-                          <div className="w-full h-48 flex items-center justify-center text-gray-300 tracking-widest text-sm">無圖片</div>
-                        )}
-                      </div>
+                       <PriceImageCarousel 
+                         images={activeItem.imageUrls || (activeItem.imageUrl ? [activeItem.imageUrl] : [])} 
+                         title={activeItem.title} 
+                       />
                     </div>
 
                     {/* Content Area */}

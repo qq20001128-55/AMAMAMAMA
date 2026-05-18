@@ -856,7 +856,7 @@ const hexToRgba = (hex: string, opacity: number) => {
         workflow: 'full',
         description: '委託內容限制與說明...',
         order: priceList.length,
-        imageUrl: ''
+        imageUrls: []
       };
       const docRef = await addDoc(collection(db, 'priceList'), newItem);
       setPriceList([...priceList, { id: docRef.id, ...newItem }]);
@@ -880,14 +880,17 @@ const hexToRgba = (hex: string, opacity: number) => {
     if (!window.confirm('確定刪除此價目項目？')) return;
     try {
       const item = priceList.find(i => i.id === id);
-      if (item && item.imageUrl) {
+      const imagesToDelete = item?.imageUrls || (item?.imageUrl ? [item.imageUrl] : []);
+      
+      for (const imgUrl of imagesToDelete) {
         try {
-          const fileRef = ref(storage, item.imageUrl);
+          const fileRef = ref(storage, imgUrl);
           await deleteObject(fileRef);
-        } catch (storageErr) {
-          console.warn('Price image not found in storage or already deleted:', storageErr);
+        } catch (e) {
+          console.warn('Price image not found in storage or already deleted:', e);
         }
       }
+      
       await deleteDoc(doc(db, 'priceList', id));
       setPriceList(priceList.filter(item => item.id !== id));
     } catch (err) {
@@ -895,16 +898,47 @@ const hexToRgba = (hex: string, opacity: number) => {
     }
   };
 
+  const handleRemovePriceImage = async (url: string) => {
+    if (!window.confirm('確定要移除這張圖片嗎？')) return;
+    try {
+      // Find the storage path from the URL
+      const fileRef = ref(storage, url);
+      await deleteObject(fileRef).catch(e => console.warn('Image already deleted from storage:', e));
+      
+      const currentImages = priceEditData.imageUrls || [];
+      const newImages = currentImages.filter((img: string) => img !== url);
+      setPriceEditData({ ...priceEditData, imageUrls: newImages });
+      
+      // If we're not currently adding a new item, we should also update the doc
+      if (editingPriceId && !editingPriceId.startsWith('new_')) {
+        await updateDoc(doc(db, 'priceList', editingPriceId), { imageUrls: newImages });
+        setPriceList(priceList.map(item => item.id === editingPriceId ? { ...item, imageUrls: newImages } : item));
+      }
+    } catch (err) {
+      console.error('Remove price image error:', err);
+      alert('移除失敗');
+    }
+  };
+
   const handlePriceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !editingPriceId) return;
+    const files = e.target.files;
+    if (!files || files.length === 0 || !editingPriceId) return;
 
     setPriceUploading(true);
     try {
-      const storageRef = ref(storage, `priceList/${editingPriceId}.webp`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      setPriceEditData({ ...priceEditData, imageUrl: url });
+      const currentImages = priceEditData.imageUrls || (priceEditData.imageUrl ? [priceEditData.imageUrl] : []);
+      const newUrls = [];
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const compressedBlob = await compressImage(file);
+        const storageRef = ref(storage, `priceList/${editingPriceId}_${Date.now()}_${i}.webp`);
+        await uploadBytes(storageRef, compressedBlob, { cacheControl: 'public,max-age=31536000' });
+        const url = await getDownloadURL(storageRef);
+        newUrls.push(url);
+      }
+      
+      setPriceEditData({ ...priceEditData, imageUrls: [...currentImages, ...newUrls], imageUrl: '' });
     } catch (err) {
       console.error('Upload price image error:', err);
       alert('上傳失敗');
@@ -1758,19 +1792,28 @@ const hexToRgba = (hex: string, opacity: number) => {
                   {editingPriceId === item.id ? (
                     <>
                       <div className="w-full md:w-1/3 space-y-4">
-                        <div className="aspect-[4/3] bg-[var(--box-bg-color,#2a2a2a)] border border-[var(--theme-color,#d4af37)] relative flex items-center justify-center overflow-hidden">
-                          {priceEditData.imageUrl ? (
-                            <img loading="lazy" src={priceEditData.imageUrl} alt="Preview" crossOrigin="anonymous" className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[var(--text-muted,#9ca3af)] text-sm">無圖片</span>
-                          )}
-                          <label className="absolute inset-0 bg-black/50 text-[var(--text-main,#ffffff)] flex flex-col items-center justify-center opacity-0 hover:opacity-100 cursor-pointer transition-opacity">
+                        <div className="grid grid-cols-2 gap-2">
+                          {(priceEditData.imageUrls || (priceEditData.imageUrl ? [priceEditData.imageUrl] : [])).map((url: string, idx: number) => (
+                            <div key={idx} className="aspect-square bg-[var(--box-bg-color,#2a2a2a)] border border-[var(--theme-color,#d4af37)] relative group overflow-hidden">
+                              <img loading="lazy" src={url} alt={`Preview ${idx}`} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                              <button 
+                                onClick={() => handleRemovePriceImage(url)}
+                                className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                          <label className="aspect-square bg-[var(--box-bg-color,#2a2a2a)] border border-dashed border-[var(--theme-color,#d4af37)] flex flex-col items-center justify-center cursor-pointer hover:bg-[var(--box-bg-color,#1a1a1a)] transition-colors">
                             {priceUploading ? (
-                              <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              <div className="w-6 h-6 border-2 border-[var(--theme-color,#d4af37)] border-t-transparent rounded-full animate-spin" />
                             ) : (
-                              <span className="text-xs tracking-widest">上傳圖片</span>
+                              <>
+                                <Save size={20} className="text-[var(--theme-color,#d4af37)] mb-1" />
+                                <span className="text-[10px] tracking-widest text-[var(--theme-color,#d4af37)]">增加圖片</span>
+                              </>
                             )}
-                            <input type="file" className="hidden" accept="image/*" onChange={handlePriceImageUpload} disabled={priceUploading} />
+                            <input type="file" className="hidden" accept="image/*" multiple onChange={handlePriceImageUpload} disabled={priceUploading} />
                           </label>
                         </div>
                         <input 
@@ -1825,12 +1868,23 @@ const hexToRgba = (hex: string, opacity: number) => {
                     </>
                   ) : (
                     <>
-                      <div className="w-full md:w-1/4 aspect-[4/3] bg-[var(--box-bg-color,#2a2a2a)] border border-[var(--theme-color,#d4af37)] overflow-hidden">
-                        {item.imageUrl ? (
-                          <img loading="lazy" src={item.imageUrl} alt={item.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">無圖片</div>
-                        )}
+                      <div className="w-full md:w-1/4 aspect-[4/3] bg-[var(--box-bg-color,#2a2a2a)] border border-[var(--theme-color,#d4af37)] overflow-hidden relative">
+                        {(() => {
+                           const images = item.imageUrls || (item.imageUrl ? [item.imageUrl] : []);
+                           if (images.length > 0) {
+                             return (
+                               <>
+                                 <img loading="lazy" src={images[0]} alt={item.title} crossOrigin="anonymous" className="w-full h-full object-cover" />
+                                 {images.length > 1 && (
+                                   <div className="absolute bottom-1 right-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded tracking-widest font-bold">
+                                     +{images.length - 1} 圖片
+                                   </div>
+                                 )}
+                               </>
+                             );
+                           }
+                           return <div className="w-full h-full flex items-center justify-center text-gray-300 text-sm">無圖片</div>;
+                        })()}
                       </div>
                       <div className="w-full md:w-3/4 flex flex-col justify-between h-full">
                         <div>
