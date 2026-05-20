@@ -44,7 +44,7 @@ export default function Modal({ isOpen, onClose, title, children, maxWidth = 'ma
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3, type: 'spring', bounce: 0.3 }}
-            className={`relative bg-[var(--box-bg-color,#121212)] w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-[var(--theme-color,#d4af37)] overflow-hidden text-gray-200`}
+            className={`relative bg-[var(--box-bg-color,#121212)] w-full ${maxWidth} max-h-[90vh] flex flex-col shadow-2xl border border-[var(--theme-color,#d4af37)] overflow-hidden text-[var(--text-main,#fafafa)]`}
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}

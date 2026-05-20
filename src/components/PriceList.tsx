@@ -22,7 +22,7 @@ const PriceImageCarousel = ({ images, title }: { images: string[], title: string
   const [expand, setExpand] = useState(false);
 
   if (images.length === 0) {
-    return <div className="w-full h-48 flex items-center justify-center text-gray-300 tracking-widest text-sm bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#374151)]">無圖片</div>;
+    return <div className="w-full h-48 flex items-center justify-center text-[var(--text-muted,#9ca3af)] tracking-widest text-sm bg-[var(--box-bg-color,#1a1a1a)] border border-[var(--border-color,#374151)]">無圖片</div>;
   }
 
   const handleNext = (e?: React.MouseEvent) => {
@@ -250,7 +250,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                     {/* Header Area */}
                     <div>
                       <h3 className="text-3xl font-black tracking-widest text-[var(--theme-color,#d4af37)] mb-2">{activeItem.title}</h3>
-                      <p className="text-xl font-bold tracking-widest text-gray-200">標準價格：{activeItem.price || '未定'}</p>
+                      <p className="text-xl font-bold tracking-widest text-[var(--text-main,#fafafa)]">標準價格：{activeItem.price || '未定'}</p>
                     </div>
 
                     {/* Image Area */}
@@ -293,7 +293,7 @@ export default function PriceList({ onBack }: PriceListProps) {
                         
                         <div>
                           <p className="text-xs text-[var(--text-muted,#9ca3af)] tracking-widest mb-2">委託內容</p>
-                          <p className="text-sm tracking-widest leading-loose text-gray-600 whitespace-pre-wrap">
+                          <p className="text-sm tracking-widest leading-loose text-[var(--text-main,#fafafa)] whitespace-pre-wrap">
                             {activeItem.description || '無詳細說明'}
                           </p>
                         </div>

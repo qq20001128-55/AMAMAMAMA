@@ -116,7 +116,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
               ) : avatarUrl ? (
                 <img loading="lazy" src={avatarUrl} alt="瑪阿" className="w-full h-full object-cover" />
               ) : (
-                <span className="text-4xl font-black text-gray-300">瑪阿</span>
+                <span className="text-4xl font-black text-[var(--text-muted,#9ca3af)]">瑪阿</span>
               )}
             </div>
             
@@ -138,7 +138,7 @@ export default function FollowMe({ onBack, user }: FollowMeProps) {
           <div>
             <SectionTitle className="!mb-2">瑪阿</SectionTitle>
             <p className="text-sm text-[var(--theme-color,#d4af37)] tracking-widest font-bold mb-6">龍契局・承契者</p>
-            <div className="text-sm text-gray-600 tracking-widest leading-loose text-left">
+            <div className="text-sm text-[var(--text-muted,#9ca3af)] tracking-widest leading-loose text-left">
               <p>我是瑪阿，龍契局的承契者。</p>
               <br/>
               <p>平時活躍於臉書，會分享作品與創作日常；</p>

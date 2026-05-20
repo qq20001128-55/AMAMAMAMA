@@ -169,7 +169,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         
         <div className="window-box-octagon mb-10">
           <SectionTitle>注意事項</SectionTitle>
-          <div className="prose prose-sm max-w-none text-gray-300 space-y-6 leading-loose tracking-widest text-center flex flex-col items-center">
+          <div className="prose prose-sm max-w-none text-[var(--text-main,#fafafa)] space-y-6 leading-loose tracking-widest text-center flex flex-col items-center">
             
             <div className="w-full max-w-lg text-center">
               <h3 className="font-bold text-lg border-b-2 border-[var(--theme-color,#d4af37)] inline-block mb-3">一、 委託進度與支付流程</h3>
@@ -276,7 +276,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
         </button>
         <div className="window-box-octagon mb-10">
           <SectionTitle>授權與用途規範</SectionTitle>
-          <div className="prose prose-sm max-w-none text-gray-300 space-y-6 leading-loose tracking-widest text-center flex flex-col items-center">
+          <div className="prose prose-sm max-w-none text-[var(--text-main,#fafafa)] space-y-6 leading-loose tracking-widest text-center flex flex-col items-center">
             
             <p className="font-bold text-md text-[var(--theme-color,#d4af37)] mb-4">(Usage & Licensing Rights)<br/>本局依據用途性質，將卷宗分為以下三種授權等級。立契前請務必確認您的用途需求：</p>
 
@@ -360,7 +360,7 @@ export default function OrderForm({ onBack, commissionStatus, onPaymentInfoClick
           </div>
         </div>
         <SectionTitle>契約已立</SectionTitle>
-        <div className="text-gray-300 mb-8 tracking-widest leading-loose text-sm text-center md:text-left space-y-4">
+        <div className="text-[var(--text-muted,#9ca3af)] mb-8 tracking-widest leading-loose text-sm text-center md:text-left space-y-4">
           <p>專屬訂單編號將於委託正式確認後（進入排單中）隨信件發送給您，<br/>屆時即可使用編號於本站查詢進度。<br/>感謝你的委託與信任。</p>
           
           <p>龍契局會依據內容、時間與創作狀態進行承接判斷，<br/>並非所有委託皆能成立。</p>

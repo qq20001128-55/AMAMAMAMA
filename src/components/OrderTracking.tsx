@@ -272,7 +272,7 @@ export default function OrderTracking({ onBack }: OrderTrackingProps) {
                     <div key={node.id} className="flex flex-col items-center group w-24">
                       <div className={cn(
                         "w-12 h-12 rounded-full border-2 flex items-center justify-center transition-all duration-500 bg-[#fafafa] mb-4",
-                        isCompleted ? "border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)]" : "border-[var(--border-color,#374151)] text-gray-300",
+                        isCompleted ? "border-[var(--theme-color,#d4af37)] text-[var(--theme-color,#d4af37)]" : "border-[var(--border-color,#374151)] text-[var(--text-muted,#9ca3af)]",
                         isCurrent && "ring-4 ring-gray-100 bg-[var(--theme-color,#d4af37)] text-[var(--text-main,#ffffff)]"
                       )}>
                         {isCompleted ? <CheckCircle2 size={24} /> : <Clock size={24} />}

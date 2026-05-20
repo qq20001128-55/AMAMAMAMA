@@ -303,7 +303,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen text-gray-200 font-serif relative overflow-x-hidden md:overflow-hidden">
+    <div className="min-h-screen text-[var(--text-main,#e5e7eb)] font-serif relative overflow-x-hidden md:overflow-hidden">
       <Navbar setPage={setPage} currentPage={page} user={user} siteConfig={siteConfig} socialLinks={socialLinks} />
       
       <main className={cn("relative z-10 min-h-[calc(100vh)]", page === 'home' ? "" : (page === 'admin' ? "pt-20 px-2 sm:px-6 w-full" : "pt-32 px-6 pb-20 w-full max-w-7xl mx-auto"))}>

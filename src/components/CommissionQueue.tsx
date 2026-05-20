@@ -34,7 +34,7 @@ export default function CommissionQueue() {
       <div className="window-box-octagon">
         <SectionTitle className="!mb-6 !text-2xl">站內公告</SectionTitle>
         <div className="text-center">
-          <p className="text-gray-300 tracking-widest leading-loose whitespace-pre-wrap text-sm md:text-base">
+          <p className="text-[var(--text-main,#fafafa)] tracking-widest leading-loose whitespace-pre-wrap text-sm md:text-base">
             {announcement.text}
           </p>
         </div>
