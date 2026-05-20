@@ -30,7 +30,13 @@ export default function Portfolio({ onBack }: PortfolioProps) {
           console.warn('Failed to order artworks by createdAt, falling back to unordered fetch:', err);
           artSnap = await getDocs(collection(db, 'artworks'));
         }
-        setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      let artworksData = artSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      artworksData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+        return timeB - timeA;
+      });
+      setArtworks(artworksData);
       } catch (err) {
         console.error('Fetch portfolio error:', err);
       } finally {

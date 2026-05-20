@@ -322,8 +322,20 @@ const hexToRgba = (hex: string, opacity: number) => {
       setPortfolioCategories(cats);
       if (cats.length > 0) setSelectedCategoryId(cats[0].id);
 
-      const artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
-      setArtworks(artSnap.docs.map(d => ({ id: d.id, ...d.data() })));
+      let artSnap;
+      try {
+        artSnap = await getDocs(query(collection(db, 'artworks'), orderBy('createdAt', 'desc')));
+      } catch (err) {
+        console.warn('Failed to order artworks by createdAt, falling back to unordered fetch:', err);
+        artSnap = await getDocs(collection(db, 'artworks'));
+      }
+      let artworksData = artSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+      artworksData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : (a.createdAt || 0);
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : (b.createdAt || 0);
+        return timeB - timeA;
+      });
+      setArtworks(artworksData);
     } catch (err) {
       console.error('Fetch portfolio error:', err);
     }
